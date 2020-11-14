@@ -3,12 +3,17 @@ package lexical_analyzer;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Scanner;
-
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.control.Button;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+//import javafx.scene.control.cell.PropertyValueFactory; //wag muna idelete, baka importante sa table view??
 
 public class LexicalAnalyzer {
 	private Stage stage;
@@ -20,32 +25,57 @@ public class LexicalAnalyzer {
 	private File file;
 	private String file_string="";
 	private Scanner scanner;
-	
+    
 	int curr_pos = 0;
 	char curr_char;
 	String curr_lexeme = "";
 	boolean accepted_lexeme = false;
 	ArrayList<String> lexemes = new ArrayList<String>();
 	
-//	public final static int WINDOW_WIDTH = 1500;
-//	public final static int WINDOW_HEIGHT = 900;
+	public final static int WINDOW_WIDTH = 1500;
+	public final static int WINDOW_HEIGHT = 900;
 	
-	public final static int WINDOW_WIDTH = 100;
-	public final static int WINDOW_HEIGHT = 100;
-	
+	private Button fileButton = new Button("Select LOLCODE file");
+	private Button executeButton = new Button("EXECUTE");
+	private TextArea textarea = new TextArea();
+    private TableColumn<Lexemes, Lexemes> lexemefirstDataColumn, lexemesecondDataColumn;
+    private TableColumn<Symbols, Symbols> symbolfirstDataColumn, symbolsecondDataColumn;
+    private TableView<Lexemes> lexemetable_view = new TableView<Lexemes>();
+    private TableView<Symbols> symboltable_view = new TableView<Symbols>(); 
+
 	public LexicalAnalyzer() {
 		root = new Group();
-		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT);
+		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.BISQUE);
 		canvas = new Canvas(WINDOW_HEIGHT,WINDOW_HEIGHT);
 		canvas.getGraphicsContext2D();
 	}
 	
 	public void setStage(Stage stage) {
-		openFile();
-		getLexemes();
-		
-		root.getChildren().add(canvas);
+		//set preferences for "select LOLCODE file" button
+        this.fileButton.setLayoutX(0);
+        this.fileButton.setLayoutY(50);
+        this.fileButton.setMinWidth(500);
+        
+        //set preferences for "EXECUTE" button
+        this.executeButton.setLayoutX(0);
+        this.executeButton.setLayoutY(550);
+        this.executeButton.setMinWidth(1500);
+        
+        //set preferences for displaying text area
+        this.textarea.setLayoutX(0);
+        this.textarea.setLayoutY(80);
+        this.textarea.setPrefWidth(500);
+        this.textarea.setPrefHeight(470);
+        this.textarea.setEditable(false);
 
+        //call to functions
+		openFile();	
+		generateLexemes();
+		createTable("lexemes");
+		createTable("symbols");
+		
+		root.getChildren().addAll(canvas, textarea, fileButton, executeButton);
+		
 		this.stage = stage;
 		this.stage.setTitle("LOLCode Interpreter");
 		this.stage.setScene(this.scene);
@@ -53,23 +83,35 @@ public class LexicalAnalyzer {
 	}
 	
 	private void openFile() {
-		file = file_chooser.showOpenDialog(stage);
-		
-		try {
-			scanner = new Scanner(file);
-			
-			//save file to a string
-			while(scanner.hasNextLine()) {
-				String line = scanner.nextLine();
-				file_string += line += '\n';
-			} 
-			
-			System.out.println(file_string);
-		} catch(Exception e){
-			System.out.println("file not found!");
-		}		
+		//action for "select LOLCODE file" button
+        fileButton.setOnAction(e -> { 
+        	file = file_chooser.showOpenDialog(stage);
+        	//no file chosen
+            if(file == null) {
+            	System.out.println("[!] User cancelled input dialog.");
+            } else { //file chosen
+        		try {
+        			scanner = new Scanner(file);
+        			
+        			//save file to a string
+        			while(scanner.hasNextLine()) {
+        				String line = scanner.nextLine();
+        				file_string += line += '\n';
+        			} 
+        			
+        			//add to text area the content of file read
+        			this.textarea.setText(file_string); 
+        			System.out.println(file_string);
+        		} catch(Exception a){
+        			System.out.println("file not found!");
+        		}
+        		
+        		//execute lexeme analyzer after selecting lolcode file
+        		getLexemes();
+            }
+        });
 	}
-
+	
 	private void getLexemes() {
 		while(curr_pos < file_string.length()-1) {
 			//get current character and increment position
@@ -165,5 +207,63 @@ public class LexicalAnalyzer {
 	
 	public boolean isSpace(char c) {
 		return c == ' ' || c == '\t';                                 
+	}
+	
+	//add this to remove warnings for table views
+    @SuppressWarnings("unchecked")
+	private void createTable(String type) {
+    	if(type == "lexemes") {
+    		//column header naming
+        	lexemefirstDataColumn = new TableColumn<>("Lexeme"); 
+        	lexemesecondDataColumn = new TableColumn<>("Classification"); 
+
+        
+//        	lexemefirstDataColumn.setCellValueFactory(new PropertyValueFactory<>("lexemes"));
+//        	lexemesecondDataColumn.setCellValueFactory(new PropertyValueFactory<>("classifications"));
+        	
+        	
+        	//set table view column width preference
+        	lexemefirstDataColumn.setMinWidth(250);
+        	lexemesecondDataColumn.setMinWidth(250);
+        	
+        	//set table view size preference
+        	lexemetable_view.setLayoutX(500);
+        	lexemetable_view.setLayoutY(50);
+        	lexemetable_view.setPrefHeight(500);
+        	
+        	//not editable, output should only based on analyzer
+        	lexemetable_view.setEditable(false);
+        	lexemetable_view.getSelectionModel().setCellSelectionEnabled(true);
+        	lexemetable_view.getColumns().addAll(lexemefirstDataColumn, lexemesecondDataColumn);
+            root.getChildren().add(lexemetable_view);
+    	} else if(type == "symbols"){
+        	symbolfirstDataColumn = new TableColumn<>("Identifier"); 
+        	symbolsecondDataColumn = new TableColumn<>("Value"); 
+
+//        	symbolfirstDataColumn.setCellValueFactory(new PropertyValueFactory<>("identifiers"));
+//        	symbolsecondDataColumn.setCellValueFactory(new PropertyValueFactory<>("values"));
+        	
+        	//set table view column width preference
+        	symbolfirstDataColumn.setMinWidth(250);
+        	symbolsecondDataColumn.setMinWidth(250);
+        	
+        	//set table view size preference
+        	symboltable_view.setLayoutX(1000);
+        	symboltable_view.setLayoutY(50);
+        	symboltable_view.setPrefHeight(500);
+
+        	//not editable, output should only based on analyzer
+        	symboltable_view.setEditable(false);
+        	symboltable_view.getSelectionModel().setCellSelectionEnabled(true);
+        	symboltable_view.getColumns().addAll(symbolfirstDataColumn, symbolsecondDataColumn);
+            root.getChildren().add(symboltable_view);
+    	} 
+    }
+    
+	private void generateLexemes() {
+		executeButton.setOnAction(e -> {
+			System.out.println("Insert functionalities here for symbols");
+        });
+	
 	}
 }
