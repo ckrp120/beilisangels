@@ -99,7 +99,7 @@ public class LexicalAnalyzer {
 			//concatenate the current character to the current lexeme
 			curr_lexeme += curr_char;
 			
-			System.out.println(curr_lexeme + " " + curr_pos);
+			// System.out.println(curr_lexeme + " " + curr_pos);
 			
 			//check if the current lexeme is valid
 			if(checkLexeme(curr_lexeme)) {
@@ -108,7 +108,7 @@ public class LexicalAnalyzer {
 			}
 		}
 		
-		System.out.println("\nLIST OF LEXEMES\n");
+		System.out.println("\nLIST OF LEXEMES");
 		for(int i=0;i<lexemes.size();i++) {
 			System.out.println(i+1 + ". " + lexemes.get(i));
 		}
