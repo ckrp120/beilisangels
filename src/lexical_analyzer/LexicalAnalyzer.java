@@ -3,6 +3,7 @@ package lexical_analyzer;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Scanner;
+
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -10,6 +11,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -23,6 +25,7 @@ public class LexicalAnalyzer {
 	
 	private FileChooser file_chooser = new FileChooser();
 	private File file;
+	private boolean isFileValid;
 	private String file_string="";
 	private Scanner scanner;
     
@@ -30,7 +33,7 @@ public class LexicalAnalyzer {
 	char curr_char;
 	String curr_lexeme = "";
 	boolean accepted_lexeme = false;
-	ArrayList<String> lexemes = new ArrayList<String>();
+	ArrayList<Token> tokens = new ArrayList<Token>();
 	
 	public final static int WINDOW_WIDTH = 1500;
 	public final static int WINDOW_HEIGHT = 900;
@@ -38,9 +41,9 @@ public class LexicalAnalyzer {
 	private Button fileButton = new Button("Select LOLCODE file");
 	private Button executeButton = new Button("EXECUTE");
 	private TextArea textarea = new TextArea();
-    private TableColumn<Lexemes, Lexemes> lexemefirstDataColumn, lexemesecondDataColumn;
+    private TableColumn<Token, String> lexemefirstDataColumn, lexemesecondDataColumn;
     private TableColumn<Symbols, Symbols> symbolfirstDataColumn, symbolsecondDataColumn;
-    private TableView<Lexemes> lexemetable_view = new TableView<Lexemes>();
+    private TableView<Token> lexemetable_view = new TableView<Token>();
     private TableView<Symbols> symboltable_view = new TableView<Symbols>(); 
 
 	public LexicalAnalyzer() {
@@ -90,26 +93,37 @@ public class LexicalAnalyzer {
             if(file == null) {
             	System.out.println("[!] User cancelled input dialog.");
             } else { //file chosen
-        		try {
-        			scanner = new Scanner(file);
-        			
-        			//save file to a string
-        			while(scanner.hasNextLine()) {
-        				String line = scanner.nextLine();
-        				file_string += line += '\n';
-        			} 
-        			
-        			//add to text area the content of file read
-        			this.textarea.setText(file_string); 
-        			System.out.println(file_string);
-        		} catch(Exception a){
-        			System.out.println("file not found!");
-        		}
-        		
-        		//execute lexeme analyzer after selecting lolcode file
-        		getLexemes();
+            	//System.out.println(file.getAbsolutePath());
+            	
+            	//check if file extension ends with ,lol
+            	if(file.getAbsolutePath().matches(".*lol$")) readFile();
+            	else System.out.println("Invalid file!");
+            	
             }
         });
+	}
+	
+	private void readFile() {
+		
+		resetAnalyzer();
+		try {
+			scanner = new Scanner(file);
+			
+			//save file to a string
+			while(scanner.hasNextLine()) {
+				String line = scanner.nextLine();
+				file_string += line += '\n';
+			} 
+			
+			//add to text area the content of file read
+			this.textarea.setText(file_string); 
+			System.out.println(file_string);
+		} catch(Exception a){
+			System.out.println("file not found!");
+		}
+		
+		//execute lexeme analyzer after selecting lolcode file
+		getLexemes();
 	}
 	
 	private void getLexemes() {
@@ -128,6 +142,9 @@ public class LexicalAnalyzer {
 					curr_char = file_string.charAt(curr_pos);
 					curr_pos++;
 				}
+			}else {
+				
+				
 			}
 			
 			//if current characters are next line followed by spaces/tabs, ignore and increment position
@@ -141,68 +158,27 @@ public class LexicalAnalyzer {
 			//concatenate the current character to the current lexeme
 			curr_lexeme += curr_char;
 			
-			// System.out.println(curr_lexeme + " " + curr_pos);
+			
 			
 			//check if the current lexeme is valid
 			if(checkLexeme(curr_lexeme)) {
 				accepted_lexeme = true;
-				lexemes.add(curr_lexeme);
+				tokens.add(new Token(curr_lexeme));
 			}
 		}
 		
 		System.out.println("\nLIST OF LEXEMES");
-		for(int i=0;i<lexemes.size();i++) {
-			System.out.println(i+1 + ". " + lexemes.get(i));
+		for(int i=0;i<tokens.size();i++) {
+			System.out.println(i+1 + ". " + tokens.get(i).getLexeme() + " " + tokens.get(i).getClassification());
 		}
 	}
 	
 	
 	//return true if the current lexeme is valid
 	public boolean checkLexeme(String curr_lexeme) {
-		return curr_lexeme.equals(Lexemes.HAI) ||
-				curr_lexeme.equals(Lexemes.KTHXBYE) ||
-				curr_lexeme.equals(Lexemes.BTW) ||
-				curr_lexeme.equals(Lexemes.OBTW) ||
-				curr_lexeme.equals(Lexemes.TLDR) ||
-				curr_lexeme.equals(Lexemes.I_HAS_A) ||
-				curr_lexeme.equals(Lexemes.ITZ) ||
-				curr_lexeme.equals(Lexemes.R) ||
-				curr_lexeme.equals(Lexemes.SUM_OF) ||
-				curr_lexeme.equals(Lexemes.DIFF_OF) ||
-				curr_lexeme.equals(Lexemes.PRODUKT_OF) ||
-				curr_lexeme.equals(Lexemes.QUOSHUNT_OF) ||
-				curr_lexeme.equals(Lexemes.MOD_OF) ||
-				curr_lexeme.equals(Lexemes.BIGGR_OF) ||
-				curr_lexeme.equals(Lexemes.SMALLR_OF) ||
-				curr_lexeme.equals(Lexemes.BOTH_OF) ||
-				curr_lexeme.equals(Lexemes.EITHER_OF) ||
-				curr_lexeme.equals(Lexemes.WON_OF) ||
-				curr_lexeme.equals(Lexemes.NOT) ||
-				curr_lexeme.equals(Lexemes.ANY_OF) ||
-				curr_lexeme.equals(Lexemes.ALL_OF) ||
-				curr_lexeme.equals(Lexemes.BOTH_SAEM) ||
-				curr_lexeme.equals(Lexemes.DIFFRINT) ||
-				curr_lexeme.equals(Lexemes.SMOOSH) ||
-				curr_lexeme.equals(Lexemes.MAEK) ||
-				curr_lexeme.equals(Lexemes.A) ||
-				curr_lexeme.equals(Lexemes.IS_NOW_A) ||
-				curr_lexeme.equals(Lexemes.VISIBLE) ||
-				curr_lexeme.equals(Lexemes.GIMMEH) ||
-				curr_lexeme.equals(Lexemes.O_RLY) ||
-				curr_lexeme.equals(Lexemes.YA_RLY) ||
-				curr_lexeme.equals(Lexemes.MEBBE) ||
-				curr_lexeme.equals(Lexemes.NO_WAI) ||
-				curr_lexeme.equals(Lexemes.OIC) ||
-				curr_lexeme.equals(Lexemes.WTF) ||
-				curr_lexeme.equals(Lexemes.OMG) ||
-				curr_lexeme.equals(Lexemes.OMGWTF) ||
-				curr_lexeme.equals(Lexemes.IM_IN_YR) ||
-				curr_lexeme.equals(Lexemes.UPPIN) ||
-				curr_lexeme.equals(Lexemes.NERFIN) ||
-				curr_lexeme.equals(Lexemes.YR) ||
-				curr_lexeme.equals(Lexemes.TIL) ||
-				curr_lexeme.equals(Lexemes.WILE) ||
-				curr_lexeme.equals(Lexemes.IM_OUTTA_YR);			
+		
+		//check if lexeme exists in the hashmap
+		return Token.TOKEN_CLASSIFIER.containsKey(curr_lexeme);
 	} 
 	
 	public boolean isSpace(char c) {
@@ -214,8 +190,10 @@ public class LexicalAnalyzer {
 	private void createTable(String type) {
     	if(type == "lexemes") {
     		//column header naming
-        	lexemefirstDataColumn = new TableColumn<>("Lexeme"); 
+        	lexemefirstDataColumn = new TableColumn<>("Lexeme");
         	lexemesecondDataColumn = new TableColumn<>("Classification"); 
+        	
+
 
         
 //        	lexemefirstDataColumn.setCellValueFactory(new PropertyValueFactory<>("lexemes"));
@@ -260,10 +238,35 @@ public class LexicalAnalyzer {
     	} 
     }
     
+    
+    private void populateTable() {
+    	
+    	//select attribute to show in the column
+    	lexemefirstDataColumn.setCellValueFactory(new PropertyValueFactory<>("lexeme"));
+    	lexemesecondDataColumn.setCellValueFactory(new PropertyValueFactory<>("classification"));
+    	
+    	//populate table
+    	for(Token token: tokens)
+			lexemetable_view.getItems().add(token);
+    }
+    
 	private void generateLexemes() {
 		executeButton.setOnAction(e -> {
-			System.out.println("Insert functionalities here for symbols");
+			populateTable();
         });
 	
+	}
+	
+	private void resetAnalyzer() {
+		
+		//clear all values
+		file_string = "";
+		curr_pos = 0;
+		curr_char = Character.MIN_VALUE;
+		curr_lexeme = "";
+		accepted_lexeme = false;
+		tokens.clear();
+		lexemetable_view.getItems().clear();
+		
 	}
 }
