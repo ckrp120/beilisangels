@@ -5,23 +5,25 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 public class Token {
+	//REGULAR EXPRESSIONS OF TOKENS
 	
-	//constants for lexemes
+	//IDENTIFIERS
 	public final static Pattern VARIABLE_IDENTIFIER = Pattern.compile("^[a-zA-Z][a-zA-Z0-9_]*$");
 	public final static Pattern FUNCTION_LOOP_IDENTIFIER = Pattern.compile("[A-Z][A-Z0-9_]*$");
+	
+	//LITERALS
 	public final static Pattern NUMBR_LITERAL = Pattern.compile("^-?[0-9]+$");
 	public final static Pattern NUMBAR_LITERAL = Pattern.compile("^-?[0-9]+\\.[0-9]+$");
 	public final static Pattern YARN_LITERAL = Pattern.compile("^(?<=\").*(?=\")$");
-	
 	public final static String WIN_TROOF_LITERAL = "WIN";
 	public final static String FAIL_TROOF_LITERAL = "FAIL";
-	
 	public final static String NUMBR_TYPE_LITERAL = "NUMBR";
 	public final static String NUMBAR_TYPE_LITERAL = "NUMBAR";
 	public final static String YARN_TYPE_LITERAL = "YARN";
 	public final static String TROOF_TYPE_LITERAL = "TROOF";
 	public final static String NOOB_TYPE_LITERAL = "NOOB";
 	
+	//KEYWORDS
 	public final static String HAI = "HAI";
 	public final static String KTHXBYE = "KTHXBYE";
 	public final static String BTW = "BTW";
@@ -67,19 +69,27 @@ public class Token {
 	public final static String WILE = "WILE";
 	public final static String IM_OUTTA_YR = "IM OUTTA YR";
 	
+	//DELIMITERS
 	public final static String STRING_DELIMITER = "\"";
 	public final static String OPEN_PARENTHESIS_DELIMETER = "(";
 	public final static String CLOSE_PARENTHESIS_DELIMETER = ")";
 	
 	
-	//constants for description of lexemes
+	//CLASSIFICATION OF TOKENS
+	
+	//FOR IDENTIFIERS
 	public final static String VARIABLE_IDENTIFIER_CLASSIFIER = "Variable Identifier";
 	public final static String FUNCTION_LOOP_IDENTIFIER_CLASSIFIER = "Function/Loop Identifier";   
+	
+	//FOR LITERALS
 	public final static String NUMBR_LITERAL_CLASSIFIER = "Integer Literal";  
 	public final static String NUMBAR_LITERAL_CLASSIFIER = "Float Literal"; 
 	public final static String YARN_LITERAL_CLASSIFIER = "String Literal";  
 	public final static String TROOF_LITERAL_CLASSIFIER = "Boolean Literal";   
-	public final static String TYPE_LITERAL_CLASSIFIER = "Type Literal";   public final static String HAI_CLASSIFIER = "Program Initializer";
+	public final static String TYPE_LITERAL_CLASSIFIER = "Type Literal";   
+	
+	//FOR KEYWORDS
+	public final static String HAI_CLASSIFIER = "Program Initializer";
 	public final static String KTHXBYE_CLASSIFIER = "Program Terminator";
 	public final static String BTW_CLASSIFIER = "Comment (one line)";
 	public final static String OBTW_CLASSIFIER = "Comment (multiline) Signifier";
@@ -123,12 +133,14 @@ public class Token {
 	public final static String TIL_CLASSIFIER = "Til Keyword";
 	public final static String WILE_CLASSIFIER = "Wile Keyword";
 	public final static String IM_OUTTA_YR_CLASSIFIER = "Loop Terminator";
+	
+	//FOR DELIMITERS
 	public final static String STRING_DELIMITER_CLASSIFIER = "String Delimeter";
 	public final static String OPEN_PARENTHESIS_CLASSIFIER = "Open Parenthesis Delimeter";
 	public final static String CLOSE_PARENTHESIS_CLASSIFIER = "Close Parenthesis Delimeter";
 	
 	
-	//map description to its corresponding lexeme
+	//MAPPING TOKEN (FOR BOOLEAN & TYPE LITERALS AND KEYWORDS) TO ITS CORRESPONDING CLASSIFICATION
 	public final static Map<String, String> TOKEN_CLASSIFIER1 = new HashMap<String, String>(){{
 		put(Token.WIN_TROOF_LITERAL,Token.TROOF_LITERAL_CLASSIFIER);   
 		put(Token.FAIL_TROOF_LITERAL,Token.TROOF_LITERAL_CLASSIFIER);   
@@ -181,12 +193,13 @@ public class Token {
 	    put(Token.TIL, Token.TIL_CLASSIFIER);
 	    put(Token.WILE, Token.WILE_CLASSIFIER);
 	    put(Token.IM_OUTTA_YR, Token.IM_OUTTA_YR_CLASSIFIER);
-//	    put(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER);
-//	    put(Token.OPEN_PARENTHESIS_DELIMETER, Token.OPEN_PARENTHESIS_CLASSIFIER);
-//	    put(Token.CLOSE_PARENTHESIS_DELIMETER, Token.CLOSE_PARENTHESIS_CLASSIFIER);
+	    put(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER);
+	    put(Token.OPEN_PARENTHESIS_DELIMETER, Token.OPEN_PARENTHESIS_CLASSIFIER);
+	    put(Token.CLOSE_PARENTHESIS_DELIMETER, Token.CLOSE_PARENTHESIS_CLASSIFIER);
 	    
 	}};
 	
+	//MAPPING TOKEN (FOR IDENTIFIERS AND NUMBER & STRING LITERALS) TO ITS CORRESPONDING CLASSIFICATION
 	public final static Map<Pattern, String> TOKEN_CLASSIFIER2 = new HashMap<Pattern, String>(){{
 		put(Token.VARIABLE_IDENTIFIER,Token.VARIABLE_IDENTIFIER_CLASSIFIER);   
 		put(Token.FUNCTION_LOOP_IDENTIFIER,FUNCTION_LOOP_IDENTIFIER_CLASSIFIER);   
