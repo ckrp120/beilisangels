@@ -3,6 +3,8 @@ package lexical_analyzer;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.regex.Pattern;
+
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -39,7 +41,9 @@ public class LexicalAnalyzer {
     private TableView<Symbol> symbolTableView = new TableView<Symbol>(); 
 	
 	ArrayList<Token> tokens = new ArrayList<Token>();
-	
+	Pattern possibleKeyword = Pattern.compile("SUM|DIFF|PRODUCKT|QUOSHUNT|MOD|BIGGR|SMALLR|BOTH|EITHER|WON|ANY|ALL"
+									  +"|I|I HAS|BOTH|IS|IS NOW|O|YA|NO|IM|IM IN| IM OUTTA");
+
 	
 	public LexicalAnalyzer() {
 		root = new Group();
@@ -120,18 +124,22 @@ public class LexicalAnalyzer {
 	}
 	
 	//return classification if the current lexeme is a token
-	public String checkLexeme(String curr_lexeme) {
-		if(Token.TOKEN_CLASSIFIER1.containsKey(curr_lexeme)) return Token.TOKEN_CLASSIFIER1.get(curr_lexeme);
-//		if(Token.VARIABLE_IDENTIFIER.matcher(curr_lexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.VARIABLE_IDENTIFIER);
-//		if(Token.FUNCTION_LOOP_IDENTIFIER.matcher(curr_lexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.FUNCTION_LOOP_IDENTIFIER);
-		if(Token.NUMBR_LITERAL.matcher(curr_lexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBR_LITERAL);
-		if(Token.NUMBAR_LITERAL.matcher(curr_lexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBAR_LITERAL);
-		if(Token.YARN_LITERAL.matcher(curr_lexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.YARN_LITERAL);
-		
+	public String checkLexeme(String currentLexeme) {
+		if(Token.TOKEN_CLASSIFIER1.containsKey(currentLexeme)) return Token.TOKEN_CLASSIFIER1.get(currentLexeme);
+		if(!possibleKeyword(currentLexeme)) {
+			if(Token.VARIABLE_IDENTIFIER.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.VARIABLE_IDENTIFIER);
+			if(Token.FUNCTION_LOOP_IDENTIFIER.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.FUNCTION_LOOP_IDENTIFIER);
+		}
+		if(Token.NUMBR_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBR_LITERAL);
+		if(Token.NUMBAR_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBAR_LITERAL);
+		if(Token.YARN_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.YARN_LITERAL);
+
 		return null;
 	} 
 
-	
+	public boolean possibleKeyword(String currentLexeme) {
+		return possibleKeyword.matcher(currentLexeme).matches();
+	}
 	//FUNCTIONS FOR FILE READING
 
 	private void openFile() {

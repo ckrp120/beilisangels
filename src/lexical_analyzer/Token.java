@@ -8,13 +8,13 @@ public class Token {
 	//REGULAR EXPRESSIONS OF TOKENS
 	
 	//IDENTIFIERS
-	public final static Pattern VARIABLE_IDENTIFIER = Pattern.compile("^[a-zA-Z][a-zA-Z0-9_]*$");
-	public final static Pattern FUNCTION_LOOP_IDENTIFIER = Pattern.compile("[A-Z][A-Z0-9_]*$");
+	public final static Pattern VARIABLE_IDENTIFIER = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]*");
+	public final static Pattern FUNCTION_LOOP_IDENTIFIER = Pattern.compile("[A-Z][A-Z0-9_]*");
 	
 	//LITERALS
-	public final static Pattern NUMBR_LITERAL = Pattern.compile("^-?[0-9]+$");
-	public final static Pattern NUMBAR_LITERAL = Pattern.compile("^-?[0-9]+\\.[0-9]+$");
-	public final static Pattern YARN_LITERAL = Pattern.compile("^(?<=\").*(?=\")$");
+	public final static Pattern NUMBR_LITERAL = Pattern.compile("-?[0-9]+");
+	public final static Pattern NUMBAR_LITERAL = Pattern.compile("-?[0-9]+\\.[0-9]+");
+	public final static Pattern YARN_LITERAL = Pattern.compile("(?<=\").*(?=\")");
 	public final static String WIN_TROOF_LITERAL = "WIN";
 	public final static String FAIL_TROOF_LITERAL = "FAIL";
 	public final static String NUMBR_TYPE_LITERAL = "NUMBR";
@@ -141,7 +141,10 @@ public class Token {
 	
 	
 	//MAPPING TOKEN (FOR BOOLEAN & TYPE LITERALS AND KEYWORDS) TO ITS CORRESPONDING CLASSIFICATION
-	public final static Map<String, String> TOKEN_CLASSIFIER1 = new HashMap<String, String>(){{
+	public final static Map<String, String> TOKEN_CLASSIFIER1 = new HashMap<String, String>(){
+		private static final long serialVersionUID = 1L;
+
+	{
 		put(Token.WIN_TROOF_LITERAL,Token.TROOF_LITERAL_CLASSIFIER);   
 		put(Token.FAIL_TROOF_LITERAL,Token.TROOF_LITERAL_CLASSIFIER);   
 		put(Token.NUMBR_TYPE_LITERAL,Token.TYPE_LITERAL_CLASSIFIER); 
@@ -200,7 +203,9 @@ public class Token {
 	}};
 	
 	//MAPPING TOKEN (FOR IDENTIFIERS AND NUMBER & STRING LITERALS) TO ITS CORRESPONDING CLASSIFICATION
-	public final static Map<Pattern, String> TOKEN_CLASSIFIER2 = new HashMap<Pattern, String>(){{
+	public final static Map<Pattern, String> TOKEN_CLASSIFIER2 = new HashMap<Pattern, String>(){
+		private static final long serialVersionUID = 1L;
+	{
 		put(Token.VARIABLE_IDENTIFIER,Token.VARIABLE_IDENTIFIER_CLASSIFIER);   
 		put(Token.FUNCTION_LOOP_IDENTIFIER,FUNCTION_LOOP_IDENTIFIER_CLASSIFIER);   
 		put(Token.NUMBR_LITERAL,Token.NUMBR_LITERAL_CLASSIFIER); 
