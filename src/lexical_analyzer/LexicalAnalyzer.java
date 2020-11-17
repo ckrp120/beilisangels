@@ -83,6 +83,7 @@ public class LexicalAnalyzer {
 		this.stage.show();
 	}
 	
+	
 	//FUNCTIONS FOR EXECUTING LEXICAL ANALYZER
 	
 	private void getLexemes() {
@@ -137,9 +138,12 @@ public class LexicalAnalyzer {
 		return null;
 	} 
 
+	//check if the current lexeme is a possible keyword
 	public boolean possibleKeyword(String currentLexeme) {
 		return possibleKeyword.matcher(currentLexeme).matches();
 	}
+	
+	
 	//FUNCTIONS FOR FILE READING
 
 	private void openFile() {
@@ -232,7 +236,6 @@ public class LexicalAnalyzer {
             root.getChildren().add(symbolTableView);
     	} 
     }
-    
     
     private void populateTable() {
     	//select attribute to show in the column
