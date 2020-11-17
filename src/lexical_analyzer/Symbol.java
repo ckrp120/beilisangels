@@ -1,9 +1,9 @@
 package lexical_analyzer;
 
-public class Symbols {
+public class Symbol {
 	private String symbol, value;
 	
-	public Symbols(String symbol, String value) {
+	public Symbol(String symbol, String value) {
 		this.symbol = symbol;
 		this.value = value;
 	}

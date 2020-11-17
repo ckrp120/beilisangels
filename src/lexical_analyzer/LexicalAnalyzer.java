@@ -24,9 +24,10 @@ public class LexicalAnalyzer {
 	private Canvas canvas;
 	
 	private FileChooser file_chooser = new FileChooser();
-	private File file;
+	private File file = new File("sample.lol"); //ginanto ko muna para execute na agad iciclick haha -tin
 	private boolean isFileValid;
 	private String file_string="";
+	private String classification;
 	private Scanner scanner;
     
 	int curr_pos = 0;
@@ -42,9 +43,9 @@ public class LexicalAnalyzer {
 	private Button executeButton = new Button("EXECUTE");
 	private TextArea textarea = new TextArea();
     private TableColumn<Token, String> lexemefirstDataColumn, lexemesecondDataColumn;
-    private TableColumn<Symbols, Symbols> symbolfirstDataColumn, symbolsecondDataColumn;
+    private TableColumn<Symbol, Symbol> symbolfirstDataColumn, symbolsecondDataColumn;
     private TableView<Token> lexemetable_view = new TableView<Token>();
-    private TableView<Symbols> symboltable_view = new TableView<Symbols>(); 
+    private TableView<Symbol> symboltable_view = new TableView<Symbol>(); 
 
 	public LexicalAnalyzer() {
 		root = new Group();
@@ -96,7 +97,7 @@ public class LexicalAnalyzer {
             	//System.out.println(file.getAbsolutePath());
             	
             	//check if file extension ends with ,lol
-            	if(file.getAbsolutePath().matches(".*lol$")) readFile();
+            	if(file.getAbsolutePath().matches(".*.lol$")) readFile();
             	else System.out.println("Invalid file!");
             	
             }
@@ -159,11 +160,11 @@ public class LexicalAnalyzer {
 			curr_lexeme += curr_char;
 			
 			
-			
+			classification = checkLexeme(curr_lexeme);
 			//check if the current lexeme is valid
-			if(checkLexeme(curr_lexeme)) {
+			if(classification != null) {
 				accepted_lexeme = true;
-				tokens.add(new Token(curr_lexeme));
+				tokens.add(new Token(curr_lexeme,classification));
 			}
 		}
 		
@@ -174,11 +175,24 @@ public class LexicalAnalyzer {
 	}
 	
 	
+//	put(Token.VARIABLE_IDENTIFIER,Token.VARIABLE_IDENTIFIER_CLASSIFIER);   
+//	put(Token.FUNCTION_LOOP_IDENTIFIER,FUNCTION_LOOP_IDENTIFIER_CLASSIFIER);   
+//	put(Token.NUMBR_LITERAL,Token.NUMBR_LITERAL_CLASSIFIER); 
+//	put(Token.NUMBAR_LITERAL,Token.NUMBAR_LITERAL_CLASSIFIER); 
+//	put(Token.YARN_LITERAL,Token.YARN_LITERAL_CLASSIFIER); 
+	
 	//return true if the current lexeme is valid
-	public boolean checkLexeme(String curr_lexeme) {
+	public String checkLexeme(String curr_lexeme) {
 		
 		//check if lexeme exists in the hashmap
-		return Token.TOKEN_CLASSIFIER.containsKey(curr_lexeme);
+		if(Token.TOKEN_CLASSIFIER1.containsKey(curr_lexeme)) return Token.TOKEN_CLASSIFIER1.get(curr_lexeme);
+//		if(Token.VARIABLE_IDENTIFIER.matcher(curr_lexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.VARIABLE_IDENTIFIER);
+//		if(Token.FUNCTION_LOOP_IDENTIFIER.matcher(curr_lexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.FUNCTION_LOOP_IDENTIFIER);
+		if(Token.NUMBR_LITERAL.matcher(curr_lexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBR_LITERAL);
+		if(Token.NUMBAR_LITERAL.matcher(curr_lexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBAR_LITERAL);
+		if(Token.YARN_LITERAL.matcher(curr_lexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.YARN_LITERAL);
+		
+		return null;
 	} 
 	
 	public boolean isSpace(char c) {
@@ -252,6 +266,7 @@ public class LexicalAnalyzer {
     
 	private void generateLexemes() {
 		executeButton.setOnAction(e -> {
+			readFile(); //ginanto ko muna para execute na agad iciclick haha -tin
 			populateTable();
         });
 	

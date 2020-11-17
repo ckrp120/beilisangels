@@ -1,0 +1,4 @@
+HAI
+	I HAS A ITZ 12
+	VISIBLE "noot noot"
+KTHXBYE
