@@ -1,4 +1,4 @@
 HAI
 	I HAS A var1 ITZ 143.24
-	VISIBLE "hello sana kinakaya niyo pa hehe"
+	VISIBLE "hello sana kinakaya "" niyo pa hehe"
 KTHXBYE

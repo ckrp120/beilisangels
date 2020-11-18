@@ -2,7 +2,9 @@ package lexical_analyzer;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Map.Entry;
 import java.util.Scanner;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javafx.scene.Group;
@@ -108,8 +110,28 @@ public class LexicalAnalyzer {
 					
 					//if it is, then add it to the list of tokens
 					if(classification != null) {
-						tokens.add(new Token(currentLexeme,classification));
+						//if string is detected, extract the contents inside the dbl quote
+						if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {
+							
+							//matcher to capture group
+							Matcher m = Token.YARN_LITERAL.matcher(currentLexeme);
+							
+							//string buffer to get contents of captured group
+							StringBuffer lexeme = new StringBuffer();
+							
+							//append all contents of captured group
+							while (m.find()) {
+							  lexeme.append(m.group(1));
+							}
+							
+							//add the start, string literal, and end quotes individually
+							tokens.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
+							tokens.add(new Token(lexeme.toString(), classification));
+							tokens.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
+							
+						}else tokens.add(new Token(currentLexeme,classification));	//if not a string, add as is
 						currentLexeme ="";	
+						
 					} else {
 						currentLexeme += " ";
 					}
@@ -127,7 +149,7 @@ public class LexicalAnalyzer {
 	//return classification if the current lexeme is a token
 	public String checkLexeme(String currentLexeme) {
 		if(Token.TOKEN_CLASSIFIER1.containsKey(currentLexeme)) return Token.TOKEN_CLASSIFIER1.get(currentLexeme);
-		if(!possibleKeyword(currentLexeme)) {
+		else if(!possibleKeyword(currentLexeme)) {
 			if(Token.VARIABLE_IDENTIFIER.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.VARIABLE_IDENTIFIER);
 			if(Token.FUNCTION_LOOP_IDENTIFIER.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.FUNCTION_LOOP_IDENTIFIER);
 		}
@@ -140,7 +162,17 @@ public class LexicalAnalyzer {
 
 	//check if the current lexeme is a possible keyword
 	public boolean possibleKeyword(String currentLexeme) {
-		return possibleKeyword.matcher(currentLexeme).matches();
+		//iterate through keys in the hashmap of classifiers
+		for(Entry<String, String> token: Token.TOKEN_CLASSIFIER1.entrySet()) {
+			//if the current lexeme is a substring of a keyword, return true
+			if(token.getKey().contains(currentLexeme)) {
+				System.out.println(currentLexeme);
+				return true;
+			}
+		}
+		
+		//if the current lexeme is not a substring of any keyword, return false
+		return false;
 	}
 	
 	
