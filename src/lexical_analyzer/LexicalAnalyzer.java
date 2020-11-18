@@ -121,7 +121,7 @@ public class LexicalAnalyzer {
 							
 							//append all contents of captured group
 							while (m.find()) {
-							  lexeme.append(m.group(1));
+							  lexeme.append(m.group(1).replace("\"", ""));
 							}
 							
 							//add the start, string literal, and end quotes individually

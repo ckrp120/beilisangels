@@ -14,7 +14,7 @@ public class Token {
 	//LITERALS
 	public final static Pattern NUMBR_LITERAL = Pattern.compile("-?[0-9]+");
 	public final static Pattern NUMBAR_LITERAL = Pattern.compile("-?[0-9]+\\.[0-9]+");
-	public final static Pattern YARN_LITERAL = Pattern.compile("\"(.*)\"");
+	public final static Pattern YARN_LITERAL = Pattern.compile("\"([^\"]*)\"");
 	public final static String WIN_TROOF_LITERAL = "WIN";
 	public final static String FAIL_TROOF_LITERAL = "FAIL";
 	public final static String NUMBR_TYPE_LITERAL = "NUMBR";
@@ -22,6 +22,7 @@ public class Token {
 	public final static String YARN_TYPE_LITERAL = "YARN";
 	public final static String TROOF_TYPE_LITERAL = "TROOF";
 	public final static String NOOB_TYPE_LITERAL = "NOOB";
+	public final static String AN_TYPE_LITERAL = "AN";
 	
 	//KEYWORDS
 	public final static String HAI = "HAI";
@@ -82,11 +83,11 @@ public class Token {
 	public final static String FUNCTION_LOOP_IDENTIFIER_CLASSIFIER = "Function/Loop Identifier";   
 	
 	//FOR LITERALS
-	public final static String NUMBR_LITERAL_CLASSIFIER = "Integer Literal";  
-	public final static String NUMBAR_LITERAL_CLASSIFIER = "Float Literal"; 
-	public final static String YARN_LITERAL_CLASSIFIER = "String Literal";  
-	public final static String TROOF_LITERAL_CLASSIFIER = "Boolean Literal";   
-	public final static String TYPE_LITERAL_CLASSIFIER = "Type Literal";   
+	public final static String NUMBR_LITERAL_CLASSIFIER = "Numbr Literal";  
+	public final static String NUMBAR_LITERAL_CLASSIFIER = "Numbar Literal"; 
+	public final static String YARN_LITERAL_CLASSIFIER = "Yarn Literal";  
+	public final static String TROOF_LITERAL_CLASSIFIER = "Troof Literal";   
+	public final static String TYPE_LITERAL_CLASSIFIER = "Literal";   
 	
 	//FOR KEYWORDS
 	public final static String HAI_CLASSIFIER = "Program Initializer";
@@ -135,9 +136,9 @@ public class Token {
 	public final static String IM_OUTTA_YR_CLASSIFIER = "Loop Terminator";
 	
 	//FOR DELIMITERS
-	public final static String STRING_DELIMITER_CLASSIFIER = "String Delimeter";
-	public final static String OPEN_PARENTHESIS_CLASSIFIER = "Open Parenthesis Delimeter";
-	public final static String CLOSE_PARENTHESIS_CLASSIFIER = "Close Parenthesis Delimeter";
+	public final static String STRING_DELIMITER_CLASSIFIER = "String Delimiter";
+	public final static String OPEN_PARENTHESIS_CLASSIFIER = "Open Parenthesis Delimiter";
+	public final static String CLOSE_PARENTHESIS_CLASSIFIER = "Close Parenthesis Delimiter";
 	
 	
 	//MAPPING TOKEN (FOR BOOLEAN & TYPE LITERALS AND KEYWORDS) TO ITS CORRESPONDING CLASSIFICATION
@@ -152,6 +153,7 @@ public class Token {
 		put(Token.YARN_TYPE_LITERAL,Token.TYPE_LITERAL_CLASSIFIER); 
 		put(Token.TROOF_TYPE_LITERAL,Token.TYPE_LITERAL_CLASSIFIER); 
 		put(Token.NOOB_TYPE_LITERAL,Token.TYPE_LITERAL_CLASSIFIER);    
+		put(Token.AN_TYPE_LITERAL,Token.TYPE_LITERAL_CLASSIFIER);    
 		put(Token.HAI,    Token.HAI_CLASSIFIER);
 	    put(Token.KTHXBYE, Token.KTHXBYE_CLASSIFIER);
 	    put(Token.BTW,   Token.BTW_CLASSIFIER);
