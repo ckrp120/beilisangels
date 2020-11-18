@@ -17,6 +17,8 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -27,7 +29,7 @@ public class LexicalAnalyzer {
 	private Group root;
 	private Canvas canvas;
 	public final static int WINDOW_WIDTH = 1500;
-	public final static int WINDOW_HEIGHT = 900;
+	public final static int WINDOW_HEIGHT = 950;
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
@@ -38,12 +40,27 @@ public class LexicalAnalyzer {
 	//FOR UI
 	private Button fileButton = new Button("Select LOLCODE file");
 	private Button executeButton = new Button("EXECUTE");
-	private TextArea textArea = new TextArea();
+	private TextArea codeDisplay = new TextArea();
+	private TextArea outputDisplay = new TextArea();
+	private ImageView passIndicator = new ImageView(new Image("imgs/neutral.PNG", 150, 150, true,true));
+	private ImageView lexicalIndicator = new ImageView();
+	private ImageView syntaxIndicator = new ImageView();
+	private ImageView semanticIndicator = new ImageView();
+	private Image happyImg = new Image("imgs/laughing.png", 150, 150, true,true);
+	private Image neutralImg = new Image("imgs/neutral.PNG", 150, 150, true,true);
+	private Image cryingImg = new Image("imgs/crying.png", 150, 150, true,true);
+	private Image lexicalPassImg = new Image("imgs/lexicalpassed.png", 150, 150, true,true);
+	private Image syntaxPassImg = new Image("imgs/syntaxpassed.png", 150, 150, true,true);
+	private Image semanticPassImg = new Image("imgs/semanticpassed.png", 150, 150, true,true);
+	private Image lexicalFailImg = new Image("imgs/lexicalfailed.png", 150, 150, true,true);
+	private Image syntaxFailImg = new Image("imgs/syntaxfailed.png", 150, 150, true,true);
+	private Image semanticFailImg = new Image("imgs/semanticfailed.png", 150, 150, true,true);
     private TableColumn<Token, String> lexemefirstDataColumn, lexemesecondDataColumn;
     private TableColumn<Symbol, Symbol> symbolfirstDataColumn, symbolsecondDataColumn;
     private TableView<Token> lexemeTableView = new TableView<Token>();
     private TableView<Symbol> symbolTableView = new TableView<Symbol>(); 
 	private int flag = 0; //flag checker if there is an invalid syntax
+	private int lineCheck = 1;
 	ArrayList<Token> tokens = new ArrayList<Token>();
 	Pattern possibleKeyword = Pattern.compile("SUM|DIFF|PRODUCKT|QUOSHUNT|MOD|BIGGR|SMALLR|BOTH|EITHER|WON|ANY|ALL"
 									  +"|I|I HAS|BOTH|IS|IS NOW|O|YA|NO|IM|IM IN| IM OUTTA");
@@ -67,12 +84,36 @@ public class LexicalAnalyzer {
         this.executeButton.setLayoutY(550);
         this.executeButton.setMinWidth(1500);
         
-        //set preferences for displaying text area
-        this.textArea.setLayoutX(0);
-        this.textArea.setLayoutY(80);
-        this.textArea.setPrefWidth(500);
-        this.textArea.setPrefHeight(470);
-        this.textArea.setEditable(false);
+        //set preferences for displaying code
+        this.codeDisplay.setLayoutX(0);
+        this.codeDisplay.setLayoutY(80);
+        this.codeDisplay.setPrefWidth(500);
+        this.codeDisplay.setPrefHeight(470);
+        this.codeDisplay.setEditable(false);
+        
+        //set preferences for displaying output
+        this.outputDisplay.setLayoutX(10);
+        this.outputDisplay.setLayoutY(600);
+        this.outputDisplay.setPrefWidth(1200);
+        this.outputDisplay.setPrefHeight(270);
+        this.outputDisplay.setEditable(false);
+        
+        //set preferences for imageview of pass indicator
+        this.passIndicator.setLayoutX(1270);
+        this.passIndicator.setLayoutY(600);
+        
+        //set preferecnes for imageview of lexical analysis indicator
+        this.lexicalIndicator.setLayoutX(1270);
+        this.lexicalIndicator.setLayoutY(760);
+        
+        //set preferecnes for imageview of syntax analysis indicator
+        this.syntaxIndicator.setLayoutX(1270);
+        this.syntaxIndicator.setLayoutY(800);
+        
+        //set preferecnes for imageview of semantic analysis indicator
+        this.semanticIndicator.setLayoutX(1270);
+        this.semanticIndicator.setLayoutY(840);
+        
 
         //call to functions
 		openFile();	
@@ -80,9 +121,11 @@ public class LexicalAnalyzer {
 		createTable("lexemes");
 		createTable("symbols");
 		
-		root.getChildren().addAll(canvas, textArea, fileButton, executeButton);
+		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, lexicalIndicator, syntaxIndicator, semanticIndicator);
 		this.stage = stage;
 		this.stage.setTitle("LOLCode Interpreter");
+		this.stage.setMinWidth(WINDOW_WIDTH);
+		this.stage.setMinHeight(WINDOW_HEIGHT);
 		this.stage.setScene(this.scene);
 		this.stage.show();
 	}
@@ -95,12 +138,12 @@ public class LexicalAnalyzer {
 
 		//split file into lines
 		String[] lines = fileString.split("\n");
+		
 			
 		//process every line
 		for(int i=0;i<lines.length;i++) {
 			//split line into lexemes
 			String[] lexemes = lines[i].split("\t| ");
-			
 			//process every lexeme
 			for(int j=0;j<lexemes.length;j++) {
 				//skip if empty string
@@ -132,25 +175,23 @@ public class LexicalAnalyzer {
 							tokens.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
 							
 						}else tokens.add(new Token(currentLexeme,classification));	//if not a string, add as is
-						currentLexeme ="";	
+						currentLexeme ="";
+						
 						
 					} else {
 						currentLexeme += " ";
 					}
-					
 					//ERROR DETECTION
 					if(j==lexemes.length-1 && currentLexeme!="") {
-						//prompt error dialog
-						Alert alert = new Alert(AlertType.INFORMATION);
-						alert.setTitle("Error Dialog");
-						alert.setHeaderText(null);
-						alert.setContentText("[!] Error. There is an invalid syntax in the lolcode file.");
-						alert.showAndWait();
 						flag = 1; //set flag to 1 because there is an invalid syntax
 						break;
 					}
 				}
 			}	
+			
+			//update line being checked
+			lineCheck++;
+			
 			//stop iteration for checking lexemes
 			if(flag==1) break; 
 		}
@@ -198,7 +239,8 @@ public class LexicalAnalyzer {
 
 	private void openFile() {
 		//action for "select LOLCODE file" button
-        fileButton.setOnAction(e -> { 
+        fileButton.setOnAction(e -> {
+
         	file = fileChooser.showOpenDialog(stage);
         	
         	//no file chosen
@@ -206,7 +248,10 @@ public class LexicalAnalyzer {
             	System.out.println("[!] User cancelled input dialog");
             } else { //file chosen
             	//check if file extension ends with .lol
-            	if(file.getAbsolutePath().matches(".*.lol$")) readFile();
+            	if(file.getAbsolutePath().matches(".*.lol$")) {
+            		readFile();
+            		resetAnalyzer();
+            	}
             	else System.out.println("Invalid file!");
             }
         });
@@ -224,14 +269,14 @@ public class LexicalAnalyzer {
 			} 
 			
 			//add to text area the content of file read
-			this.textArea.setText(fileString); 
+			this.codeDisplay.setText(fileString); 
 			System.out.println(fileString);
 		} catch(Exception a){
 			System.out.println("file not found!");
 		}
 		
 		//execute lexical analyzer after selecting lolcode file
-		getLexemes();
+		
 	}
 	
 	private void resetAnalyzer() {
@@ -239,6 +284,13 @@ public class LexicalAnalyzer {
 		fileString = "";
 		tokens.clear();
 		lexemeTableView.getItems().clear();
+		flag = 0;
+		lineCheck = 0;
+		passIndicator.setImage(neutralImg);
+		lexicalIndicator.setImage(null);
+		syntaxIndicator.setImage(null);
+		semanticIndicator.setImage(null);
+		outputDisplay.setText("");
 	}
 	
 	
@@ -296,10 +348,33 @@ public class LexicalAnalyzer {
     	for(Token token: tokens) lexemeTableView.getItems().add(token);
     }
     
+    private void showError() {
+    	
+    	//update GUI to show fail
+    	passIndicator.setImage(cryingImg);
+		lexicalIndicator.setImage(lexicalFailImg);
+		outputDisplay.setText("[!] Error detected in line "+lineCheck);
+		
+		//prompt error dialog
+		Alert alert = new Alert(AlertType.INFORMATION);
+		alert.setContentText("[!] Errors were found in your code.");
+		alert.setTitle("Error Dialog");
+		alert.setHeaderText(null);
+		alert.show();
+    }
+    
+    private void showPass() {
+    	populateTable();
+		passIndicator.setImage(happyImg);
+		lexicalIndicator.setImage(lexicalPassImg);
+    }
+    
 	private void generateLexemes() {
 		executeButton.setOnAction(e -> {
 			readFile();
-			if(flag==0) populateTable();
+			getLexemes();
+			if(flag == 0) showPass();
+			else showError();
         });
 	}
 }
