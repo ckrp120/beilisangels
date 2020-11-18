@@ -10,10 +10,12 @@ import java.util.regex.Pattern;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
@@ -41,11 +43,11 @@ public class LexicalAnalyzer {
     private TableColumn<Symbol, Symbol> symbolfirstDataColumn, symbolsecondDataColumn;
     private TableView<Token> lexemeTableView = new TableView<Token>();
     private TableView<Symbol> symbolTableView = new TableView<Symbol>(); 
-	
+	private int flag = 0; //flag checker if there is an invalid syntax
 	ArrayList<Token> tokens = new ArrayList<Token>();
 	Pattern possibleKeyword = Pattern.compile("SUM|DIFF|PRODUCKT|QUOSHUNT|MOD|BIGGR|SMALLR|BOTH|EITHER|WON|ANY|ALL"
 									  +"|I|I HAS|BOTH|IS|IS NOW|O|YA|NO|IM|IM IN| IM OUTTA");
-
+	
 	
 	public LexicalAnalyzer() {
 		root = new Group();
@@ -135,10 +137,25 @@ public class LexicalAnalyzer {
 					} else {
 						currentLexeme += " ";
 					}
+					
+					//ERROR DETECTION
+					if(j==lexemes.length-1 && currentLexeme!="") {
+						//prompt error dialog
+						Alert alert = new Alert(AlertType.INFORMATION);
+						alert.setTitle("Error Dialog");
+						alert.setHeaderText(null);
+						alert.setContentText("[!] Error. There is an invalid syntax in the lolcode file.");
+						alert.showAndWait();
+						flag = 1; //set flag to 1 because there is an invalid syntax
+						break;
+					}
 				}
-			}
+			}	
+			//stop iteration for checking lexemes
+			if(flag==1) break; 
 		}
 		
+
 		System.out.println("\nLEXEMES");
 		for(int i=0;i<tokens.size();i++) {
 			System.out.println(i+1 + ". " + tokens.get(i).getLexeme());
@@ -156,7 +173,8 @@ public class LexicalAnalyzer {
 		if(Token.NUMBR_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBR_LITERAL);
 		if(Token.NUMBAR_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBAR_LITERAL);
 		if(Token.YARN_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.YARN_LITERAL);
-
+		if(tokens.get(tokens.size()-1).getClassification().equals(Token.I_HAS_A_CLASSFIER))	return Token.TOKEN_CLASSIFIER2.get(Token.VARIABLE_IDENTIFIER);
+		
 		return null;
 	} 
 
@@ -281,7 +299,7 @@ public class LexicalAnalyzer {
 	private void generateLexemes() {
 		executeButton.setOnAction(e -> {
 			readFile();
-			populateTable();
+			if(flag==0) populateTable();
         });
 	}
 }

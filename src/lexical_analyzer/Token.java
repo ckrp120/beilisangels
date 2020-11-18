@@ -96,7 +96,7 @@ public class Token {
 	public final static String OBTW_CLASSIFIER = "Comment (multiline) Signifier";
 	public final static String TLDR_CLASSIFIER = "Comment (multiline) Ender";
 	public final static String I_HAS_A_CLASSFIER = "Variable Declaration";
-	public final static String ITZ_CLASSIFIER = "Variable Identifier";
+	public final static String ITZ_CLASSIFIER = "Variable Assignment";
 	public final static String R_CLASSIFIER = "Variable Assignment";
 	public final static String SUM_OF_CLASSIFIER = "Sum Operator";
 	public final static String DIFF_OF_CLASSIFIER = "Difference Operator";
