@@ -204,6 +204,19 @@ public class Token {
 	    
 	}};
 	
+	public final static Map<String, String> ARITHMETIC_TOKEN = new HashMap<String, String>(){
+		private static final long serialVersionUID = 1L;
+
+	{
+	    put(Token.SUM_OF, Token.SUM_OF_CLASSIFIER);
+	    put(Token.DIFF_OF, Token.DIFF_OF_CLASSIFIER);
+	    put(Token.PRODUKT_OF, Token.PRODUKT_OF_CLASSIFIER);
+	    put(Token.QUOSHUNT_OF, Token.QUOSHUNT_OF_CLASSIFIER);
+	    put(Token.MOD_OF, Token.MOD_OF_CLASSIFIER);
+	    put(Token.BIGGR_OF, Token.BIGGR_OF_CLASSIFIER);
+	    put(Token.SMALLR_OF, Token.SMALLR_OF_CLASSIFIER); 
+	}};
+	
 	//MAPPING TOKEN (FOR IDENTIFIERS AND NUMBER & STRING LITERALS) TO ITS CORRESPONDING CLASSIFICATION
 	public final static Map<Pattern, String> TOKEN_CLASSIFIER2 = new HashMap<Pattern, String>(){
 		private static final long serialVersionUID = 1L;

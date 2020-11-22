@@ -2,8 +2,10 @@ package lexical_analyzer;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Scanner;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -138,7 +140,7 @@ public class LexicalAnalyzer {
 
 		//split file into lines
 		String[] lines = fileString.split("\n");
-		
+		ArrayList<Token> tokensPerLine = new ArrayList<Token>();
 			
 		//process every line
 		for(int i=0;i<lines.length;i++) {
@@ -171,10 +173,17 @@ public class LexicalAnalyzer {
 							
 							//add the start, string literal, and end quotes individually
 							tokens.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
+							tokensPerLine.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
 							tokens.add(new Token(lexeme.toString(), classification));
+							tokensPerLine.add(new Token(lexeme.toString(), classification));
 							tokens.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
+							tokensPerLine.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
 							
-						}else tokens.add(new Token(currentLexeme,classification));	//if not a string, add as is
+							
+						}else {
+							tokens.add(new Token(currentLexeme,classification));	//if not a string, add as is
+							tokensPerLine.add(new Token(currentLexeme, classification));
+						}
 						currentLexeme ="";
 						
 						
@@ -187,10 +196,18 @@ public class LexicalAnalyzer {
 						break;
 					}
 				}
-			}	
+			}
+			System.out.println("Syntax check line: "+lineCheck);
+			for(Token tkn: tokensPerLine)
+				System.out.println(tkn.getLexeme());
+			//check syntax
+			System.out.println(checkSyntax(tokensPerLine));
 			
 			//update line being checked
 			lineCheck++;
+			
+			//clear arraylist of tokens per line for next iteration
+			tokensPerLine.clear();
 			
 			//stop iteration for checking lexemes
 			if(flag==1) break; 
@@ -233,6 +250,78 @@ public class LexicalAnalyzer {
 		//if the current lexeme is not a substring of any keyword, return false
 		return false;
 	}
+	
+	/*
+	 * private Number sumOf(ArrayList<Token> line) { Stack<String> equation = new
+	 * Stack<String>();
+	 * 
+	 * Collections.reverse(line); for(int i = 0; i < line.size(); i++) {
+	 * if(line.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) |
+	 * line.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
+	 * equation.push(line.get(i).getLexeme()); }
+	 * 
+	 * else if(line.get(i).getClassification().equals(Token.AN))
+	 * 
+	 * } }
+	 * 
+	 * private Number arithmeticOperation(ArrayList<Token> line) { Stack<Token>
+	 * equation = new Stack<Token>();
+	 * 
+	 * Collections.reverse(line);
+	 * 
+	 * for(int i = 0; i < line.size(); i++) {
+	 * if(line.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) |
+	 * line.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
+	 * equation.push(line.get(i)); }
+	 * 
+	 * else if(line.get(i).getClassification().equals(Token.SUM_OF_CLASSIFIER)) {
+	 * 
+	 * } }
+	 * 
+	 * 
+	 * }
+	 */
+	
+	private boolean checkSyntax(ArrayList<Token> line) {
+		//start from root
+		if(Token.ARITHMETIC_TOKEN.containsKey(line.get(0).getLexeme())) return arithmeticSyntax(line, 0);
+		else if(line.get(0).getLexeme().equals(Token.HAI) && line.size() == 1) return true;
+		else if(line.get(0).getLexeme().equals(Token.KTHXBYE) && line.size() == 1) return true;
+		else return false;
+		
+	}
+	
+	private boolean arithmeticSyntax(ArrayList<Token> line, int index) {
+		if(line.get(index).getLexeme().equals(Token.SUM_OF) && line.size() >= 4) return sumOf(line, index+1);
+		else return false;
+		
+	}
+	
+	private boolean sumOf(ArrayList<Token> line, int index) {
+		//dapat kasunod ay numbr / numbar / another arithmetic
+		if(line.get(index).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) | line.get(index).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
+			return arithmeticNum(line, index+1);
+		}else if(Token.ARITHMETIC_TOKEN.containsKey(line.get(index).getLexeme())) {
+			return arithmeticSyntax(line, index+1);
+		}else return false;
+	}
+	
+	private boolean arithmeticNum(ArrayList<Token> line, int index) {
+		if(index == line.size()) return true;
+		else if(line.get(index).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+			return arithmeticAn(line, index+1);
+		}
+		else return false;
+	}
+	
+	private boolean arithmeticAn(ArrayList<Token> line, int index) {
+		if(line.get(index).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) | line.get(index).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
+			return arithmeticNum(line, index+1);
+		}else if(Token.ARITHMETIC_TOKEN.containsKey(line.get(index).getLexeme())) {
+			return arithmeticSyntax(line, index+1);
+		}else return false;
+	}
+	
 	
 	
 	//FUNCTIONS FOR FILE READING
