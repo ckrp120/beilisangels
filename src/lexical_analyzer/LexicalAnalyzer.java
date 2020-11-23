@@ -59,11 +59,15 @@ public class LexicalAnalyzer {
     private TableColumn<Symbol, Symbol> symbolfirstDataColumn, symbolsecondDataColumn;
     private TableView<Token> lexemeTableView = new TableView<Token>();
     private TableView<Symbol> symbolTableView = new TableView<Symbol>(); 
-	private int flag = 0; //flag checker if there is an invalid syntax
+
+    //FOR LEXICAL ANALYSIS    
+    private boolean invalidSyntax = false; //flag checker if there is an invalid syntax
 	private int lineCheck = 1;
+	private Matcher YARN_LITERAL_MATCHER;
+	private String matchedString = "";
+	private String[] matched;
+	private boolean yarnDetected = false;
 	ArrayList<Token> tokens = new ArrayList<Token>();
-	Pattern possibleKeyword = Pattern.compile("SUM|DIFF|PRODUCKT|QUOSHUNT|MOD|BIGGR|SMALLR|BOTH|EITHER|WON|ANY|ALL"
-									  +"|I|I HAS|BOTH|IS|IS NOW|O|YA|NO|IM|IM IN| IM OUTTA");
 	
 	
 	public LexicalAnalyzer() {
@@ -138,10 +142,34 @@ public class LexicalAnalyzer {
 
 		//split file into lines
 		String[] lines = fileString.split("\n");
-		
 			
 		//process every line
 		for(int i=0;i<lines.length;i++) {
+			//check if there is a string from the line
+			YARN_LITERAL_MATCHER = Token.YARN_LITERAL.matcher(lines[i]);         
+			
+			//save the string if there is
+			if(YARN_LITERAL_MATCHER.find()) {
+				matchedString = YARN_LITERAL_MATCHER.group(0);
+				
+				//split the string by tab/space to make a string array 
+				String[] matched1 = ("\""+matchedString+"\"").split("\t| ");
+				
+				ArrayList<String> matched2 = new ArrayList<String>();
+				
+				for(String m: matched1) {
+					if(!m.isEmpty()) matched2.add(m);
+				}
+				
+				//save the final array of strings
+				matched = matched2.toArray(new String[matched2.size()]);
+				
+				yarnDetected = true;
+			} else {
+				matchedString = "";
+				yarnDetected = false;
+			}
+			
 			//split line into lexemes
 			String[] lexemes = lines[i].split("\t| ");
 			//process every lexeme
@@ -155,35 +183,23 @@ public class LexicalAnalyzer {
 					
 					//if it is, then add it to the list of tokens
 					if(classification != null) {
-						//if string is detected, extract the contents inside the dbl quote
-						if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {
-							
-							//matcher to capture group
-							Matcher m = Token.YARN_LITERAL.matcher(currentLexeme);
-							
-							//string buffer to get contents of captured group
-							StringBuffer lexeme = new StringBuffer();
-							
-							//append all contents of captured group
-							while (m.find()) {
-							  lexeme.append(m.group(1).replace("\"", ""));
-							}
-							
+						//if string is detected
+						if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {							
 							//add the start, string literal, and end quotes individually
 							tokens.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
-							tokens.add(new Token(lexeme.toString(), classification));
-							tokens.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
-							
+							tokens.add(new Token(matchedString, classification));
+							tokens.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));			
 						}else tokens.add(new Token(currentLexeme,classification));	//if not a string, add as is
+						
 						currentLexeme ="";
-						
-						
+					
 					} else {
 						currentLexeme += " ";
 					}
+					
 					//ERROR DETECTION
 					if(j==lexemes.length-1 && currentLexeme!="") {
-						flag = 1; //set flag to 1 because there is an invalid syntax
+						invalidSyntax = true; //set invalidSyntax to true because there is an invalid syntax
 						break;
 					}
 				}
@@ -193,14 +209,13 @@ public class LexicalAnalyzer {
 			lineCheck++;
 			
 			//stop iteration for checking lexemes
-			if(flag==1) break; 
+			if(invalidSyntax) break; 
 		}
 		
 
-		System.out.println("\nLEXEMES");
+		System.out.println("\n---------------------LEXEMES---------------------");
 		for(int i=0;i<tokens.size();i++) {
-			System.out.println(i+1 + ". " + tokens.get(i).getLexeme());
-			System.out.println("   -" + tokens.get(i).getClassification() + "\n");
+			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+": " + tokens.get(i).getClassification() + "\n");
 		}
 	}
 	
@@ -213,8 +228,7 @@ public class LexicalAnalyzer {
 		}
 		if(Token.NUMBR_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBR_LITERAL);
 		if(Token.NUMBAR_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBAR_LITERAL);
-		if(Token.YARN_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.YARN_LITERAL);
-		if(tokens.get(tokens.size()-1).getClassification().equals(Token.I_HAS_A_CLASSFIER))	return Token.TOKEN_CLASSIFIER2.get(Token.VARIABLE_IDENTIFIER);
+		if(yarnDetected && stringMatched(currentLexeme)) return Token.TOKEN_CLASSIFIER2.get(Token.YARN_LITERAL);
 		
 		return null;
 	} 
@@ -225,13 +239,20 @@ public class LexicalAnalyzer {
 		for(Entry<String, String> token: Token.TOKEN_CLASSIFIER1.entrySet()) {
 			//if the current lexeme is a substring of a keyword, return true
 			if(token.getKey().contains(currentLexeme)) {
-				System.out.println(currentLexeme);
 				return true;
 			}
 		}
 		
 		//if the current lexeme is not a substring of any keyword, return false
 		return false;
+	}
+		
+	//check if the length of the matched string and the current lexeme are equal
+	public boolean stringMatched(String currentLexeme) {
+		String[] current = currentLexeme.split(" ");
+		
+		if(matched.length != current.length) return false;
+		return true;
 	}
 	
 	
@@ -270,6 +291,7 @@ public class LexicalAnalyzer {
 			
 			//add to text area the content of file read
 			this.codeDisplay.setText(fileString); 
+			System.out.println("\n-----------------------FILE----------------------");
 			System.out.println(fileString);
 		} catch(Exception a){
 			System.out.println("file not found!");
@@ -284,7 +306,7 @@ public class LexicalAnalyzer {
 		fileString = "";
 		tokens.clear();
 		lexemeTableView.getItems().clear();
-		flag = 0;
+		invalidSyntax = false;
 		lineCheck = 0;
 		passIndicator.setImage(neutralImg);
 		lexicalIndicator.setImage(null);
@@ -373,7 +395,7 @@ public class LexicalAnalyzer {
 		executeButton.setOnAction(e -> {
 			readFile();
 			getLexemes();
-			if(flag == 0) showPass();
+			if(!invalidSyntax) showPass();
 			else showError();
         });
 	}
