@@ -33,7 +33,7 @@ public class LexicalAnalyzer {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("sample.lol");
+	private File file = new File("lolcode/io.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -59,11 +59,11 @@ public class LexicalAnalyzer {
     private TableColumn<Symbol, Symbol> symbolfirstDataColumn, symbolsecondDataColumn;
     private TableView<Token> lexemeTableView = new TableView<Token>();
     private TableView<Symbol> symbolTableView = new TableView<Symbol>(); 
-	private int flag = 0; //flag checker if there is an invalid syntax
-	private int lineCheck = 1;
+	
+    //FOR LEXICAL ANALYSIS
+    private boolean invalidSyntax = false; //flag checker if there is an invalid syntax
+	private int lineCheck;
 	ArrayList<Token> tokens = new ArrayList<Token>();
-	Pattern possibleKeyword = Pattern.compile("SUM|DIFF|PRODUCKT|QUOSHUNT|MOD|BIGGR|SMALLR|BOTH|EITHER|WON|ANY|ALL"
-									  +"|I|I HAS|BOTH|IS|IS NOW|O|YA|NO|IM|IM IN| IM OUTTA");
 	
 	
 	public LexicalAnalyzer() {
@@ -102,15 +102,15 @@ public class LexicalAnalyzer {
         this.passIndicator.setLayoutX(1270);
         this.passIndicator.setLayoutY(600);
         
-        //set preferecnes for imageview of lexical analysis indicator
+        //set preferences for imageview of lexical analysis indicator
         this.lexicalIndicator.setLayoutX(1270);
         this.lexicalIndicator.setLayoutY(760);
         
-        //set preferecnes for imageview of syntax analysis indicator
+        //set preferences for imageview of syntax analysis indicator
         this.syntaxIndicator.setLayoutX(1270);
         this.syntaxIndicator.setLayoutY(800);
         
-        //set preferecnes for imageview of semantic analysis indicator
+        //set preferences for imageview of semantic analysis indicator
         this.semanticIndicator.setLayoutX(1270);
         this.semanticIndicator.setLayoutY(840);
         
@@ -134,104 +134,121 @@ public class LexicalAnalyzer {
 	//FUNCTIONS FOR EXECUTING LEXICAL ANALYZER
 	
 	private void getLexemes() {
-		String classification, currentLexeme ="";
+	    int currPos;
+	    char currChar;
+	    boolean acceptedLexeme;
+		String classification, currentLexeme;
 
 		//split file into lines
 		String[] lines = fileString.split("\n");
 		
-			
 		//process every line
-		for(int i=0;i<lines.length;i++) {
-			//split line into lexemes
-			String[] lexemes = lines[i].split("\t| ");
-			//process every lexeme
-			for(int j=0;j<lexemes.length;j++) {
-				//skip if empty string
-				if(!lexemes[j].isEmpty()) {
-					currentLexeme += lexemes[j];
+		for(String line:lines) {
+			if(line.isEmpty()) continue;
+			
+			currPos=0;
+			acceptedLexeme = false;
+			currentLexeme = "";
+		
+			lineCheck++;
 
-					//check if the current lexeme is a token
-					classification = checkLexeme(currentLexeme);				
+			//ignore spaces/tabs
+			do {
+				currChar = line.charAt(currPos);
+				currPos++;
+			} while(isSpace(currChar));
+			
+			currPos--;
+			
+			while(currPos < line.length()) {
+				//get current character and increment position
+				currChar = line.charAt(currPos);
+				currPos++;
+	
+				//if the previous formed lexeme is accepted, ignore the next white spaces
+				if(acceptedLexeme) {
+					acceptedLexeme = false;
+	
+					while(isSpace(currChar)) {
+						currChar = line.charAt(currPos);
+						currPos++;
+					}
+				}
+	
+
+				//concatenate the current character to the current lexeme
+				currentLexeme += currChar;
 					
+				if(currPos==line.length() || isSpace(line.charAt(currPos))) {
+					//check if the current lexeme is a token
+					classification = checkLexeme(currentLexeme);
+					
+
 					//if it is, then add it to the list of tokens
 					if(classification != null) {
+						acceptedLexeme = true;
+						
 						//if string is detected, extract the contents inside the dbl quote
 						if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {
 							
 							//matcher to capture group
 							Matcher m = Token.YARN_LITERAL.matcher(currentLexeme);
+
 							
-							//string buffer to get contents of captured group
-							StringBuffer lexeme = new StringBuffer();
-							
-							//append all contents of captured group
-							while (m.find()) {
-							  lexeme.append(m.group(1).replace("\"", ""));
+							if(m.find()) {
+								//add the start, string literal, and end quotes individually
+								tokens.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
+								tokens.add(new Token(m.group(2), classification));
+								tokens.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
 							}
 							
-							//add the start, string literal, and end quotes individually
-							tokens.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
-							tokens.add(new Token(lexeme.toString(), classification));
-							tokens.add(new Token(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER));
-							
 						}else tokens.add(new Token(currentLexeme,classification));	//if not a string, add as is
+						
 						currentLexeme ="";
-						
-						
-					} else {
-						currentLexeme += " ";
 					}
-					//ERROR DETECTION
-					if(j==lexemes.length-1 && currentLexeme!="") {
-						flag = 1; //set flag to 1 because there is an invalid syntax
-						break;
-					}
-				}
-			}	
+				}	
+			}
 			
-			//update line being checked
-			lineCheck++;
-			
-			//stop iteration for checking lexemes
-			if(flag==1) break; 
+			//ERROR DETECTION
+			if(currentLexeme!="") {
+				invalidSyntax = true; //set invalidSyntax to 1 because there is an invalid syntax
+				break; //stop iteration for checking lexemes
+			}
 		}
-		
-
+	
 		System.out.println("\nLEXEMES");
 		for(int i=0;i<tokens.size();i++) {
-			System.out.println(i+1 + ". " + tokens.get(i).getLexeme());
-			System.out.println("   -" + tokens.get(i).getClassification() + "\n");
-		}
+			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
+		}		
 	}
 	
 	//return classification if the current lexeme is a token
 	public String checkLexeme(String currentLexeme) {
-		if(Token.TOKEN_CLASSIFIER1.containsKey(currentLexeme)) return Token.TOKEN_CLASSIFIER1.get(currentLexeme);
-		else if(!possibleKeyword(currentLexeme)) {
-			if(Token.VARIABLE_IDENTIFIER.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.VARIABLE_IDENTIFIER);
-			if(Token.FUNCTION_LOOP_IDENTIFIER.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.FUNCTION_LOOP_IDENTIFIER);
+		if(Token.TOKEN_CLASSIFIER.containsKey(currentLexeme)) return Token.TOKEN_CLASSIFIER.get(currentLexeme);
+		if(!possibleKeyword(currentLexeme)) {
+			if(Token.VARIABLE_IDENTIFIER.matcher(currentLexeme).matches()) return Token.VARIABLE_IDENTIFIER_CLASSIFIER;
+			if(Token.FUNCTION_LOOP_IDENTIFIER.matcher(currentLexeme).matches()) return Token.FUNCTION_LOOP_IDENTIFIER_CLASSIFIER;
 		}
-		if(Token.NUMBR_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBR_LITERAL);
-		if(Token.NUMBAR_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.NUMBAR_LITERAL);
-		if(Token.YARN_LITERAL.matcher(currentLexeme).matches()) return Token.TOKEN_CLASSIFIER2.get(Token.YARN_LITERAL);
-		if(tokens.get(tokens.size()-1).getClassification().equals(Token.I_HAS_A_CLASSFIER))	return Token.TOKEN_CLASSIFIER2.get(Token.VARIABLE_IDENTIFIER);
-		
+		if(Token.NUMBR_LITERAL.matcher(currentLexeme).matches()) return Token.NUMBR_LITERAL_CLASSIFIER;
+		if(Token.NUMBAR_LITERAL.matcher(currentLexeme).matches()) return Token.NUMBAR_LITERAL_CLASSIFIER;
+		if(Token.YARN_LITERAL.matcher(currentLexeme).matches()) return Token.YARN_LITERAL_CLASSIFIER;	
 		return null;
 	} 
 
 	//check if the current lexeme is a possible keyword
 	public boolean possibleKeyword(String currentLexeme) {
 		//iterate through keys in the hashmap of classifiers
-		for(Entry<String, String> token: Token.TOKEN_CLASSIFIER1.entrySet()) {
+		for(Entry<String, String> token: Token.TOKEN_CLASSIFIER.entrySet()) {
 			//if the current lexeme is a substring of a keyword, return true
-			if(token.getKey().contains(currentLexeme)) {
-				System.out.println(currentLexeme);
-				return true;
-			}
+			if(token.getKey().contains(currentLexeme)) return true;
 		}
-		
 		//if the current lexeme is not a substring of any keyword, return false
 		return false;
+	}
+	
+	//check if the character is a space
+	public boolean isSpace(char c) {
+		return c == ' ' || c == '\t';                                 
 	}
 	
 	
@@ -284,7 +301,7 @@ public class LexicalAnalyzer {
 		fileString = "";
 		tokens.clear();
 		lexemeTableView.getItems().clear();
-		flag = 0;
+		invalidSyntax = false;
 		lineCheck = 0;
 		passIndicator.setImage(neutralImg);
 		lexicalIndicator.setImage(null);
@@ -373,7 +390,7 @@ public class LexicalAnalyzer {
 		executeButton.setOnAction(e -> {
 			readFile();
 			getLexemes();
-			if(flag == 0) showPass();
+			if(!invalidSyntax) showPass();
 			else showError();
         });
 	}

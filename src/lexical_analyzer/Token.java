@@ -14,7 +14,7 @@ public class Token {
 	//LITERALS
 	public final static Pattern NUMBR_LITERAL = Pattern.compile("-?[0-9]+");
 	public final static Pattern NUMBAR_LITERAL = Pattern.compile("-?[0-9]+\\.[0-9]+");
-	public final static Pattern YARN_LITERAL = Pattern.compile("\"([^\"]*)\"");
+	public final static Pattern YARN_LITERAL = Pattern.compile("(\")([^\"]*)(\")");
 	public final static String WIN_TROOF_LITERAL = "WIN";
 	public final static String FAIL_TROOF_LITERAL = "FAIL";
 	public final static String NUMBR_TYPE_LITERAL = "NUMBR";
@@ -142,7 +142,7 @@ public class Token {
 	
 	
 	//MAPPING TOKEN (FOR BOOLEAN & TYPE LITERALS AND KEYWORDS) TO ITS CORRESPONDING CLASSIFICATION
-	public final static Map<String, String> TOKEN_CLASSIFIER1 = new HashMap<String, String>(){
+	public final static Map<String, String> TOKEN_CLASSIFIER = new HashMap<String, String>(){
 		private static final long serialVersionUID = 1L;
 
 	{
@@ -198,23 +198,8 @@ public class Token {
 	    put(Token.TIL, Token.TIL_CLASSIFIER);
 	    put(Token.WILE, Token.WILE_CLASSIFIER);
 	    put(Token.IM_OUTTA_YR, Token.IM_OUTTA_YR_CLASSIFIER);
-	    put(Token.STRING_DELIMITER, Token.STRING_DELIMITER_CLASSIFIER);
-	    put(Token.OPEN_PARENTHESIS_DELIMETER, Token.OPEN_PARENTHESIS_CLASSIFIER);
-	    put(Token.CLOSE_PARENTHESIS_DELIMETER, Token.CLOSE_PARENTHESIS_CLASSIFIER);
-	    
 	}};
-	
-	//MAPPING TOKEN (FOR IDENTIFIERS AND NUMBER & STRING LITERALS) TO ITS CORRESPONDING CLASSIFICATION
-	public final static Map<Pattern, String> TOKEN_CLASSIFIER2 = new HashMap<Pattern, String>(){
-		private static final long serialVersionUID = 1L;
-	{
-		put(Token.VARIABLE_IDENTIFIER,Token.VARIABLE_IDENTIFIER_CLASSIFIER);   
-		put(Token.FUNCTION_LOOP_IDENTIFIER,FUNCTION_LOOP_IDENTIFIER_CLASSIFIER);   
-		put(Token.NUMBR_LITERAL,Token.NUMBR_LITERAL_CLASSIFIER); 
-		put(Token.NUMBAR_LITERAL,Token.NUMBAR_LITERAL_CLASSIFIER); 
-		put(Token.YARN_LITERAL,Token.YARN_LITERAL_CLASSIFIER); 
-	}};
-	
+		
 	private String lexeme;
 	private String classification;
 	
