@@ -228,6 +228,9 @@ public class LexicalAnalyzer {
 		if(Token.NUMBR_LITERAL.matcher(currentLexeme).matches()) return Token.NUMBR_LITERAL_CLASSIFIER;
 		if(Token.NUMBAR_LITERAL.matcher(currentLexeme).matches()) return Token.NUMBAR_LITERAL_CLASSIFIER;
 		if(Token.YARN_LITERAL.matcher(currentLexeme).matches()) return Token.YARN_LITERAL_CLASSIFIER;	
+		if(!tokens.isEmpty()) {
+			if(tokens.get(tokens.size()-1).getClassification().equals(Token.I_HAS_A_CLASSFIER))	return Token.VARIABLE_IDENTIFIER_CLASSIFIER;
+		}
 		return null;
 	} 
 
