@@ -33,7 +33,7 @@ public class LexicalAnalyzer {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("lolcode/io.lol");
+	private File file = new File("lolcode/arith.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -133,7 +133,7 @@ public class LexicalAnalyzer {
 	
 	//FUNCTIONS FOR EXECUTING LEXICAL ANALYZER
 	
-	private void getLexemes() {
+	private void checkLexemes() {
 	    int currPos;
 	    char currChar;
 	    boolean acceptedLexeme;
@@ -144,15 +144,16 @@ public class LexicalAnalyzer {
 		
 		//process every line
 		for(String line:lines) {
+			lineCheck++;
+
+			//if the current line has no code, continue to the next line
 			if(line.isEmpty()) continue;
 			
 			currPos=0;
 			acceptedLexeme = false;
 			currentLexeme = "";
 		
-			lineCheck++;
-
-			//ignore spaces/tabs
+			//ignore spaces/tabs at the beginning of the line
 			do {
 				currChar = line.charAt(currPos);
 				currPos++;
@@ -160,12 +161,13 @@ public class LexicalAnalyzer {
 			
 			currPos--;
 			
+			//start checking the lexemes 
 			while(currPos < line.length()) {
 				//get current character and increment position
 				currChar = line.charAt(currPos);
 				currPos++;
 	
-				//if the previous formed lexeme is accepted, ignore the next white spaces
+				//if the previous formed lexeme is accepted, ignore the next white space/s
 				if(acceptedLexeme) {
 					acceptedLexeme = false;
 	
@@ -175,33 +177,27 @@ public class LexicalAnalyzer {
 					}
 				}
 	
-
 				//concatenate the current character to the current lexeme
 				currentLexeme += currChar;
-					
+
+				//if the end of the line is reached or a space is detected, check if the current lexeme is a token
 				if(currPos==line.length() || isSpace(line.charAt(currPos))) {
-					//check if the current lexeme is a token
 					classification = checkLexeme(currentLexeme);
 					
-
 					//if it is, then add it to the list of tokens
 					if(classification != null) {
 						acceptedLexeme = true;
 						
-						//if string is detected, extract the contents inside the dbl quote
-						if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {
-							
+						//if string is detected, add the start quote, string literal, and end quote individually
+						if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {						
 							//matcher to capture group
 							Matcher m = Token.YARN_LITERAL.matcher(currentLexeme);
-
-							
+		
 							if(m.find()) {
-								//add the start, string literal, and end quotes individually
 								tokens.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
 								tokens.add(new Token(m.group(2), classification));
 								tokens.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
 							}
-							
 						}else tokens.add(new Token(currentLexeme,classification));	//if not a string, add as is
 						
 						currentLexeme ="";
@@ -211,7 +207,7 @@ public class LexicalAnalyzer {
 			
 			//ERROR DETECTION
 			if(currentLexeme!="") {
-				invalidSyntax = true; //set invalidSyntax to 1 because there is an invalid syntax
+				invalidSyntax = true; //set invalidSyntax to true because there is an invalid syntax
 				break; //stop iteration for checking lexemes
 			}
 		}
@@ -365,12 +361,11 @@ public class LexicalAnalyzer {
     	for(Token token: tokens) lexemeTableView.getItems().add(token);
     }
     
-    private void showError() {
-    	
+    private void showError() {  	
     	//update GUI to show fail
     	passIndicator.setImage(cryingImg);
 		lexicalIndicator.setImage(lexicalFailImg);
-		outputDisplay.setText("[!] Error detected in line "+lineCheck);
+		outputDisplay.setText("[!] Error detected in line " + lineCheck);
 		
 		//prompt error dialog
 		Alert alert = new Alert(AlertType.INFORMATION);
@@ -389,7 +384,7 @@ public class LexicalAnalyzer {
 	private void generateLexemes() {
 		executeButton.setOnAction(e -> {
 			readFile();
-			getLexemes();
+			checkLexemes();
 			if(!invalidSyntax) showPass();
 			else showError();
         });
