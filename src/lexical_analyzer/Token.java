@@ -8,6 +8,7 @@ public class Token {
 	//REGULAR EXPRESSIONS OF TOKENS
 	
 	//IDENTIFIERS
+	public final static String IT = "IT";
 	public final static Pattern VARIABLE_IDENTIFIER = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]*");
 	public final static Pattern FUNCTION_LOOP_IDENTIFIER = Pattern.compile("[A-Z][A-Z0-9_]*");
 	
@@ -79,6 +80,7 @@ public class Token {
 	//CLASSIFICATION OF TOKENS
 	
 	//FOR IDENTIFIERS
+	public final static String IT_CLASSIFIER = "Implicit Variable Identifier";
 	public final static String VARIABLE_IDENTIFIER_CLASSIFIER = "Variable Identifier";
 	public final static String FUNCTION_LOOP_IDENTIFIER_CLASSIFIER = "Function/Loop Identifier";   
 	
@@ -126,7 +128,7 @@ public class Token {
 	public final static String OIC_CLASSIFIER = "If-then Terminator";
 	public final static String WTF_CLASSIFIER = "Switch case Initializer";
 	public final static String OMG_CLASSIFIER = "Case keyword";
-	public final static String OMGWTF_CLASSIFIER = "Default Case keyword";
+	public final static String OMGWTF_CLASSIFIER = "Default case keyword";
 	public final static String IM_IN_YR_CLASSIFIER = "Loop Initializer";
 	public final static String UPPIN_CLASSIFIER = "Increment Keyword";
 	public final static String NERFIN_CLASSIFIER = "Decrement Keyword";
@@ -146,6 +148,7 @@ public class Token {
 		private static final long serialVersionUID = 1L;
 
 	{
+	    put(Token.IT, Token.IT_CLASSIFIER);
 		put(Token.WIN_TROOF_LITERAL,Token.TROOF_LITERAL_CLASSIFIER);   
 		put(Token.FAIL_TROOF_LITERAL,Token.TROOF_LITERAL_CLASSIFIER);   
 		put(Token.NUMBR_TYPE_LITERAL,Token.TYPE_LITERAL_CLASSIFIER); 

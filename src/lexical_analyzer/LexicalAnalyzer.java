@@ -33,7 +33,7 @@ public class LexicalAnalyzer {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("lolcode/arith.lol");
+	private File file = new File("lolcode/sample.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -134,22 +134,23 @@ public class LexicalAnalyzer {
 	//FUNCTIONS FOR EXECUTING LEXICAL ANALYZER
 	
 	private void checkLexemes() {
-	    int currPos;
+	    int currPos, commentDetected, tokenCounter;
 	    char currChar;
 	    boolean acceptedLexeme;
-		String classification, currentLexeme;
+		String line, classification, currentLexeme;
 
 		//split file into lines
 		String[] lines = fileString.split("\n");
 		
 		//process every line
-		for(String line:lines) {
+		while(lineCheck<lines.length) {
+			line = lines[lineCheck];
 			lineCheck++;
-
 			//if the current line has no code, continue to the next line
-			if(line.isEmpty()) continue;
-			
+			if(isEmpty(line)) continue;
+						
 			currPos=0;
+			tokenCounter = 0;
 			acceptedLexeme = false;
 			currentLexeme = "";
 		
@@ -180,6 +181,8 @@ public class LexicalAnalyzer {
 				//concatenate the current character to the current lexeme
 				currentLexeme += currChar;
 
+				System.out.println(currentLexeme);
+				
 				//if the end of the line is reached or a space is detected, check if the current lexeme is a token
 				if(currPos==line.length() || isSpace(line.charAt(currPos))) {
 					classification = checkLexeme(currentLexeme);
@@ -188,7 +191,7 @@ public class LexicalAnalyzer {
 					if(classification != null) {
 						acceptedLexeme = true;
 						
-						//if string is detected, add the start quote, string literal, and end quote individually
+						//if a string is detected, add the start quote, string literal, and end quote individually
 						if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {						
 							//matcher to capture group
 							Matcher m = Token.YARN_LITERAL.matcher(currentLexeme);
@@ -198,9 +201,36 @@ public class LexicalAnalyzer {
 								tokens.add(new Token(m.group(2), classification));
 								tokens.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
 							}
-						}else tokens.add(new Token(currentLexeme,classification));	//if not a string, add as is
-						
+						//if a comment is detected, ignore whatever comes after it
+						} else if((commentDetected = isAComment(currentLexeme)) != 0) {
+							//Case 1: BTW (skip the current line)
+							if(commentDetected == 1) {
+								tokens.add(new Token(currentLexeme,classification));
+								currentLexeme = "";
+							//Case 2: OBTW .. TLDR (must have their own lines)
+							} else if(tokenCounter == 0) {
+								tokens.add(new Token(currentLexeme,classification));
+								currentLexeme = "";
+								String commentEnder;
+								
+								do {
+									commentEnder="";
+									lineCheck++;
+									line = lines[lineCheck];
+									String[] lexemes = line.split(" ");
+									
+									
+									for(int i=0;i<lexemes.length;i++) {
+										if(lexemes[i].equals("")) continue;
+										else commentEnder+=lexemes[i];
+									}	
+								} while(!commentEnder.equals(Token.TLDR));		
+							}
+							break;
+						} else tokens.add(new Token(currentLexeme,classification));	//if not a string or a comment, add as is
+							
 						currentLexeme ="";
+						tokenCounter++;
 					}
 				}	
 			}
@@ -228,15 +258,18 @@ public class LexicalAnalyzer {
 		if(Token.NUMBR_LITERAL.matcher(currentLexeme).matches()) return Token.NUMBR_LITERAL_CLASSIFIER;
 		if(Token.NUMBAR_LITERAL.matcher(currentLexeme).matches()) return Token.NUMBAR_LITERAL_CLASSIFIER;
 		if(Token.YARN_LITERAL.matcher(currentLexeme).matches()) return Token.YARN_LITERAL_CLASSIFIER;	
+		if(!tokens.isEmpty()) {
+			if(tokens.get(tokens.size()-1).getClassification().equals(Token.I_HAS_A_CLASSFIER))	return Token.VARIABLE_IDENTIFIER_CLASSIFIER;
+		}
 		return null;
 	} 
 
 	//check if the current lexeme is a possible keyword
-	public boolean possibleKeyword(String currentLexeme) {
+	public boolean possibleKeyword(String s) {
 		//iterate through keys in the hashmap of classifiers
-		for(Entry<String, String> token: Token.TOKEN_CLASSIFIER.entrySet()) {
+		for(Entry<String, String> t: Token.TOKEN_CLASSIFIER.entrySet()) {
 			//if the current lexeme is a substring of a keyword, return true
-			if(token.getKey().contains(currentLexeme)) return true;
+			if(t.getKey().contains(s)) return true;
 		}
 		//if the current lexeme is not a substring of any keyword, return false
 		return false;
@@ -245,6 +278,24 @@ public class LexicalAnalyzer {
 	//check if the character is a space
 	public boolean isSpace(char c) {
 		return c == ' ' || c == '\t';                                 
+	}
+	
+	//check if the line has no code
+	public boolean isEmpty(String s) {
+		if(s.isEmpty() || s.equals(" ")) return true;
+		
+		for(int i=0;i<s.length();i++) {
+			if(s.charAt(i)!=' ') return false;
+		}
+		
+		return true;                     
+	}
+	
+	//check if the current lexeme is a comment
+	public int isAComment(String s) {
+		if(s.equals(Token.BTW)) return 1;
+		if(s.equals(Token.OBTW)) return 2;
+		return 0;                    
 	}
 	
 	
