@@ -31,7 +31,11 @@ public class LexicalAnalyzer {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
+<<<<<<< HEAD
 	private File file = new File("lolcode/variables.lol");
+=======
+	private File file = new File("lolcode/bool.lol");
+>>>>>>> 70a04c72cc96d30de2546d3df9e059cae3bf1110
 	private String fileString="";
 	private Scanner scanner;
 
@@ -64,7 +68,7 @@ public class LexicalAnalyzer {
     private int wordCheck,lineCheck,status;
     private boolean invalidSyntax,possibleKeywordDetected,readBack;
 	ArrayList<Token> tokens = new ArrayList<Token>();
-	
+	ArrayList<Symbol> symbols = new ArrayList<Symbol>();
 	
 	public LexicalAnalyzer() {
 		root = new Group();
@@ -158,10 +162,10 @@ public class LexicalAnalyzer {
 			if(status == 1) break;
 		}
 	
-		System.out.println("\nLEXEMES");
-		for(int i=0;i<tokens.size();i++) {
-			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
-		}		
+//		System.out.println("\nLEXEMES");
+//		for(int i=0;i<tokens.size();i++) {
+//			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
+//		}		
 	}
 	
 	private int checkLexemes(String line) {		
@@ -198,6 +202,11 @@ public class LexicalAnalyzer {
 
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
+<<<<<<< HEAD
+=======
+
+			//System.out.println(currentLexeme);
+>>>>>>> 70a04c72cc96d30de2546d3df9e059cae3bf1110
 			
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isSpace(line.charAt(currPos))) {
@@ -269,6 +278,46 @@ public class LexicalAnalyzer {
 		}		
 		
 		return 0;
+	}
+	
+	private void checkSymbols() {
+		String identifier = "";
+		String value = "";
+		
+		for(int i=1; i < tokens.size(); i++) {
+			//IF VARIABLE IDENTIFIER
+			if(tokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)){
+				//CHECK IF DECLARED
+				if(tokens.get(i-1).getClassification().equals(Token.I_HAS_A_CLASSIFIER)) { //if I HAS A yung i-1
+					identifier = tokens.get(i).getLexeme(); //place lexeme in identifier
+					if(tokens.get(i+1).getClassification().equals(Token.ITZ_CLASSIFIER)){ //if i+1 == ITZ
+						value = tokens.get(i+2).getLexeme(); //place lexeme in value
+						symbols.add(new Symbol(identifier, value));
+					} else {
+						value = "NOOB"; //uninitialized var therefore value is NOOB
+						symbols.add(new Symbol(identifier, value));					}
+				}
+			}
+		} //end of for loop()
+	}
+	
+	private void executeTerminal() { //MALI PA PU ITOO TESTING LANG
+		for(int i=1; i < tokens.size(); i++) {
+			if(tokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)){
+				if(tokens.get(i-1).getClassification().equals(Token.VISIBLE_CLASSIFIER)) {
+					for(int j=0; j < symbols.size(); j++) {
+						System.out.println("=============terminal section=============");
+						System.out.println(tokens.get(i).getLexeme() + " = " + symbols.get(j).getSymbol() + "?");
+						if(tokens.get(i).getLexeme().equals(symbols.get(j).getSymbol())){
+							System.out.println("true");
+							outputDisplay.setText(symbols.get(j).getValue());
+						} else System.out.println("false");
+						
+					}
+				}
+			}
+		}
+		
 	}
 	
 	//return classification if the current lexeme is a token
@@ -436,8 +485,12 @@ public class LexicalAnalyzer {
     	lexemefirstDataColumn.setCellValueFactory(new PropertyValueFactory<>("lexeme"));
     	lexemesecondDataColumn.setCellValueFactory(new PropertyValueFactory<>("classification"));
     	
+    	symbolfirstDataColumn.setCellValueFactory(new PropertyValueFactory<>("symbol"));
+    	symbolsecondDataColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
+    	
     	//populate table
     	for(Token token: tokens) lexemeTableView.getItems().add(token);
+    	for(Symbol symbol: symbols) symbolTableView.getItems().add(symbol);
     }
     
     private void showError() {  	
@@ -455,7 +508,9 @@ public class LexicalAnalyzer {
     }
     
     private void showPass() {
+    	checkSymbols();
     	populateTable();
+    	executeTerminal();
 		passIndicator.setImage(happyImg);
 		lexicalIndicator.setImage(lexicalPassImg);
     }
