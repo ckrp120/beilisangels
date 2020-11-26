@@ -97,7 +97,7 @@ public class Token {
 	public final static String BTW_CLASSIFIER = "Comment (one line)";
 	public final static String OBTW_CLASSIFIER = "Comment (multiline) Signifier";
 	public final static String TLDR_CLASSIFIER = "Comment (multiline) Ender";
-	public final static String I_HAS_A_CLASSFIER = "Variable Declaration";
+	public final static String I_HAS_A_CLASSIFIER = "Variable Declaration";
 	public final static String ITZ_CLASSIFIER = "Variable Assignment";
 	public final static String R_CLASSIFIER = "Variable Assignment";
 	public final static String SUM_OF_CLASSIFIER = "Sum Operator";
@@ -162,7 +162,7 @@ public class Token {
 	    put(Token.BTW,   Token.BTW_CLASSIFIER);
 	    put(Token.OBTW, Token.OBTW_CLASSIFIER);
 	    put(Token.TLDR, Token.TLDR_CLASSIFIER);
-	    put(Token.I_HAS_A, Token.I_HAS_A_CLASSFIER);
+	    put(Token.I_HAS_A, Token.I_HAS_A_CLASSIFIER);
 	    put(Token.ITZ, Token.ITZ_CLASSIFIER);
 	    put(Token.R, Token.R_CLASSIFIER);
 	    put(Token.SUM_OF, Token.SUM_OF_CLASSIFIER);
