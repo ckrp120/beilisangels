@@ -1,6 +1,9 @@
 package lexical_analyzer;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -202,6 +205,17 @@ public class Token {
 	    put(Token.WILE, Token.WILE_CLASSIFIER);
 	    put(Token.IM_OUTTA_YR, Token.IM_OUTTA_YR_CLASSIFIER);
 	}};
+	
+	//LIST OF ARITHMETIC EXPRESSIONS
+	public final static List<String> ARITHMETIC_EXPRESSIONS = new ArrayList<>(Arrays.asList(
+			Token.SUM_OF_CLASSIFIER,
+			Token.DIFF_OF_CLASSIFIER,
+			Token.PRODUKT_OF_CLASSIFIER,
+			Token.QUOSHUNT_OF_CLASSIFIER,
+			Token.MOD_OF_CLASSIFIER,
+			Token.BIGGR_OF_CLASSIFIER,
+			Token.SMALLR_OF_CLASSIFIER
+			));
 		
 	private String lexeme;
 	private String classification;

@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.Scanner;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -31,11 +32,9 @@ public class LexicalAnalyzer {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-<<<<<<< HEAD
 	private File file = new File("lolcode/variables.lol");
-=======
-	private File file = new File("lolcode/bool.lol");
->>>>>>> 70a04c72cc96d30de2546d3df9e059cae3bf1110
+
+	//private File file = new File("lolcode/bool.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -69,7 +68,7 @@ public class LexicalAnalyzer {
     private boolean invalidSyntax,possibleKeywordDetected,readBack;
 	ArrayList<Token> tokens = new ArrayList<Token>();
 	ArrayList<Symbol> symbols = new ArrayList<Symbol>();
-	
+	ArrayList<Token> tokensPerLine = new ArrayList<Token>();
 	public LexicalAnalyzer() {
 		root = new Group();
 		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.BISQUE);
@@ -127,7 +126,7 @@ public class LexicalAnalyzer {
 		
 		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, lexicalIndicator, syntaxIndicator, semanticIndicator);
 		this.stage = stage;
-		this.stage.setTitle("LOLCode Interpreter");
+		this.stage.setTitle("LOLCode Interprete");
 		this.stage.setMinWidth(WINDOW_WIDTH);
 		this.stage.setMinHeight(WINDOW_HEIGHT);
 		this.stage.setScene(this.scene);
@@ -160,8 +159,12 @@ public class LexicalAnalyzer {
 			}  
 			//case 1 or case 2 and there's still an invalid syntax
 			if(status == 1) break;
+			
+			System.out.println(arithmeticSyntax());
+			tokensPerLine.clear();
 		}
 	
+		
 //		System.out.println("\nLEXEMES");
 //		for(int i=0;i<tokens.size();i++) {
 //			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
@@ -202,11 +205,8 @@ public class LexicalAnalyzer {
 
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
-<<<<<<< HEAD
-=======
-
 			//System.out.println(currentLexeme);
->>>>>>> 70a04c72cc96d30de2546d3df9e059cae3bf1110
+
 			
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isSpace(line.charAt(currPos))) {
@@ -225,6 +225,10 @@ public class LexicalAnalyzer {
 							tokens.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
 							tokens.add(new Token(m.group(2), classification));
 							tokens.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
+							
+							tokensPerLine.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
+							tokensPerLine.add(new Token(m.group(2), classification));
+							tokensPerLine.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
 						}
 					
 					//if a comment is detected, ignore whatever comes after it
@@ -235,10 +239,12 @@ public class LexicalAnalyzer {
 						//case 1: BTW (skip the current line)
 						if(commentDetected == 1) {
 							tokens.add(new Token(currentLexeme,classification));
+							tokensPerLine.add(new Token(currentLexeme,classification));
 							currentLexeme = "";
 						//case 2: OBTW .. TLDR (must have their own lines)
 						} else if(wordCheck == 0) {
 							tokens.add(new Token(currentLexeme,classification));
+							tokensPerLine.add(new Token(currentLexeme,classification));
 							currentLexeme = "";
 							String commentEnder;
 							
@@ -257,7 +263,11 @@ public class LexicalAnalyzer {
 						break;
 					
 					//if not a string or a comment, add as is
-					} else tokens.add(new Token(currentLexeme,classification));	
+					} else{
+						tokens.add(new Token(currentLexeme,classification));
+						tokensPerLine.add(new Token(currentLexeme,classification));
+						
+					}
 						
 					currentLexeme ="";
 					wordCheck++;
@@ -279,6 +289,75 @@ public class LexicalAnalyzer {
 		
 		return 0;
 	}
+	
+	private boolean arithmeticSyntax() {
+		Stack<Token> checker = new Stack<Token>();
+		int exprCount = 0, opCount = 0, anCount = 0;
+		boolean startingPopped = false;
+		
+		for(int i = 0; i < tokensPerLine.size(); i++) {
+			//implies that another operation has started in the same line
+			if(startingPopped) {
+				System.out.println("Starting popped");
+				return false; 
+			}
+			//add keywords to stack
+			if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(i).getClassification())) {
+				checker.add(tokensPerLine.get(i));
+				
+				//if not starting arithmetic expression, inc exprCount (meaning it is a nested expression)
+				if(i > 0) exprCount++;
+			}else if(tokensPerLine.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+				//if an is encountered, add to an count
+				anCount++;
+			}else if(tokensPerLine.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) | tokensPerLine.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) | tokensPerLine.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+				//if num/var is encountered, add to an operand count
+				opCount++;
+			}else {
+				System.out.println("UNMATCHED :"+tokensPerLine.get(i).getLexeme());
+				return false;
+			}
+			
+			
+			 System.out.println("Lexeme: "+tokensPerLine.get(i).getLexeme());
+			 System.out.println("anCount: "+anCount + " exprCount: "+exprCount + "opCount: "+opCount);
+			//pop stack after detecting two operands
+			 
+			if(anCount >= 2) return false;
+			if((opCount == 2 && anCount == 1) || (exprCount >= 1 && opCount >= 1 && anCount == 1)) {
+				System.out.println("Popping..");
+				if(!checker.isEmpty()) {
+					
+					if(checker.size() == 1) startingPopped = true;
+					System.out.println("Popped: " + checker.pop().getLexeme());
+					
+					
+					if((opCount == 2 && anCount == 1)) {
+						System.out.println("2 num/var popped");
+						opCount = 0;
+					}
+					if(((exprCount >= 1 && opCount >= 1 && anCount == 1))) {
+						System.out.println("expr/op popped");
+						opCount--;
+						exprCount--;
+					}
+					
+					anCount--;
+				}else {
+					System.out.println("NUM OF OPERANDS MISMATCH");
+					return false;
+				}
+			}
+			
+		}
+		
+		System.out.println("Checker: ");
+		for(Token t: checker)
+			System.out.println(t.getLexeme());
+		if(checker.isEmpty() && opCount == 0 && anCount == 0 && exprCount == 0) return true;
+		else return false;
+	}
+	
 	
 	private void checkSymbols() {
 		String identifier = "";
