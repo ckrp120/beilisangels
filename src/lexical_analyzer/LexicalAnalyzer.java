@@ -31,7 +31,7 @@ public class LexicalAnalyzer {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("lolcode/sample.lol");
+	private File file = new File("lolcode/variables.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -61,9 +61,8 @@ public class LexicalAnalyzer {
     //FOR LEXICAL ANALYSIS
     String[] lines;
     String currentLexeme;
-    private boolean invalidSyntax; //checker if there is an invalid syntax
-    private boolean possibleKeywordDetected=false,readBack=false; //checker if there is a detected possible keyword
     private int wordCheck,lineCheck,status;
+    private boolean invalidSyntax,possibleKeywordDetected,readBack;
 	ArrayList<Token> tokens = new ArrayList<Token>();
 	
 	
@@ -137,15 +136,26 @@ public class LexicalAnalyzer {
 	private void getLexemes() {		
 		//process every line
 		while(lineCheck<lines.length) {
+			possibleKeywordDetected = false;
 			readBack=false;
+			wordCheck = 0;
+			
+			//check status of the current line
+			//0 - valid syntax
+			//1 - invalid syntax
+			//2 - invalid syntax, but process again because there's
+			//	  a variable identifier detected as a possible keyword
+			
 			status = checkLexemes(lines[lineCheck]);
+			
+			//case 2
 			if(status == 2) {
 				lineCheck--;
+				//process again starting from where an invalid syntax is detected
 				status = checkLexemes(currentLexeme);
-				if(status != 0) break;
-			} else if(status == 1) {
-				break;
-			}
+			}  
+			//case 1 or case 2 and there's still an invalid syntax
+			if(status == 1) break;
 		}
 	
 		System.out.println("\nLEXEMES");
@@ -165,17 +175,11 @@ public class LexicalAnalyzer {
 		//if the current line has no code, continue to the next line
 		if(isEmpty(line)) return 0;
 					
-		wordCheck = 0;
 		currentLexeme = "";
 		
 		//ignore spaces/tabs at the beginning of the line
-		do {
-			currChar = line.charAt(currPos);
-			currPos++;
-		} while(isSpace(currChar));
-		
-		currPos--;
-		
+		while(isSpace(line.charAt(currPos))) currPos++;
+				
 		//start checking the lexemes 
 		while(currPos < line.length()) {
 			//get current character and increment position
@@ -186,18 +190,16 @@ public class LexicalAnalyzer {
 			if(acceptedLexeme) {
 				acceptedLexeme = false;
 
-				while(isSpace(currChar)) {
-					currChar = line.charAt(currPos);
-					currPos++;
-				}
+				while(isSpace(line.charAt(currPos))) currPos++;
+				
+				currChar = line.charAt(currPos);
+				currPos++;
 			}
 
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
-
-			System.out.println(currentLexeme);
 			
-			//if the end of the line is reached or a space is detected, check if the current lexeme is a token
+			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isSpace(line.charAt(currPos))) {
 				classification = checkLexeme(currentLexeme);
 				
@@ -215,13 +217,17 @@ public class LexicalAnalyzer {
 							tokens.add(new Token(m.group(2), classification));
 							tokens.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
 						}
+					
 					//if a comment is detected, ignore whatever comes after it
+					//0 - not a comment
+					//1 - one line comment (BTW)
+					//2 - multiline comment (OBTW)
 					} else if((commentDetected = isAComment(currentLexeme)) != 0) {
-						//Case 1: BTW (skip the current line)
+						//case 1: BTW (skip the current line)
 						if(commentDetected == 1) {
 							tokens.add(new Token(currentLexeme,classification));
 							currentLexeme = "";
-						//Case 2: OBTW .. TLDR (must have their own lines)
+						//case 2: OBTW .. TLDR (must have their own lines)
 						} else if(wordCheck == 0) {
 							tokens.add(new Token(currentLexeme,classification));
 							currentLexeme = "";
@@ -235,13 +241,14 @@ public class LexicalAnalyzer {
 								
 								
 								for(int i=0;i<lexemes.length;i++) {
-									if(lexemes[i].equals("")) continue;
-									else commentEnder+=lexemes[i];
+									if(!lexemes[i].equals("")) commentEnder+=lexemes[i];
 								}	
 							} while(!commentEnder.equals(Token.TLDR));		
 						}
 						break;
-					} else tokens.add(new Token(currentLexeme,classification));	//if not a string or a comment, add as is
+					
+					//if not a string or a comment, add as is
+					} else tokens.add(new Token(currentLexeme,classification));	
 						
 					currentLexeme ="";
 					wordCheck++;
@@ -250,12 +257,15 @@ public class LexicalAnalyzer {
 		}
 		
 		//ERROR DETECTION
-		if(currentLexeme!="" && possibleKeywordDetected && status!=2) {
+		
+		//there's an invalid syntax, but process again because a variable identifier is detected as a possible keyword
+		if(!currentLexeme.equals("") && possibleKeywordDetected && status!=2) {
 			readBack=true;
 			return 2;
+		//there's an invalid syntax, stop iteration for getting lexemes
 		} else if(currentLexeme!="") {
-			invalidSyntax = true; //set invalidSyntax to true because there is an invalid syntax
-			return 1; //stop iteration for checking lexemes
+			invalidSyntax = true;
+			return 1;
 		}		
 		
 		return 0;
@@ -297,7 +307,7 @@ public class LexicalAnalyzer {
 	
 	//check if the line has no code
 	public boolean isEmpty(String s) {
-		if(s.isEmpty() || s.equals(" ")) return true;
+		if(s.isEmpty()) return true;
 		
 		for(int i=0;i<s.length();i++) {
 			if(!isSpace(s.charAt(i))) return false;
