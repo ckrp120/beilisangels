@@ -291,16 +291,19 @@ public class LexicalAnalyzer {
 	}
 	
 	private void checkSyntax() {
-		
-		//check if starting token is an arithmetic expression
-		if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
-			if(arithmeticSyntax()) {
-				System.out.println("Line: "+lineCheck+" passed!");
-				System.out.println("Answer: "+arithmeticExecute());
+		if(tokensPerLine.size() > 0) {
+			//check if starting token is an arithmetic expression
+			if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
+				if(arithmeticSyntax()) {
+					System.out.println("Line: "+lineCheck+" passed!");
+					System.out.println("Answer: "+arithmeticExecute());
+				}
 			}
+			
+			tokensPerLine.clear();
 		}
 		
-		tokensPerLine.clear();
+		
 	}
 	private Number arithmeticExecute() {
 		Stack<Number> operation = new Stack<Number>();
