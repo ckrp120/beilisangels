@@ -69,12 +69,15 @@ public class LexicalAnalyzer {
 	ArrayList<Token> tokensPerLine = new ArrayList<Token>();
 	ArrayList<Symbol> symbols = new ArrayList<Symbol>();
 	
+	private String outputDisplayText="";
+	
 	
 	public LexicalAnalyzer() {
 		root = new Group();
 		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.BISQUE);
 		canvas = new Canvas(WINDOW_HEIGHT,WINDOW_HEIGHT);
 		canvas.getGraphicsContext2D();
+		symbols.add(new Symbol(Token.IT,""));
 	}
 	
 	public void setStage(Stage stage) {
@@ -163,6 +166,8 @@ public class LexicalAnalyzer {
 			
 			checkSymbols();
 			checkSyntax();
+	    	executeTerminal();
+			tokensPerLine.clear();
 		}
 	
 		
@@ -300,7 +305,6 @@ public class LexicalAnalyzer {
 					System.out.println("Answer: "+arithmeticExecute());
 				}
 			}
-			tokensPerLine.clear();
 		}
 	}
 	
@@ -422,8 +426,11 @@ public class LexicalAnalyzer {
 			}
 		}
 		
+		Number num = operation.pop();
+		symbols.get(0).setValue(num.toString()); 
+		
 		//last item on the stack is the result
-		return operation.pop();
+		return num;
 	}
 	
 	private float parseFloat(Token tkn) {
@@ -523,15 +530,15 @@ public class LexicalAnalyzer {
 	}
 	
 	private void executeTerminal() { //MALI PA PU ITOO TESTING LANG
-		for(int i=1; i < tokens.size(); i++) {
-			if(tokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)){
-				if(tokens.get(i-1).getClassification().equals(Token.VISIBLE_CLASSIFIER)) {
+		for(int i=1; i < tokensPerLine.size(); i++) {
+			if(tokensPerLine.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || tokensPerLine.get(i).getClassification().equals(Token.IT_CLASSIFIER)){
+				if(tokensPerLine.get(i-1).getClassification().equals(Token.VISIBLE_CLASSIFIER)) {
 					for(int j=0; j < symbols.size(); j++) {
 						System.out.println("=============terminal section=============");
-						System.out.println(tokens.get(i).getLexeme() + " = " + symbols.get(j).getSymbol() + "?");
-						if(tokens.get(i).getLexeme().equals(symbols.get(j).getSymbol())){
+						System.out.println(tokensPerLine.get(i).getLexeme() + " = " + symbols.get(j).getSymbol() + "?");
+						if(tokensPerLine.get(i).getLexeme().equals(symbols.get(j).getSymbol())){
 							System.out.println("true");
-							outputDisplay.setText(symbols.get(j).getValue());
+							outputDisplayText += symbols.get(j).getValue() + "\n";
 						} else System.out.println("false");
 						
 					}
@@ -730,7 +737,7 @@ public class LexicalAnalyzer {
     
     private void showPass() {
     	populateTable();
-    	executeTerminal();
+		outputDisplay.setText(outputDisplayText);
 		passIndicator.setImage(happyImg);
 		lexicalIndicator.setImage(lexicalPassImg);
     }
