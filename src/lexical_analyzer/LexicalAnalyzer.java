@@ -33,9 +33,7 @@ public class LexicalAnalyzer {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("testcases/io.lol");
-
-	//private File file = new File("lolcode/bool.lol");
+	private File file = new File("testcases/ops/arithop.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -66,10 +64,12 @@ public class LexicalAnalyzer {
     String[] lines;
     String currentLexeme;
     private int wordCheck,lineCheck,status;
-    private boolean invalidSyntax,possibleKeywordDetected,readBack;
+    private boolean invalidLexeme,possibleKeywordDetected,readBack;
 	ArrayList<Token> tokens = new ArrayList<Token>();
-	ArrayList<Symbol> symbols = new ArrayList<Symbol>();
 	ArrayList<Token> tokensPerLine = new ArrayList<Token>();
+	ArrayList<Symbol> symbols = new ArrayList<Symbol>();
+	
+	
 	public LexicalAnalyzer() {
 		root = new Group();
 		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.BISQUE);
@@ -145,9 +145,9 @@ public class LexicalAnalyzer {
 			wordCheck = 0;
 			
 			//check status of the current line
-			//0 - valid syntax
-			//1 - invalid syntax
-			//2 - invalid syntax, but process again because there's
+			//0 - valid lexeme
+			//1 - invalid lexeme
+			//2 - invalid lexeme, but process again because there's
 			//	  a variable identifier detected as a possible keyword
 			
 			status = checkLexemes(lines[lineCheck]);
@@ -155,20 +155,21 @@ public class LexicalAnalyzer {
 			//case 2
 			if(status == 2) {
 				lineCheck--;
-				//process again starting from where an invalid syntax is detected
+				//process again starting from where an invalid lexeme is detected
 				status = checkLexemes(currentLexeme);
 			}  
-			//case 1 or case 2 and there's still an invalid syntax
+			//case 1 or case 2 and there's still an invalid lexeme
 			if(status == 1) break;
 			
+			checkSymbols();
 			checkSyntax();
 		}
 	
 		
-		System.out.println("\nLEXEMES");
-		for(int i=0;i<tokens.size();i++) {
-			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
-		}		
+//		System.out.println("\nLEXEMES");
+//		for(int i=0;i<tokens.size();i++) {
+//			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
+//		}		
 	}
 	
 	private int checkLexemes(String line) {		
@@ -248,6 +249,7 @@ public class LexicalAnalyzer {
 							currentLexeme = "";
 							String commentEnder;
 							
+							//ignore lines until a TLDR is detected
 							do {
 								commentEnder="";
 								lineCheck++;
@@ -266,7 +268,6 @@ public class LexicalAnalyzer {
 					} else{
 						tokens.add(new Token(currentLexeme,classification));
 						tokensPerLine.add(new Token(currentLexeme,classification));
-						
 					}
 						
 					currentLexeme ="";
@@ -277,13 +278,13 @@ public class LexicalAnalyzer {
 		
 		//ERROR DETECTION
 		
-		//there's an invalid syntax, but process again because a variable identifier is detected as a possible keyword
+		//there's an invalid lexeme, but process again because a variable identifier is detected as a possible keyword
 		if(!currentLexeme.equals("") && possibleKeywordDetected && status!=2) {
 			readBack=true;
 			return 2;
-		//there's an invalid syntax, stop iteration for getting lexemes
+		//there's an invalid lexeme, stop iteration for getting lexemes
 		} else if(currentLexeme!="") {
-			invalidSyntax = true;
+			invalidLexeme = true;
 			return 1;
 		}		
 		
@@ -299,28 +300,37 @@ public class LexicalAnalyzer {
 					System.out.println("Answer: "+arithmeticExecute());
 				}
 			}
-			
 			tokensPerLine.clear();
 		}
-		
-		
 	}
+	
 	private Number arithmeticExecute() {
 		Stack<Number> operation = new Stack<Number>();
-		
-		
+			
 		//since operations are in prefix, reverse the tokens 
 		Collections.reverse(tokensPerLine);
 		
 		for(Token tkn: tokensPerLine) {
-			
 			//parse to float if operand is numbar
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
 				operation.push(parseFloat(tkn));
 			//parse to int if operand is numbr
 			}else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
 				operation.push(parseInt(tkn));
-				
+			//if varident is detected, check its value's data type
+			}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+				for(Symbol s:symbols) {
+					if(s.getSymbol().equals(tkn.getLexeme())) {						
+						String classification = checkLexeme(symbols.get(symbols.indexOf(s)).getValue());
+						
+						//parse to float if varident is numbar
+						if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
+						
+						//parse to int if varident is numbr
+						else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
+						break;
+					}
+				}
 			//if operation is detected, pop 2 operands and perform the operation
 			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
 				boolean resultIsNumbar = false;
@@ -424,6 +434,14 @@ public class LexicalAnalyzer {
 		return Integer.parseInt(tkn.getLexeme());
 	}
 	
+	private float parseFloat(int idx) {		
+		return Float.parseFloat(symbols.get(idx).getValue());
+	}
+	
+	private float parseInt(int idx) {		
+		return Integer.parseInt(symbols.get(idx).getValue());
+	}
+	
 	private boolean arithmeticSyntax() {
 		Stack<Token> checker = new Stack<Token>();
 		int exprCount = 0, opCount = 0, anCount = 0;
@@ -486,14 +504,15 @@ public class LexicalAnalyzer {
 		String identifier = "";
 		String value = "";
 		
-		for(int i=1; i < tokens.size(); i++) {
+		for(int i=1; i < tokensPerLine.size(); i++) {
+
 			//IF VARIABLE IDENTIFIER
-			if(tokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)){
+			if(tokensPerLine.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)){
 				//CHECK IF DECLARED
-				if(tokens.get(i-1).getClassification().equals(Token.I_HAS_A_CLASSIFIER)) { //if I HAS A yung i-1
-					identifier = tokens.get(i).getLexeme(); //place lexeme in identifier
-					if(tokens.get(i+1).getClassification().equals(Token.ITZ_CLASSIFIER)){ //if i+1 == ITZ
-						value = tokens.get(i+2).getLexeme(); //place lexeme in value
+				if(tokensPerLine.get(i-1).getClassification().equals(Token.I_HAS_A_CLASSIFIER)) { //if I HAS A yung i-1
+					identifier = tokensPerLine.get(i).getLexeme(); //place lexeme in identifier
+					if(tokensPerLine.get(i+1).getClassification().equals(Token.ITZ_CLASSIFIER)){ //if i+1 == ITZ
+						value = tokensPerLine.get(i+2).getLexeme(); //place lexeme in value
 						symbols.add(new Symbol(identifier, value));
 					} else {
 						value = "NOOB"; //uninitialized var therefore value is NOOB
@@ -627,7 +646,7 @@ public class LexicalAnalyzer {
 		fileString = "";
 		tokens.clear();
 		lexemeTableView.getItems().clear();
-		invalidSyntax = false;
+		invalidLexeme = false;
 		lineCheck = 0;
 		passIndicator.setImage(neutralImg);
 		lexicalIndicator.setImage(null);
@@ -710,7 +729,6 @@ public class LexicalAnalyzer {
     }
     
     private void showPass() {
-    	checkSymbols();
     	populateTable();
     	executeTerminal();
 		passIndicator.setImage(happyImg);
@@ -721,7 +739,7 @@ public class LexicalAnalyzer {
 		executeButton.setOnAction(e -> {
 			readFile();
 			getLexemes();
-			if(!invalidSyntax) showPass();
+			if(!invalidLexeme) showPass();
 			else showError();
         });
 	}
