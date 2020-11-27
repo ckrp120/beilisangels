@@ -600,7 +600,17 @@ public class LexicalAnalyzer {
 						value = "NOOB"; //uninitialized var therefore value is NOOB
 						symbols.add(new Symbol(identifier, value));	
 					} else if(tokensPerLine.get(i+1).getClassification().equals(Token.ITZ_CLASSIFIER)){ //if i+1 == ITZ
-						if(tokensPerLine.get(i+2).getLexeme().equals(Token.STRING_DELIMITER))
+						if(tokensPerLine.get(i+2).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) ||
+							tokensPerLine.get(i+2).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+							
+							for(Symbol s:symbols) {
+								if(s.getSymbol().equals(tokensPerLine.get(i+2).getLexeme())) {	
+									symbols.add(new Symbol(identifier,s.getValue()));
+									break;
+								}
+							}							
+						}
+						else if(tokensPerLine.get(i+2).getLexeme().equals(Token.STRING_DELIMITER))
 							symbols.add(new Symbol(identifier, tokensPerLine.get(i+3).getLexeme()));
 						else symbols.add(new Symbol(identifier, tokensPerLine.get(i+2).getLexeme()));
 					}
