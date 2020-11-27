@@ -17,7 +17,7 @@ HAI
   VISIBLE EITHER OF WIN AN FAIL
 
   BTW printing of variables and use of GIMMEH
-  I HAS A input 
+  I HAS A input
   VISIBLE "gif imput "
   GIMMEH input
   VISIBLE input

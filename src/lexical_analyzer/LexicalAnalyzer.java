@@ -33,7 +33,7 @@ public class LexicalAnalyzer {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("lolcode/variables.lol");
+	private File file = new File("testcases/io.lol");
 
 	//private File file = new File("lolcode/bool.lol");
 	private String fileString="";
@@ -165,10 +165,10 @@ public class LexicalAnalyzer {
 		}
 	
 		
-//		System.out.println("\nLEXEMES");
-//		for(int i=0;i<tokens.size();i++) {
-//			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
-//		}		
+		System.out.println("\nLEXEMES");
+		for(int i=0;i<tokens.size();i++) {
+			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
+		}		
 	}
 	
 	private int checkLexemes(String line) {		
