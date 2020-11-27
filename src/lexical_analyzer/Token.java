@@ -217,17 +217,16 @@ public class Token {
 		Token.SMALLR_OF_CLASSIFIER
 	));
 	
-	
 	//LIST OF BOOLEAN EXPRESSIONS
 	
-	//for binary operations
+	//binary operations
 	public final static List<String> BINARY_BOOLEAN_EXPRESSIONS = new ArrayList<>(Arrays.asList(
 			Token.BOTH_OF_CLASSIFIER,
 			Token.EITHER_OF_CLASSIFIER,
 			Token.WON_OF_CLASSIFIER
 		));
-	
-	//operations with other arity
+			
+	//operations with other arities
 	public final static List<String> OTHER_BOOLEAN_EXPRESSIONS = new ArrayList<>(Arrays.asList(
 			Token.NOT_CLASSIFIER,
 			Token.ALL_OF_CLASSIFIER,
