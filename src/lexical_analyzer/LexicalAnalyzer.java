@@ -33,7 +33,8 @@ public class LexicalAnalyzer {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("testcases/ops/arithop.lol");
+//	private File file = new File("testcases/ops/assignop.lol");
+	private File file = new File("testcases/vardecinit.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -312,6 +313,7 @@ public class LexicalAnalyzer {
 					System.out.println("Line: "+lineCheck+" passed!");
 					System.out.println("Answer: "+arithmeticExecute(Token.IT));
 				}
+			//R: check if current line is assigning data to a variable
 			} else if(tokensPerLine.get(1).getLexeme().equals(Token.R)) {
 				String literalClassification = varAssignmentSyntax();
 				if(literalClassification != null) {
@@ -320,11 +322,32 @@ public class LexicalAnalyzer {
 					System.out.println("Answer: ");
 					varAssignmentExecute(literalClassification);
 				}
-			}
+			//VISIBLE: check if current line wants to print
+			} 
+//				else if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
+//				String literalClassification = varAssignmentSyntax();
+//				if(literalClassification != null) {
+//					System.out.println("VAR ASSIGNMENT");
+//					System.out.println("Line: "+lineCheck+" passed!");
+//					System.out.println("Answer: ");
+//					varAssignmentExecute(literalClassification);
+//				}
+//			}
 		}
 	}
 	
 	private String varAssignmentSyntax() {
+		if(tokensPerLine.get(0).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || tokensPerLine.get(0).getClassification().equals(Token.IT_CLASSIFIER)) {
+			if(Token.LITERALS.contains(tokensPerLine.get(2).getClassification()) ||
+				Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(2).getClassification())) return tokensPerLine.get(2).getClassification();
+			
+			if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) return tokensPerLine.get(3).getClassification();			
+		}
+		
+		return null;
+	}
+	
+	private String printSyntax() {
 		if(tokensPerLine.get(0).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || tokensPerLine.get(0).getClassification().equals(Token.IT_CLASSIFIER)) {
 			if(Token.LITERALS.contains(tokensPerLine.get(2).getClassification()) ||
 				Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(2).getClassification())) return tokensPerLine.get(2).getClassification();
@@ -577,8 +600,9 @@ public class LexicalAnalyzer {
 						value = "NOOB"; //uninitialized var therefore value is NOOB
 						symbols.add(new Symbol(identifier, value));	
 					} else if(tokensPerLine.get(i+1).getClassification().equals(Token.ITZ_CLASSIFIER)){ //if i+1 == ITZ
-						value = tokensPerLine.get(i+2).getLexeme(); //place lexeme in value
-						symbols.add(new Symbol(identifier, value));
+						if(tokensPerLine.get(i+2).getLexeme().equals(Token.STRING_DELIMITER))
+							symbols.add(new Symbol(identifier, tokensPerLine.get(i+3).getLexeme()));
+						else symbols.add(new Symbol(identifier, tokensPerLine.get(i+2).getLexeme()));
 					}
 				}
 			}
