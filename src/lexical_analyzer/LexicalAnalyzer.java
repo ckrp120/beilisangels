@@ -2,6 +2,7 @@ package lexical_analyzer;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Stack;
@@ -160,8 +161,7 @@ public class LexicalAnalyzer {
 			//case 1 or case 2 and there's still an invalid syntax
 			if(status == 1) break;
 			
-			System.out.println(arithmeticSyntax());
-			tokensPerLine.clear();
+			checkSyntax();
 		}
 	
 		
@@ -290,6 +290,137 @@ public class LexicalAnalyzer {
 		return 0;
 	}
 	
+	private void checkSyntax() {
+		
+		//check if starting token is an arithmetic expression
+		if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
+			if(arithmeticSyntax()) {
+				System.out.println("Line: "+lineCheck+" passed!");
+				System.out.println("Answer: "+arithmeticExecute());
+			}
+		}
+		
+		tokensPerLine.clear();
+	}
+	private Number arithmeticExecute() {
+		Stack<Number> operation = new Stack<Number>();
+		
+		
+		//since operations are in prefix, reverse the tokens 
+		Collections.reverse(tokensPerLine);
+		
+		for(Token tkn: tokensPerLine) {
+			
+			//parse to float if operand is numbar
+			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
+				operation.push(parseFloat(tkn));
+			//parse to int if operand is numbr
+			}else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
+				operation.push(parseInt(tkn));
+				
+			//if operation is detected, pop 2 operands and perform the operation
+			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
+				boolean resultIsNumbar = false;
+				Number op1 = operation.pop();
+				Number op2 = operation.pop();
+				
+				//check if one of the operands is numbar
+				if(op1 instanceof Float || op2 instanceof Float) resultIsNumbar = true;
+				
+				//if numbar, result must be float
+				if(resultIsNumbar) {
+					Float o1 = op1.floatValue();
+					Float o2 = op2.floatValue();
+					
+					//perform the operation then push to stack
+					switch(tkn.getClassification()) {
+					case Token.SUM_OF_CLASSIFIER:
+						operation.push(o1 + o2);
+						break;
+					case Token.DIFF_OF_CLASSIFIER:
+						operation.push(o1 - o2);
+						break;
+						
+					case Token.PRODUKT_OF_CLASSIFIER:
+						operation.push(o1 * o2);
+						break;
+						
+					case Token.QUOSHUNT_OF_CLASSIFIER:
+						operation.push(o1 / o2);
+						break;
+						
+					case Token.MOD_OF_CLASSIFIER:
+						operation.push(o1 % o2);
+						break;
+					
+					case Token.BIGGR_OF_CLASSIFIER:
+						
+						if(o1 > o2) operation.push(o1);
+						else operation.push(o2);
+						break;
+					
+					case Token.SMALLR_OF_CLASSIFIER:
+						if(o1 < o2) operation.push(o1);
+						else operation.push(o2);
+						break;
+					
+					}
+					
+				}else {
+					//since no numbar val is detected, operands are assumed to be both int
+					int o1 = op1.intValue();
+					int o2 = op2.intValue();
+					
+					//perform the operation then push to stack
+					switch(tkn.getClassification()) {
+					case Token.SUM_OF_CLASSIFIER:
+						operation.push(o1 + o2);
+						break;
+					case Token.DIFF_OF_CLASSIFIER:
+						operation.push(o1 - o2);
+						break;
+						
+					case Token.PRODUKT_OF_CLASSIFIER:
+						operation.push(o1 * o2);
+						break;
+						
+					case Token.QUOSHUNT_OF_CLASSIFIER:
+						operation.push(o1 / o2);
+						break;
+						
+					case Token.MOD_OF_CLASSIFIER:
+						operation.push(o1 % o2);
+						break;
+					
+					case Token.BIGGR_OF_CLASSIFIER:
+						
+						if(o1 > o2) operation.push(o1);
+						else operation.push(o2);
+						break;
+					
+					case Token.SMALLR_OF_CLASSIFIER:
+						if(o1 < o2) operation.push(o1);
+						else operation.push(o2);
+						break;
+					
+					}
+					
+				}
+			}
+		}
+		
+		//last item on the stack is the result
+		return operation.pop();
+	}
+	
+	private float parseFloat(Token tkn) {
+		return Float.parseFloat(tkn.getLexeme());
+	}
+	
+	private int parseInt(Token tkn) {
+		return Integer.parseInt(tkn.getLexeme());
+	}
+	
 	private boolean arithmeticSyntax() {
 		Stack<Token> checker = new Stack<Token>();
 		int exprCount = 0, opCount = 0, anCount = 0;
@@ -298,7 +429,6 @@ public class LexicalAnalyzer {
 		for(int i = 0; i < tokensPerLine.size(); i++) {
 			//implies that another operation has started in the same line
 			if(startingPopped) {
-				System.out.println("Starting popped");
 				return false; 
 			}
 			//add keywords to stack
@@ -314,46 +444,36 @@ public class LexicalAnalyzer {
 				//if num/var is encountered, add to an operand count
 				opCount++;
 			}else {
-				System.out.println("UNMATCHED :"+tokensPerLine.get(i).getLexeme());
+				//lexeme does not belong in this expression
 				return false;
 			}
 			
 			
-			 System.out.println("Lexeme: "+tokensPerLine.get(i).getLexeme());
-			 System.out.println("anCount: "+anCount + " exprCount: "+exprCount + "opCount: "+opCount);
 			//pop stack after detecting two operands
 			 
 			if(anCount >= 2) return false;
 			if((opCount == 2 && anCount == 1) || (exprCount >= 1 && opCount >= 1 && anCount == 1)) {
-				System.out.println("Popping..");
 				if(!checker.isEmpty()) {
 					
 					if(checker.size() == 1) startingPopped = true;
-					System.out.println("Popped: " + checker.pop().getLexeme());
-					
+					checker.pop();
 					
 					if((opCount == 2 && anCount == 1)) {
-						System.out.println("2 num/var popped");
 						opCount = 0;
 					}
 					if(((exprCount >= 1 && opCount >= 1 && anCount == 1))) {
-						System.out.println("expr/op popped");
 						opCount--;
 						exprCount--;
 					}
 					
 					anCount--;
 				}else {
-					System.out.println("NUM OF OPERANDS MISMATCH");
 					return false;
 				}
 			}
 			
 		}
 		
-		System.out.println("Checker: ");
-		for(Token t: checker)
-			System.out.println(t.getLexeme());
 		if(checker.isEmpty() && opCount == 0 && anCount == 0 && exprCount == 0) return true;
 		else return false;
 	}
