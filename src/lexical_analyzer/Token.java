@@ -208,15 +208,24 @@ public class Token {
 	
 	//LIST OF ARITHMETIC EXPRESSIONS
 	public final static List<String> ARITHMETIC_EXPRESSIONS = new ArrayList<>(Arrays.asList(
-			Token.SUM_OF_CLASSIFIER,
-			Token.DIFF_OF_CLASSIFIER,
-			Token.PRODUKT_OF_CLASSIFIER,
-			Token.QUOSHUNT_OF_CLASSIFIER,
-			Token.MOD_OF_CLASSIFIER,
-			Token.BIGGR_OF_CLASSIFIER,
-			Token.SMALLR_OF_CLASSIFIER
-			));
+		Token.SUM_OF_CLASSIFIER,
+		Token.DIFF_OF_CLASSIFIER,
+		Token.PRODUKT_OF_CLASSIFIER,
+		Token.QUOSHUNT_OF_CLASSIFIER,
+		Token.MOD_OF_CLASSIFIER,
+		Token.BIGGR_OF_CLASSIFIER,
+		Token.SMALLR_OF_CLASSIFIER
+	));
 		
+	
+	//LIST OF LITERALS
+	public final static List<String> LITERALS = new ArrayList<>(Arrays.asList(
+		Token.NUMBR_LITERAL_CLASSIFIER,
+		Token.NUMBAR_LITERAL_CLASSIFIER,
+		Token.TROOF_LITERAL_CLASSIFIER,
+		Token.TYPE_LITERAL_CLASSIFIER
+	));
+	
 	private String lexeme;
 	private String classification;
 	

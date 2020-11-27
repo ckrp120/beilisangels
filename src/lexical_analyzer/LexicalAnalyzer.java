@@ -164,9 +164,16 @@ public class LexicalAnalyzer {
 			//case 1 or case 2 and there's still an invalid lexeme
 			if(status == 1) break;
 			
+			
 			checkSymbols();
 			checkSyntax();
 	    	executeTerminal();
+	    	
+//	    	System.out.println("LINE: "+lineCheck);
+//	    	for(Symbol s:symbols) {
+//	    		System.out.println(s.getSymbol()+"="+s.getValue());
+//	    	}
+//	    	System.out.println();
 			tokensPerLine.clear();
 		}
 	
@@ -297,18 +304,60 @@ public class LexicalAnalyzer {
 	}
 	
 	private void checkSyntax() {
-		if(tokensPerLine.size() > 0) {
+		if(tokensPerLine.size() > 1) {
 			//check if starting token is an arithmetic expression
 			if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
-				if(arithmeticSyntax()) {
+				if(arithmeticSyntax(tokensPerLine)) {
+					System.out.println("ARITHMETIC");
 					System.out.println("Line: "+lineCheck+" passed!");
-					System.out.println("Answer: "+arithmeticExecute());
+					System.out.println("Answer: "+arithmeticExecute(Token.IT));
+				}
+			} else if(tokensPerLine.get(1).getLexeme().equals(Token.R)) {
+				String literalClassification = varAssignmentSyntax();
+				if(literalClassification != null) {
+					System.out.println("VAR ASSIGNMENT");
+					System.out.println("Line: "+lineCheck+" passed!");
+					System.out.println("Answer: ");
+					varAssignmentExecute(literalClassification);
 				}
 			}
 		}
 	}
 	
-	private Number arithmeticExecute() {
+	private String varAssignmentSyntax() {
+		if(tokensPerLine.get(0).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || tokensPerLine.get(0).getClassification().equals(Token.IT_CLASSIFIER)) {
+			if(Token.LITERALS.contains(tokensPerLine.get(2).getClassification()) ||
+				Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(2).getClassification())) return tokensPerLine.get(2).getClassification();
+			
+			if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) return tokensPerLine.get(3).getClassification();			
+		}
+		
+		return null;
+	}
+	
+	private void varAssignmentExecute(String litClass) {
+		for(Symbol s:symbols) {
+			if(s.getSymbol().equals(tokensPerLine.get(0).getLexeme())) {
+				if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER)) s.setValue(tokensPerLine.get(3).getLexeme());
+				else if(Token.ARITHMETIC_EXPRESSIONS.contains(litClass)) {
+					ArrayList<Token> arithToken = new ArrayList<Token>();
+					
+					for(int i=2;i<tokensPerLine.size();i++) {
+						arithToken.add(tokensPerLine.get(i));
+					}
+					
+					if(arithmeticSyntax(arithToken)) {
+						System.out.println("Line: "+lineCheck+" passed!");
+						System.out.println("Answer: "+arithmeticExecute(tokensPerLine.get(0).getLexeme()));
+					}
+				}
+				else s.setValue(tokensPerLine.get(2).getLexeme());
+				break;
+			}
+		}
+	}
+	
+	private Number arithmeticExecute(String dataHolder) {
 		Stack<Number> operation = new Stack<Number>();
 			
 		//since operations are in prefix, reverse the tokens 
@@ -427,7 +476,13 @@ public class LexicalAnalyzer {
 		}
 		
 		Number num = operation.pop();
-		symbols.get(0).setValue(num.toString()); 
+		 
+		for(Symbol s:symbols) {
+			if(dataHolder.equals(s.getSymbol())) {					
+				s.setValue(num.toString());
+				break;
+			}
+		}
 		
 		//last item on the stack is the result
 		return num;
@@ -449,26 +504,26 @@ public class LexicalAnalyzer {
 		return Integer.parseInt(symbols.get(idx).getValue());
 	}
 	
-	private boolean arithmeticSyntax() {
+	private boolean arithmeticSyntax(ArrayList<Token> arithToken) {
 		Stack<Token> checker = new Stack<Token>();
 		int exprCount = 0, opCount = 0, anCount = 0;
 		boolean startingPopped = false;
 		
-		for(int i = 0; i < tokensPerLine.size(); i++) {
+		for(int i = 0; i < arithToken.size(); i++) {
 			//implies that another operation has started in the same line
 			if(startingPopped) {
 				return false; 
 			}
 			//add keywords to stack
-			if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(i).getClassification())) {
-				checker.add(tokensPerLine.get(i));
+			if(Token.ARITHMETIC_EXPRESSIONS.contains(arithToken.get(i).getClassification())) {
+				checker.add(arithToken.get(i));
 				
 				//if not starting arithmetic expression, inc exprCount (meaning it is a nested expression)
 				if(i > 0) exprCount++;
-			}else if(tokensPerLine.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+			}else if(arithToken.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
 				//if an is encountered, add to an count
 				anCount++;
-			}else if(tokensPerLine.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) | tokensPerLine.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) | tokensPerLine.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+			}else if(arithToken.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) | arithToken.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) | arithToken.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
 				//if num/var is encountered, add to an operand count
 				opCount++;
 			}else {
@@ -518,12 +573,13 @@ public class LexicalAnalyzer {
 				//CHECK IF DECLARED
 				if(tokensPerLine.get(i-1).getClassification().equals(Token.I_HAS_A_CLASSIFIER)) { //if I HAS A yung i-1
 					identifier = tokensPerLine.get(i).getLexeme(); //place lexeme in identifier
-					if(tokensPerLine.get(i+1).getClassification().equals(Token.ITZ_CLASSIFIER)){ //if i+1 == ITZ
+					if(i+1 == tokensPerLine.size()) {
+						value = "NOOB"; //uninitialized var therefore value is NOOB
+						symbols.add(new Symbol(identifier, value));	
+					} else if(tokensPerLine.get(i+1).getClassification().equals(Token.ITZ_CLASSIFIER)){ //if i+1 == ITZ
 						value = tokensPerLine.get(i+2).getLexeme(); //place lexeme in value
 						symbols.add(new Symbol(identifier, value));
-					} else {
-						value = "NOOB"; //uninitialized var therefore value is NOOB
-						symbols.add(new Symbol(identifier, value));					}
+					}
 				}
 			}
 		} //end of for loop()
@@ -534,13 +590,8 @@ public class LexicalAnalyzer {
 			if(tokensPerLine.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || tokensPerLine.get(i).getClassification().equals(Token.IT_CLASSIFIER)){
 				if(tokensPerLine.get(i-1).getClassification().equals(Token.VISIBLE_CLASSIFIER)) {
 					for(int j=0; j < symbols.size(); j++) {
-						System.out.println("=============terminal section=============");
-						System.out.println(tokensPerLine.get(i).getLexeme() + " = " + symbols.get(j).getSymbol() + "?");
-						if(tokensPerLine.get(i).getLexeme().equals(symbols.get(j).getSymbol())){
-							System.out.println("true");
-							outputDisplayText += symbols.get(j).getValue() + "\n";
-						} else System.out.println("false");
-						
+						if(tokensPerLine.get(i).getLexeme().equals(symbols.get(j).getSymbol()))
+							outputDisplayText += symbols.get(j).getValue() + "\n";						
 					}
 				}
 			}
