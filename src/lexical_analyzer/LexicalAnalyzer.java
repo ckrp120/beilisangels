@@ -320,6 +320,15 @@ public class LexicalAnalyzer {
 					System.out.println("Answer: ");
 					varAssignmentExecute(literalClassification);
 				}
+			} else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
+				System.out.println("BOOLEAN");
+				if(booleanSyntax(tokensPerLine)) {
+					
+					System.out.println("Line: "+lineCheck+" passed!");
+				}else {
+
+					System.out.println("Line: "+lineCheck+" failed :(");
+				}
 			}
 		}
 	}
@@ -486,6 +495,130 @@ public class LexicalAnalyzer {
 		
 		//last item on the stack is the result
 		return num;
+	}
+	
+	
+	private boolean booleanSyntax(ArrayList<Token> booleanTokens) {
+		Stack<Token> checker = new Stack<Token>();
+		Token currentToken;
+		int anCount = 0, popCount = 0;
+		
+		//since prefix, read the line in reverse
+		Collections.reverse(booleanTokens);
+		
+		for(int i = 0; i < booleanTokens.size(); i++) {
+			currentToken = booleanTokens.get(i);
+			
+			//if AN is detected, it must not be the last or starting token, and must not be followed by an AN
+			if(currentToken.getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+				
+				//AN is starting/last token
+				if(i == 0 || i == (booleanTokens.size()-1)) {
+					System.out.println("AN should not be last token");
+					return false;
+				}
+				
+				//followed by AN
+				else if(booleanTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+					System.out.println("unexpected next token: AN");
+					return false;
+				}
+				
+				else anCount++;
+			}else if(currentToken.getLexeme().equals(Token.NOT)) {
+				
+				
+				//NOT is last token
+				if(i == 0) {
+					System.out.println("operand exprected");
+					return false;
+				}
+				
+				//followed by AN
+				else if(booleanTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+					System.out.println("unexpected token: AN");
+					return false;
+				}
+				
+				else continue;
+			}else if(currentToken.getLexeme().equals(Token.ALL_OF) || currentToken.getLexeme().equals(Token.ANY_OF)) {
+				
+				//if it starts with ANY OF/ALL OF then num of stack is ignored since these are infinite arity operations
+				if(i == booleanTokens.size()-1 && !booleanTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+					System.out.println("i: "+i);
+					System.out.println(booleanTokens.get(i-1).getLexeme());
+					return true; 
+				}
+				
+				//operation cannot be nested
+				else {
+					System.out.println("ANY OF/ALL OF cannot be nested");
+					return false;
+				}
+			
+			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) | currentToken.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+				//if last token, it must be preceeded with an AN or NOT
+				if(i == 0) {
+					
+					
+					if(!(booleanTokens.get(i+1).getLexeme().equals(Token.AN_TYPE_LITERAL) || booleanTokens.get(i+1).getLexeme().equals(Token.NOT))) {
+						System.out.println("last token: terminal not preceeded with AN/NOT");
+						return false;
+					}
+				}else {
+					//if not last token, it must be followed with an AN
+					
+					if(!booleanTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+						System.out.println("terminal not followed by AN");
+						return false;
+					}
+				}
+				
+				//push to stack
+				checker.push(currentToken);
+			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(currentToken.getClassification())) {
+				//make sure it is not followed by an 'AN'
+				if(booleanTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+					System.out.println("followed by an AN");
+					return false;
+				}
+				
+				//make sure it is not the last token
+				if(i == 0) {
+					System.out.println("unexpected end of operation: binary");
+					return false;
+				}
+				
+				//pop one operand
+				if(checker.size() > 1) {
+					checker.pop();
+					popCount++;
+				}
+				
+				//insufficient amount of operands
+				else{
+					System.out.println("insufficient amount of operands");
+					return false;
+				}
+			}else {
+				System.out.println("UNMATCHED LEXEME: "+currentToken.getLexeme());
+				//lexeme does not belong in the expression
+				return false;
+			}
+			
+			
+		}
+		
+		//there should only be 1 operand left and the number of ANs must match the number of operands
+		if((checker.size() == 1) && (anCount == popCount)) return true;
+		else{
+			
+			System.out.println("Checker size: "+checker.size()+"\n Contents: ");
+			for(Token tkn: checker)
+				System.out.println(tkn.getLexeme());
+			System.out.println("anCount = "+anCount+" popCount: "+popCount);
+			return false;
+		}
 	}
 	
 	private float parseFloat(Token tkn) {
