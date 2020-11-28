@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.Stack;
 import java.util.regex.Matcher;
@@ -15,6 +16,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
@@ -33,8 +35,8 @@ public class Interpreter {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("testcases/ops/arithop.lol");
-//	private File file = new File("testcases/vardecinit.lol");
+//	private File file = new File("testcases/ops/boolop.lol");
+	private File file = new File("testcases/io.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -63,14 +65,13 @@ public class Interpreter {
     private TableView<Symbol> symbolTableView = new TableView<Symbol>(); 
 	
     //FOR LEXICAL/SYNTAX/SEMANTIC ANALYSES
-    String[] lines;
-    String currentLexeme,literalClassification;
+    private String[] lines;
+    private String currentLexeme,dialogText;
     private int wordCheck,lineCheck,status;
     private boolean validLexeme,validSyntax,validSemantics,readBack;
-	ArrayList<Token> tokens = new ArrayList<Token>();
-	ArrayList<Token> tokensPerLine = new ArrayList<Token>();
-	ArrayList<Symbol> symbols = new ArrayList<Symbol>();
-	
+    private ArrayList<Token> tokens = new ArrayList<Token>();
+    private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
+    private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
 	
 	public Interpreter() {
 		root = new Group();
@@ -122,6 +123,8 @@ public class Interpreter {
         this.semanticIndicator.setLayoutY(840);
         
 
+         
+        
         //call to functions
 		openFile();	
 		generateLexemes();
@@ -162,16 +165,16 @@ public class Interpreter {
 				validSemantics = false;
 				break;
 			}
-			System.out.println("Line "+lineCheck+" passed lexical");		
+//			System.out.println("Line "+lineCheck+" passed lexical");		
 			if(!tokensPerLine.isEmpty()) {
 				checkSyntaxAndSemantics();
 		    	if(!validSyntax || !validSemantics) {
 		    		if(!validSyntax) validSemantics = false;
 		    		break;
 		    	}
-				System.out.println("Line "+lineCheck+" passed syntax and semantics");		
+//				System.out.println("Line "+lineCheck+" passed syntax and semantics");		
 			}
-			System.out.println("Line "+lineCheck+" passed syntax and semantics");		
+//			System.out.println("Line "+lineCheck+" passed syntax and semantics");		
 	    	
 			tokensPerLine.clear();
 		}
@@ -190,6 +193,12 @@ public class Interpreter {
 			//PRINT = VISIBLE
 			if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
 				if(printSyntax()) printExecute();
+				else validSyntax = false;
+			}
+			
+			//ACCEPT = GIMMEH
+			else if(tokensPerLine.get(0).getLexeme().equals(Token.GIMMEH)) {
+				if(acceptSyntax()) acceptExecute();
 				else validSyntax = false;
 			}
 			
@@ -290,18 +299,21 @@ public class Interpreter {
 				//check if the arithop has a valid syntax
 				if(arithmeticSyntax(arithToken)) {
 					arithmeticExecute(Token.IT,arithToken);
-					outputDisplayText += symbols.get(0).getValue();													
+					outputDisplayText += symbols.get(0).getValue();
 				}
 				else validSyntax = false;
 			}
 			
 			//case 3: literals
 			else if(Token.LITERALS.contains(tkn.getClassification())) {
-				outputDisplayText += tkn.getLexeme();													
+				outputDisplayText += tkn.getLexeme();
+				dialogText = tkn.getLexeme();
 			}
 			//skip when the token is a string delimiter of a yarn literal
-			else if(tkn.getLexeme().equals(Token.STRING_DELIMITER))
+			else if(tkn.getLexeme().equals(Token.STRING_DELIMITER)) {
+				i++;
 				continue;
+			}
 			else {
 				validSemantics = false;
 				break;
@@ -310,6 +322,58 @@ public class Interpreter {
 		}
 		
 		outputDisplayText += "\n";						
+	}
+	
+	//SYNTAX FOR ACCEPT = GIMMEH
+	private boolean acceptSyntax() {
+		if(tokensPerLine.size() == 2) {
+			if(tokensPerLine.get(1).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER))
+				return true; 
+			//return false if not a varident
+			return false;
+		}
+		//return false if GIMMEH contains anything more than the varident
+		return false;
+	}
+	
+	//SEMANTICS FOR ACCEPT = GIMMEH
+	private void acceptExecute() {
+		String tkn = tokensPerLine.get(1).getLexeme();
+			
+		boolean validSymbol=false;
+		for(Symbol s:symbols) {
+			//get the value of the varident in the symbols
+			if(s.getSymbol().equals(tkn)) {
+				outputDisplay.setText(outputDisplayText);
+				validSymbol=true;
+				//get user input
+		        getInput(s,dialogText);
+				break;
+			}
+		}
+				
+		if(!validSymbol) validSemantics = false;
+	}
+	
+	private void getInput(Symbol s,String dialogText) {
+        TextInputDialog inputDialog = new TextInputDialog("Enter input");
+
+        //set the title,header text, and context text of input dialog
+        inputDialog.setTitle("USER INPUT");
+        inputDialog.setHeaderText(null);
+        inputDialog.setContentText(dialogText);
+        
+        Optional<String> input = inputDialog.showAndWait();
+               
+        //if user entered an input, set the varident's value to the input
+        if(input.isPresent()) {
+            input.ifPresent(value -> {
+            	s.setValue(value);
+            });	
+        //else, error
+        } else {
+        	validSemantics = false;
+        }
 	}
 	
 	//SYNTAX FOR VARIABLE DECLARATION = I HAS A
@@ -1105,8 +1169,9 @@ public class Interpreter {
 			//add to text area the content of file read
 			this.codeDisplay.setText(fileWithLines); 
 			System.out.println(fileString);
-		} catch(Exception a){
-			System.out.println("file not found!");
+		} catch(Exception e){
+			outputDisplay.setText("[!] File not found ");
+			System.out.println("File not found!");
 		}		
 	}
 	
@@ -1226,4 +1291,5 @@ public class Interpreter {
 			else showError();
         });
 	}
+
 }

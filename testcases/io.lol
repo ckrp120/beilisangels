@@ -13,12 +13,12 @@ HAI
 
   BTW printing of expressions
   VISIBLE SUM OF 2 AN PRODUKT OF 3 AN 5
-  VISIBLE BOTH SAEM 2 AN 3
-  VISIBLE EITHER OF WIN AN FAIL
+  BTW VISIBLE BOTH SAEM 2 AN 3
+  BTW VISIBLE EITHER OF WIN AN FAIL
 
   BTW printing of variables and use of GIMMEH
   I HAS A input
-  VISIBLE "gif imput "
+  VISIBLE "gif input "
   GIMMEH input
   VISIBLE input
   VISIBLE "u gif meh " input "!"
