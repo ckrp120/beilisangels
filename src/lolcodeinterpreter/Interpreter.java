@@ -33,7 +33,7 @@ public class Interpreter {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-//	private File file = new File("testcases/ops/assignop.lol");
+//	private File file = new File("testcases/ops/arithop.lol");
 	private File file = new File("testcases/vardecinit.lol");
 	private String fileString="";
 	private Scanner scanner;
@@ -169,10 +169,10 @@ public class Interpreter {
 			tokensPerLine.clear();
 		}
 		
-		System.out.println("\nLEXEMES");
-		for(int i=0;i<tokens.size();i++) {
-			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
-		}		
+//		System.out.println("\nLEXEMES");
+//		for(int i=0;i<tokens.size();i++) {
+//			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
+//		}		
 	}
 	
 	
@@ -188,7 +188,8 @@ public class Interpreter {
 			
 			//VARIABLE DECLARATION = I HAS A
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.I_HAS_A)) {
-				if(varDeclarationSyntax()) varDeclarationExecute();
+				String literalClassification = varDeclarationSyntax();
+				if(literalClassification != null) varDeclarationExecute(literalClassification);
 				else invalidSyntax = true;				
 			}
 
@@ -201,7 +202,7 @@ public class Interpreter {
 			
 			//ARITHMETIC OPERATIONS
 			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
-				if(arithmeticSyntax(tokensPerLine)) arithmeticExecute(Token.IT);
+				if(arithmeticSyntax(tokensPerLine)) arithmeticExecute(Token.IT,tokensPerLine);
 				else invalidSyntax = true;
 			}	
 
@@ -254,27 +255,28 @@ public class Interpreter {
 	}
 	
 	//SYNTAX FOR VARIABLE DECLARATION = I HAS A
-	private boolean varDeclarationSyntax() {		
+	private String varDeclarationSyntax() {		
 		if(tokensPerLine.size() > 1) {
 			if(isAVarident(tokensPerLine.get(1).getClassification())) {	
 				//case 1: I HAS A var
-				if(tokensPerLine.size() == 2) return true;
+				if(tokensPerLine.size() == 2) return "";
 				//case 2: I HAS A var ITZ var/lit/expr
 				else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
 					if(isAVarident(tokensPerLine.get(3).getClassification()) ||
-						isALitOrExpr(tokensPerLine.get(3).getClassification()) ||
-						tokensPerLine.get(3).getLexeme().equals(Token.STRING_DELIMITER))
-						return true;
+						isALitOrExpr(tokensPerLine.get(3).getClassification()))
+						return tokensPerLine.get(3).getClassification();	
+					if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(4).getClassification())) 
+						return tokensPerLine.get(4).getClassification();	
 				}
 			}
 		}
-		//return false if what's declared is not a varident/it
+		//return null if what's declared is not a varident/it
 		//or the value given is not a varident/it, literal, or expr
-		return false;
+		return null;
 	}
 	
 	//SEMANTICS FOR VARIABLE DECLARATION = I HAS A
-	public void varDeclarationExecute() {
+	public void varDeclarationExecute(String litClass) {
 		String identifier = tokensPerLine.get(1).getLexeme();
 		
 		//case 1: I HAS A var
@@ -283,7 +285,7 @@ public class Interpreter {
 		//case 2: I HAS A var ITZ var/lit/expr
 		} else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
 			//case 2.1: varident
-			if(isAVarident(tokensPerLine.get(3).getClassification())) {							
+			if(isAVarident(litClass)) {							
 				for(Symbol s:symbols) {
 					if(s.getSymbol().equals(tokensPerLine.get(3).getLexeme())) {	
 						symbols.add(new Symbol(identifier,s.getValue()));
@@ -293,12 +295,24 @@ public class Interpreter {
 			}
 			
 			//case 2.1: expr
-			
+			else if(Token.ARITHMETIC_EXPRESSIONS.contains(litClass)) {
+				ArrayList<Token> arithToken = new ArrayList<Token>();
+				
+				//copy the tokens starting from the arithmetic operation
+				for(int i=3;i<tokensPerLine.size();i++)
+					arithToken.add(tokensPerLine.get(i));
+				
+				//check if the arithop has a valid syntax
+				if(arithmeticSyntax(arithToken)) {
+					symbols.add(new Symbol(identifier,""));
+					arithmeticExecute(identifier,arithToken);
+				}
+				else invalidSyntax = true;
+			}
 
-			
 			//case 2.3: literal
 			//a yarn literal
-			else if(tokensPerLine.get(3).getLexeme().equals(Token.STRING_DELIMITER))
+			else if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER))
 				symbols.add(new Symbol(identifier, tokensPerLine.get(4).getLexeme()));
 			//or other type literals
 			else symbols.add(new Symbol(identifier, tokensPerLine.get(3).getLexeme()));
@@ -336,7 +350,7 @@ public class Interpreter {
 						arithToken.add(tokensPerLine.get(i));
 					
 					//check if the arithop has a valid syntax
-					if(arithmeticSyntax(arithToken)) arithmeticExecute(tokensPerLine.get(0).getLexeme());
+					if(arithmeticSyntax(arithToken)) arithmeticExecute(tokensPerLine.get(0).getLexeme(),arithToken);
 					else invalidSyntax = true;
 				}
 				
@@ -405,13 +419,13 @@ public class Interpreter {
 	}
 	
 	//SEMANTICS FOR ARITHMETIC OPERATIONS
-	private Number arithmeticExecute(String dataHolder) {
+	private Number arithmeticExecute(String dataHolder,ArrayList<Token> arithToken) {
 		Stack<Number> operation = new Stack<Number>();
 			
 		//since operations are in prefix, reverse the tokens 
-		Collections.reverse(tokensPerLine);
+		Collections.reverse(arithToken);
 		
-		for(Token tkn: tokensPerLine) {
+		for(Token tkn: arithToken) {
 			//case 1: numbar
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
 				operation.push(parseFloat(tkn));
