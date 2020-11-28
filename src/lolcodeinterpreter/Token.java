@@ -243,6 +243,12 @@ public class Token {
 		Token.TYPE_LITERAL_CLASSIFIER
 	));
 	
+	//LIST OF COMPARISON OPERATORS
+	public final static List<String> COMPARISON_OPERATORS = new ArrayList<>(Arrays.asList(
+			Token.BOTH_SAEM_CLASSIFIER,
+			Token.DIFFRINT_CLASSIFIER
+		));
+	
 	private String lexeme;
 	private String classification;
 	

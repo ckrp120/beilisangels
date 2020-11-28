@@ -35,8 +35,8 @@ public class Interpreter {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-//	private File file = new File("testcases/ops/boolop.lol");
-	private File file = new File("testcases/io.lol");
+	private File file = new File("testcases/ops/compop.lol");
+	//private File file = new File("testcases/io.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -233,6 +233,12 @@ public class Interpreter {
 					System.out.println("Line: "+lineCheck+" failed :(");
 					validSyntax = false;
 				}
+			}
+			
+			//COMPARISON OPERATORS
+			else if(Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification()) ) {
+				if(comparisonSyntax(tokensPerLine)) comparisonExecute(Token.IT,tokensPerLine);
+				else validSyntax = false;
 			}
 		} else {
 			switch(tokensPerLine.get(0).getClassification()) {
@@ -884,6 +890,208 @@ public class Interpreter {
 		return result;
 		
 	}
+	
+	private boolean comparisonSyntax(ArrayList<Token> comparisonTokens) {
+		Stack<Token> checker = new Stack<Token>();
+		int exprCount = 0, opCount = 0, anCount = 0;
+		boolean startingPopped = false;
+		
+		
+		for(int i = 0; i < comparisonTokens.size(); i++) {
+			//implies that another operation has started in the same line
+			if(startingPopped) {
+				return false; 
+			}
+			//add keywords to stack
+			if(Token.COMPARISON_OPERATORS.contains(comparisonTokens.get(i).getClassification()) || Token.ARITHMETIC_EXPRESSIONS.contains(comparisonTokens.get(i).getClassification())) {
+				checker.add(comparisonTokens.get(i));
+				//if not starting comparison operator, inc exprCount (meaning it is a nested expression)
+				if(i > 0) exprCount++;
+			}else if(comparisonTokens.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+				//if an is encountered, add to an count
+				anCount++;
+			}else if(comparisonTokens.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) | comparisonTokens.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) | comparisonTokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+				//if num/var is encountered, add to an operand count
+				opCount++;
+			}else {
+				//lexeme does not belong in this expression
+				return false;
+			}
+			
+			
+			//pop stack after detecting two operands
+			if(anCount >= 2) return false;
+			if((opCount == 2 && anCount == 1) || (exprCount >= 1 && opCount >= 1 && anCount == 1)) {
+				if(!checker.isEmpty()) {
+					if(checker.size() == 1) startingPopped = true;
+					checker.pop();
+					
+					if((opCount == 2 && anCount == 1)) opCount = 0;
+					
+					if(((exprCount >= 1 && opCount >= 1 && anCount == 1))) {
+						opCount--;
+						exprCount--;
+					}
+					
+					anCount--;
+				}else return false;
+			}	
+		}
+		
+		if(checker.isEmpty() && opCount == 0 && anCount == 0 && exprCount == 0) return true;
+		else return false;
+	}
+	
+	//SEMANTICS FOR ARITHMETIC OPERATIONS
+	private String comparisonExecute(String dataHolder,ArrayList<Token> arithToken) {
+			Stack<Number> operation = new Stack<Number>();
+				
+			//since operations are in prefix, reverse the tokens 
+			Collections.reverse(arithToken);
+			for(Token tkn: arithToken) {
+				//case 1: numbar - floating points
+				if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
+					operation.push(parseFloat(tkn));
+				//case 2: numbr - integer
+				}else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
+					operation.push(parseInt(tkn));
+				//case 3: varident
+				}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+					for(Symbol s:symbols) {
+						if(s.getSymbol().equals(tkn.getLexeme())) {		
+							System.out.println(s.getValue());
+							//check its value's data type
+							String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
+							
+							//varident is a numbar
+							if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
+							
+							//varident is a numbr
+							else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
+							
+							//varident is a WIN (true)
+							else if(s.getValue().equals(Token.WIN_TROOF_LITERAL)) operation.push(1); 
+							
+							//varident is a FAIL (false)
+							else if(s.getValue().equals(Token.FAIL_TROOF_LITERAL)) operation.push(0); 
+							
+							break;
+						}
+					}
+					
+				//if operation is detected, pop 2 operands and perform the operation
+				}else if(Token.COMPARISON_OPERATORS.contains(tkn.getClassification()) || Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
+					
+					boolean resultIsNumbar = false;
+					boolean resultIsNumbr = false;
+					Number op1 = operation.pop();
+					Number op2 = operation.pop();
+					
+					//check if one of the operands is numbar
+					if(op1 instanceof Float && op2 instanceof Float) resultIsNumbar = true;
+					if(op1 instanceof Integer && op2 instanceof Integer) resultIsNumbar = true;
+					
+					//if numbar, result must be float
+					if(resultIsNumbar) {
+						Float o1 = op1.floatValue();
+						Float o2 = op2.floatValue();
+						
+						//perform the operation then push to stack
+						switch(tkn.getClassification()) {
+						case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
+							if(o1.equals(o2)) operation.push(1); //WIN
+							else operation.push(0); //FAIL
+							break;
+						case Token.DIFFRINT_CLASSIFIER: //o1 != o2
+							if(!o1.equals(o2)) operation.push(1); //WIN
+							else operation.push(0); //FAIL
+							break;
+						case Token.SUM_OF_CLASSIFIER:
+							operation.push(o1 + o2);
+							break;
+						case Token.DIFF_OF_CLASSIFIER:
+							operation.push(o1 - o2);
+							break;
+						case Token.PRODUKT_OF_CLASSIFIER:
+							operation.push(o1 * o2);
+							break;
+						case Token.QUOSHUNT_OF_CLASSIFIER:
+							operation.push(o1 / o2);
+							break;
+						case Token.MOD_OF_CLASSIFIER:
+							operation.push(o1 % o2);
+							break;
+						case Token.BIGGR_OF_CLASSIFIER:
+							if(o1 > o2) operation.push(o1);
+							else operation.push(o2);
+							break;
+						case Token.SMALLR_OF_CLASSIFIER:
+							if(o1 < o2) operation.push(o1);
+							else operation.push(o2);
+							break;
+						}
+					} else if(resultIsNumbr) {
+						//since no numbar val is detected, operands are assumed to be both numbr
+						int o1 = op1.intValue();
+						int o2 = op2.intValue();
+						
+						//perform the operation then push to stack
+						switch(tkn.getClassification()) {
+						case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
+							if(o1 == o2) operation.push(1); //WIN
+							else operation.push(0); //FAIL
+							break;
+						case Token.DIFFRINT_CLASSIFIER: //o1 != o2
+							if(o1 != o2) operation.push(1); //WIN
+							else operation.push(0); //FAIL
+							break;
+						case Token.SUM_OF_CLASSIFIER:
+							operation.push(o1 + o2);
+							break;
+						case Token.DIFF_OF_CLASSIFIER:
+							operation.push(o1 - o2);
+							break;
+						case Token.PRODUKT_OF_CLASSIFIER:
+							operation.push(o1 * o2);
+							break;	
+						case Token.QUOSHUNT_OF_CLASSIFIER:
+							operation.push(o1 / o2);
+							break;
+						case Token.MOD_OF_CLASSIFIER:
+							operation.push(o1 % o2);
+							break;
+						case Token.BIGGR_OF_CLASSIFIER:
+							if(o1 > o2) operation.push(o1);
+							else operation.push(o2);
+							break;
+						case Token.SMALLR_OF_CLASSIFIER:
+							if(o1 < o2) operation.push(o1);
+							else operation.push(o2);
+							break;
+						}
+					} else {
+						operation.push(0); //FAIL
+					}
+				}
+			}
+
+			//last item on the stack is the result
+			Number num = operation.pop();
+			String answer = "";
+			if(num.equals(1)) answer = "WIN";
+			else if(num.equals(0)) answer = "FAIL";
+			
+			//set the value of the varident to the result
+			for(Symbol s:symbols) {
+				if(dataHolder.equals(s.getSymbol())) {					
+					s.setValue(answer);
+					break;
+				}
+			}
+			
+			return answer;
+			//return null;
+		}
 	
 	//converts troof to its corresponding boolean equivalent
 	private boolean convertTroofToBoolean(String literal) {
