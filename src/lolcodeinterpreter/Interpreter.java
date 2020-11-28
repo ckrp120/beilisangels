@@ -33,8 +33,8 @@ public class Interpreter {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("testcases/ops/boolop.lol");
-//	private File file = new File("testcases/vardecinit.lol");
+//	private File file = new File("testcases/ops/assignop.lol");
+	private File file = new File("testcases/vardecinit.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -158,17 +158,21 @@ public class Interpreter {
 				status = checkLexeme(currentLexeme);
 			}  
 			//case 1 or case 2 and there's still an invalid lexeme
-			if(status == 1) break;
+			if(status == 1) {
+				System.out.println(currentLexeme+"--");
+				invalidSyntax = true;
+				break;
+			}
 					
 			checkSyntaxAndSemantics();
 	    	
 			tokensPerLine.clear();
 		}
 		
-//		System.out.println("\nLEXEMES");
-//		for(int i=0;i<tokens.size();i++) {
-//			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
-//		}		
+		System.out.println("\nLEXEMES");
+		for(int i=0;i<tokens.size();i++) {
+			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
+		}		
 	}
 	
 	
@@ -202,7 +206,8 @@ public class Interpreter {
 			}	
 
 			//BOOLEAN OPERATIONS
-			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
+			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || 
+					Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
 				if(booleanSyntax(tokensPerLine)) System.out.println("Line: "+lineCheck+" passed!");
 				else {
 					System.out.println("Line: "+lineCheck+" failed :(");
@@ -371,7 +376,7 @@ public class Interpreter {
 				return false;
 			
 			
-			//pop stack after detecting two operands
+			//return false after detecting more than two operands
 			if(anCount >= 2) return false;
 			
 			//if operands are varident/literal or operands have atleast one expr 
@@ -379,11 +384,12 @@ public class Interpreter {
 				if(!checker.isEmpty()) {
 					
 					if(checker.size() == 1) startingPopped = true;
+					
 					checker.pop();
 					
-					if((opCount == 2 && anCount == 1)) opCount = 0;
+					if(opCount == 2 && anCount == 1) opCount = 0;
 				
-					if(((exprCount >= 1 && opCount >= 1 && anCount == 1))) {
+					if(exprCount >= 1 && opCount >= 1 && anCount == 1) {
 						opCount--;
 						exprCount--;
 					}
@@ -421,6 +427,7 @@ public class Interpreter {
 						
 						//varident is a numbar
 						if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
+						
 						//varident is a numbr
 						else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
 						break;
@@ -546,8 +553,7 @@ public class Interpreter {
 				
 				else anCount++;
 			}else if(currentToken.getLexeme().equals(Token.NOT)) {
-				
-				
+							
 				//NOT is last token
 				if(i == 0) {
 					System.out.println("operand exprected");
@@ -641,7 +647,6 @@ public class Interpreter {
 		}
 	}
 	
-		
 	//check if the classification of a token is a literal or an expression
 	private boolean isALitOrExpr(String classification) {
 		if(Token.LITERALS.contains(classification) || 
@@ -677,7 +682,7 @@ public class Interpreter {
 		return Integer.parseInt(tkn.getLexeme());
 	}
 		
-	private float parseInt(int idx) {		
+	private int parseInt(int idx) {		
 		return Integer.parseInt(symbols.get(idx).getValue());
 	}
 	
@@ -977,8 +982,13 @@ public class Interpreter {
     private void showError() {  	
     	//update GUI to show fail
     	passIndicator.setImage(cryingImg);
-		lexicalIndicator.setImage(lexicalFailImg);
 		outputDisplay.setText("[!] Error detected in line " + lineCheck);
+    	
+    	if(invalidLexeme) lexicalIndicator.setImage(lexicalFailImg);
+    	else lexicalIndicator.setImage(lexicalPassImg);
+
+    	if(invalidSyntax) syntaxIndicator.setImage(syntaxFailImg);
+    	else syntaxIndicator.setImage(syntaxPassImg);
 		
 		//prompt error dialog
 		Alert alert = new Alert(AlertType.INFORMATION);
@@ -993,13 +1003,14 @@ public class Interpreter {
 		outputDisplay.setText(outputDisplayText);
 		passIndicator.setImage(happyImg);
 		lexicalIndicator.setImage(lexicalPassImg);
+		syntaxIndicator.setImage(syntaxPassImg);
     }
     
 	private void generateLexemes() {
 		executeButton.setOnAction(e -> {
 			readFile();
 			analyzeFile();
-			if(!invalidLexeme) showPass();
+			if(!(invalidLexeme && invalidSyntax)) showPass();
 			else showError();
         });
 	}
