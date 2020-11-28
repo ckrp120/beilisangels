@@ -238,6 +238,7 @@ public class Token {
 	public final static List<String> LITERALS = new ArrayList<>(Arrays.asList(
 		Token.NUMBR_LITERAL_CLASSIFIER,
 		Token.NUMBAR_LITERAL_CLASSIFIER,
+		Token.YARN_LITERAL_CLASSIFIER,
 		Token.TROOF_LITERAL_CLASSIFIER,
 		Token.TYPE_LITERAL_CLASSIFIER
 	));

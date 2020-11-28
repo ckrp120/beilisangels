@@ -33,8 +33,8 @@ public class Interpreter {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-//	private File file = new File("testcases/ops/arithop.lol");
-	private File file = new File("testcases/vardecinit.lol");
+	private File file = new File("testcases/ops/arithop.lol");
+//	private File file = new File("testcases/vardecinit.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -64,9 +64,9 @@ public class Interpreter {
 	
     //FOR LEXICAL/SYNTAX/SEMANTIC ANALYSES
     String[] lines;
-    String currentLexeme;
+    String currentLexeme,literalClassification;
     private int wordCheck,lineCheck,status;
-    private boolean invalidLexeme,invalidSyntax,possibleKeywordDetected,readBack;
+    private boolean validLexeme,validSyntax,validSemantics,possibleKeywordDetected,readBack;
 	ArrayList<Token> tokens = new ArrayList<Token>();
 	ArrayList<Token> tokensPerLine = new ArrayList<Token>();
 	ArrayList<Symbol> symbols = new ArrayList<Symbol>();
@@ -158,13 +158,10 @@ public class Interpreter {
 				status = checkLexeme(currentLexeme);
 			}  
 			//case 1 or case 2 and there's still an invalid lexeme
-			if(status == 1) {
-				System.out.println(currentLexeme+"--");
-				invalidSyntax = true;
-				break;
-			}
+			if(status == 1) break;
 					
 			checkSyntaxAndSemantics();
+	    	if(!validSyntax || !validSemantics) break;
 	    	
 			tokensPerLine.clear();
 		}
@@ -177,33 +174,33 @@ public class Interpreter {
 	
 	
 	//FUNCTIONS FOR SYNTAX AND SEMANTIC ANALYSES
-	
+		
 	private void checkSyntaxAndSemantics() {
 		if(tokensPerLine.size() > 1) {
 			//PRINT = VISIBLE
 			if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
 				if(printSyntax()) printExecute();
-				else invalidSyntax = true;
+				else validSyntax = true;
 			}
 			
 			//VARIABLE DECLARATION = I HAS A
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.I_HAS_A)) {
 				String literalClassification = varDeclarationSyntax();
 				if(literalClassification != null) varDeclarationExecute(literalClassification);
-				else invalidSyntax = true;				
+				else validSyntax = true;				
 			}
 
 			//ASSIGNMENT STATEMENT = R
 			else if(tokensPerLine.get(1).getLexeme().equals(Token.R)) {
 				String literalClassification = varAssignmentSyntax();
 				if(literalClassification != null) varAssignmentExecute(literalClassification);
-				else invalidSyntax = true;
+				else validSyntax = true;
 			}
 			
 			//ARITHMETIC OPERATIONS
 			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
 				if(arithmeticSyntax(tokensPerLine)) arithmeticExecute(Token.IT,tokensPerLine);
-				else invalidSyntax = true;
+				else validSyntax = true;
 			}	
 
 			//BOOLEAN OPERATIONS
@@ -212,10 +209,10 @@ public class Interpreter {
 				if(booleanSyntax(tokensPerLine)) System.out.println("Line: "+lineCheck+" passed!");
 				else {
 					System.out.println("Line: "+lineCheck+" failed :(");
-					invalidSyntax = true;
+					validSyntax = true;
 				}
 			}
-		}
+		} else validSyntax = false;
 	}	
 	
 	//SYNTAX FOR PRINT = VISIBLE
@@ -236,19 +233,50 @@ public class Interpreter {
 	
 	//SEMANTICS FOR PRINT = VISIBLE
 	private void printExecute() {
-		for(int i=1; i <tokensPerLine.size(); i++) {
+		Token tkn;
+		int i=1;
+		while(i<tokensPerLine.size()) {
+			tkn = tokensPerLine.get(i);
+			
 			//case 1: varident/it
-			if(isAVarident(tokensPerLine.get(i).getClassification())) {
+			if(isAVarident(tkn.getClassification())) {
 				for(Symbol s:symbols) {
 					//get the value of the varident/it in the symbols
-					if(s.getSymbol().equals(tokensPerLine.get(i).getLexeme())) {
+					if(s.getSymbol().equals(tkn.getLexeme())) {
 						outputDisplayText += s.getValue();													
 					}
 				}
 			} 
-			//case 2: literal
+			//case 2: expr
+			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
+				ArrayList<Token> arithToken = new ArrayList<Token>();
+				
+				//copy the tokens starting from the arithmetic operation
+				while(i<tokensPerLine.size()) {
+					arithToken.add(tokensPerLine.get(i));
+					i++;
+				}
+				
+				//check if the arithop has a valid syntax
+				if(arithmeticSyntax(arithToken)) {
+					arithmeticExecute(Token.IT,arithToken);
+					outputDisplayText += symbols.get(0).getValue();													
+				}
+				else validSyntax = true;
+			}
 			
-			//case 3: expr
+			//case 3: literals
+			else if(Token.LITERALS.contains(tkn.getClassification())) {
+				outputDisplayText += tkn.getLexeme();													
+			}
+			//skip when the token is a string delimiter of a yarn literal
+			else if(tkn.getLexeme().equals(Token.STRING_DELIMITER))
+				continue;
+			else {
+				validSemantics = true;
+				break;
+			}
+			i++;
 		}
 		
 		outputDisplayText += "\n";						
@@ -307,7 +335,7 @@ public class Interpreter {
 					symbols.add(new Symbol(identifier,""));
 					arithmeticExecute(identifier,arithToken);
 				}
-				else invalidSyntax = true;
+				else validSyntax = true;
 			}
 
 			//case 2.3: literal
@@ -351,7 +379,7 @@ public class Interpreter {
 					
 					//check if the arithop has a valid syntax
 					if(arithmeticSyntax(arithToken)) arithmeticExecute(tokensPerLine.get(0).getLexeme(),arithToken);
-					else invalidSyntax = true;
+					else validSyntax = true;
 				}
 				
 				//case 3: literals
@@ -383,8 +411,8 @@ public class Interpreter {
 			} else if(arithToken.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
 				//if an is encountered, add to an count
 				anCount++;
-			} else if(isADigit(arithToken.get(i).getClassification()) || isAVarident(arithToken.get(i).getClassification())) {
-				//if num/var is encountered, add to an operand count
+			} else //else, add to an operand count
+				if(isADigit(arithToken.get(i).getClassification()) || isAVarident(arithToken.get(i).getClassification())) {
 				opCount++;
 			} else //lexeme does not belong in this expression
 				return false;
@@ -430,10 +458,10 @@ public class Interpreter {
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
 				operation.push(parseFloat(tkn));
 			//case 2: numbr
-			}else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
+			} else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
 				operation.push(parseInt(tkn));
 			//case 3: varident
-			}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+			} else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
 				for(Symbol s:symbols) {
 					if(s.getSymbol().equals(tkn.getLexeme())) {						
 						//check its value's data type
@@ -447,9 +475,8 @@ public class Interpreter {
 						break;
 					}
 				}
-				
 			//if operation is detected, pop 2 operands and perform the operation
-			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
+			} else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
 				boolean resultIsNumbar = false;
 				Number op1 = operation.pop();
 				Number op2 = operation.pop();
@@ -664,7 +691,15 @@ public class Interpreter {
 	//check if the classification of a token is a literal or an expression
 	private boolean isALitOrExpr(String classification) {
 		if(Token.LITERALS.contains(classification) || 
-			Token.ARITHMETIC_EXPRESSIONS.contains(classification)) return true;
+			isAnExpr(classification)) return true;
+		return false;
+	}	
+	
+	private boolean isAnExpr(String classification) {
+		if(Token.ARITHMETIC_EXPRESSIONS.contains(classification) || 
+			Token.BINARY_BOOLEAN_EXPRESSIONS.contains(classification) ||
+			Token.OTHER_BOOLEAN_EXPRESSIONS.contains(classification)) 
+			return true;
 		return false;
 	}	
 	
@@ -813,7 +848,7 @@ public class Interpreter {
 			return 2;
 		//there's an invalid lexeme, stop iteration for getting lexemes
 		} else if(currentLexeme!="") {
-			invalidLexeme = true;
+			validLexeme = false;
 			return 1;
 		}		
 		
@@ -922,8 +957,9 @@ public class Interpreter {
 		//clear all values
 		fileString = "";
 		lineCheck = 0;		
-		invalidLexeme = false;
-		invalidSyntax = false;
+		validLexeme = true;
+		validSyntax = true;
+		validSemantics = true;
 		tokens.clear();
 		lexemeTableView.getItems().clear();
 		symbolTableView.getItems().clear();
@@ -998,12 +1034,19 @@ public class Interpreter {
     	passIndicator.setImage(cryingImg);
 		outputDisplay.setText("[!] Error detected in line " + lineCheck);
     	
-    	if(invalidLexeme) lexicalIndicator.setImage(lexicalFailImg);
-    	else lexicalIndicator.setImage(lexicalPassImg);
+    	if(!validLexeme) lexicalIndicator.setImage(lexicalFailImg);
+    	else {
+    		lexicalIndicator.setImage(lexicalPassImg);
+    		
+    		if(!validSyntax) syntaxIndicator.setImage(syntaxFailImg);
+        	else {
+        		syntaxIndicator.setImage(syntaxPassImg);
+        		
+            	if(!validSemantics) semanticIndicator.setImage(semanticFailImg);
+            	else semanticIndicator.setImage(semanticPassImg);
+        	}
+    	}
 
-    	if(invalidSyntax) syntaxIndicator.setImage(syntaxFailImg);
-    	else syntaxIndicator.setImage(syntaxPassImg);
-		
 		//prompt error dialog
 		Alert alert = new Alert(AlertType.INFORMATION);
 		alert.setContentText("[!] Errors were found in your code.");
@@ -1018,13 +1061,14 @@ public class Interpreter {
 		passIndicator.setImage(happyImg);
 		lexicalIndicator.setImage(lexicalPassImg);
 		syntaxIndicator.setImage(syntaxPassImg);
+		semanticIndicator.setImage(semanticPassImg);
     }
     
 	private void generateLexemes() {
 		executeButton.setOnAction(e -> {
 			readFile();
 			analyzeFile();
-			if(!(invalidLexeme && invalidSyntax)) showPass();
+			if(validLexeme && validSyntax && validSemantics) showPass();
 			else showError();
         });
 	}

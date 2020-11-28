@@ -6,8 +6,8 @@ HAI
   TLDR
 
   BTW basic expressions
-  SUM OF 1 AN 2
-  VISIBLE IT
+  
+  VISIBLE SUM OF 1 AN "two"
   DIFF OF 1 AN 2
   VISIBLE IT
   PRODUKT OF 1 AN 2
