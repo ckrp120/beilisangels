@@ -7,7 +7,8 @@ HAI
 
   BTW basic expressions
   
-  VISIBLE SUM OF 1 AN 2
+  SUM OF 1 AN 2
+  VISIBLE IT
   DIFF OF 1 AN 2
   VISIBLE IT
   PRODUKT OF 1 AN 2

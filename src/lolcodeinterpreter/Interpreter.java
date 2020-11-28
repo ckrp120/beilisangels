@@ -66,7 +66,7 @@ public class Interpreter {
     String[] lines;
     String currentLexeme,literalClassification;
     private int wordCheck,lineCheck,status;
-    private boolean validLexeme,validSyntax,validSemantics,possibleKeywordDetected,readBack;
+    private boolean validLexeme,validSyntax,validSemantics,readBack;
 	ArrayList<Token> tokens = new ArrayList<Token>();
 	ArrayList<Token> tokensPerLine = new ArrayList<Token>();
 	ArrayList<Symbol> symbols = new ArrayList<Symbol>();
@@ -142,7 +142,6 @@ public class Interpreter {
 	private void analyzeFile() {		
 		//process every line
 		while(lineCheck<lines.length) {
-			possibleKeywordDetected = false;
 			readBack=false;
 			wordCheck = 0;
 			
@@ -158,10 +157,20 @@ public class Interpreter {
 				status = checkLexeme(currentLexeme);
 			}  
 			//case 1 or case 2 and there's still an invalid lexeme
-			if(status == 1) break;
+			if(status == 1) {
+				validSyntax = false;
+				validSemantics = false;
+				break;
+			}
 			System.out.println("Line "+lineCheck+" passed lexical");		
-			checkSyntaxAndSemantics();
-	    	if(!validSyntax || !validSemantics) break;
+			if(!tokensPerLine.isEmpty()) {
+				checkSyntaxAndSemantics();
+		    	if(!validSyntax || !validSemantics) {
+		    		if(!validSyntax) validSemantics = false;
+		    		break;
+		    	}
+				System.out.println("Line "+lineCheck+" passed syntax and semantics");		
+			}
 			System.out.println("Line "+lineCheck+" passed syntax and semantics");		
 	    	
 			tokensPerLine.clear();
@@ -216,11 +225,32 @@ public class Interpreter {
 					validSyntax = false;
 				}
 			}
+		} else {
+			switch(tokensPerLine.get(0).getClassification()) {
+				case Token.HAI_CLASSIFIER:
+					validSyntax=true;
+					break;
+				case Token.KTHXBYE_CLASSIFIER:
+					validSyntax=true;
+					break;
+				case Token.BTW_CLASSIFIER:
+					validSyntax=true;
+					break;
+				case Token.OBTW_CLASSIFIER:
+					validSyntax=true;
+					break;	
+				case Token.TLDR_CLASSIFIER:
+					validSyntax=true;
+					break;
+				default:
+					validSyntax=false;
+					break;
+			}
 		}
 	}	
 	
 	//SYNTAX FOR PRINT = VISIBLE
-	private boolean printSyntax() {		
+	private boolean printSyntax() {
 		if(tokensPerLine.size() > 1) return true; 
 		//return false if VISIBLE does not have anything to print
 		return false;
@@ -235,12 +265,17 @@ public class Interpreter {
 			
 			//case 1: varident/it
 			if(isAVarident(tkn.getClassification())) {
+				boolean validSymbol=false;
 				for(Symbol s:symbols) {
 					//get the value of the varident/it in the symbols
 					if(s.getSymbol().equals(tkn.getLexeme())) {
-						outputDisplayText += s.getValue();													
+						outputDisplayText += s.getValue();	
+						validSymbol=true;
+						break;
 					}
 				}
+				
+				if(!validSymbol) validSemantics = false;
 			} 
 			//case 2: expr
 			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
@@ -947,7 +982,7 @@ public class Interpreter {
 		//ERROR DETECTION
 		
 		//there's an invalid lexeme, but process again because a variable identifier is detected as a possible keyword
-		if(!currentLexeme.equals("") && possibleKeywordDetected && status!=2) {
+		if(!currentLexeme.equals("") && isAVariable() && status!=2) {
 			readBack=true;
 			return 2;
 		//there's an invalid lexeme, stop iteration for getting lexemes
@@ -980,14 +1015,27 @@ public class Interpreter {
 		//iterate through keys in the hashmap of classifiers
 		for(Entry<String, String> t: Token.TOKEN_CLASSIFIER.entrySet()) {
 			//if the current lexeme is a substring of a keyword, return true
-			if(t.getKey().contains(s)) {
-				possibleKeywordDetected = true;
-				return true;
-			}
+			if(t.getKey().contains(s)) return true;
 		}
 		//if the current lexeme is not a substring of any keyword, return false
 		return false;
 	}
+	
+	//check if the lexeme is a possible keyword used as a variable identifier
+	public boolean isAVariable() {
+		String tkn;
+		
+		if(tokens.size()!=0) {
+			for(int i=tokens.size()-1;i!=0;i--) {
+				tkn = tokens.get(i).getLexeme();
+				if(tkn.equals(Token.I_HAS_A) || tkn.equals(Token.VISIBLE)) return true;
+				else if(!tkn.equals(Token.BTW) || !tkn.equals(Token.TLDR)) return false;
+			}			
+		}
+
+		return false;		
+	}
+	
 	
 	//check if the character is a space
 	public boolean isASpace(char c) {
@@ -1036,6 +1084,8 @@ public class Interpreter {
 	}
 	
 	private void readFile() {
+		String fileWithLines = "";
+		
 		resetAnalyzer();
 		try {
 			scanner = new Scanner(file);
@@ -1049,8 +1099,11 @@ public class Interpreter {
 			//split file into lines
 			lines = fileString.split("\n");
 			
+			for(int i=0;i<lines.length;i++)
+				fileWithLines += String.format("%2d", i+1) + " " + lines[i] + "\n";
+				
 			//add to text area the content of file read
-			this.codeDisplay.setText(fileString); 
+			this.codeDisplay.setText(fileWithLines); 
 			System.out.println(fileString);
 		} catch(Exception a){
 			System.out.println("file not found!");
@@ -1139,24 +1192,21 @@ public class Interpreter {
 		outputDisplay.setText("[!] Error detected in line " + lineCheck);
     	
     	if(!validLexeme) lexicalIndicator.setImage(lexicalFailImg);
-    	else {
-    		lexicalIndicator.setImage(lexicalPassImg);
+    	else lexicalIndicator.setImage(lexicalPassImg);
     		
-    		if(!validSyntax) syntaxIndicator.setImage(syntaxFailImg);
-        	else {
-        		syntaxIndicator.setImage(syntaxPassImg);
-        		
-            	if(!validSemantics) semanticIndicator.setImage(semanticFailImg);
-            	else semanticIndicator.setImage(semanticPassImg);
-        	}
-    	}
+		if(!validSyntax) syntaxIndicator.setImage(syntaxFailImg);
+    	else syntaxIndicator.setImage(syntaxPassImg);
+    		
+    	if(!validSemantics) semanticIndicator.setImage(semanticFailImg);
+    	else semanticIndicator.setImage(semanticPassImg);
 
 		//prompt error dialog
-		Alert alert = new Alert(AlertType.INFORMATION);
-		alert.setContentText("[!] Errors were found in your code.");
-		alert.setTitle("Error Dialog");
-		alert.setHeaderText(null);
-		alert.show();
+    	//cinomment ko muna kasi hassle magpindot ng ok HAHAHA -tin
+//		Alert alert = new Alert(AlertType.INFORMATION);
+//		alert.setContentText("[!] Errors were found in your code.");
+//		alert.setTitle("Error Dialog");
+//		alert.setHeaderText(null);
+//		alert.show();
     }
     
     private void showPass() {
