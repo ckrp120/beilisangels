@@ -159,9 +159,10 @@ public class Interpreter {
 			}  
 			//case 1 or case 2 and there's still an invalid lexeme
 			if(status == 1) break;
-					
+			System.out.println("Line "+lineCheck+" passed lexical");		
 			checkSyntaxAndSemantics();
 	    	if(!validSyntax || !validSemantics) break;
+			System.out.println("Line "+lineCheck+" passed syntax and semantics");		
 	    	
 			tokensPerLine.clear();
 		}
@@ -180,27 +181,27 @@ public class Interpreter {
 			//PRINT = VISIBLE
 			if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
 				if(printSyntax()) printExecute();
-				else validSyntax = true;
+				else validSyntax = false;
 			}
 			
 			//VARIABLE DECLARATION = I HAS A
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.I_HAS_A)) {
 				String literalClassification = varDeclarationSyntax();
 				if(literalClassification != null) varDeclarationExecute(literalClassification);
-				else validSyntax = true;				
+				else validSyntax = false;				
 			}
 
 			//ASSIGNMENT STATEMENT = R
 			else if(tokensPerLine.get(1).getLexeme().equals(Token.R)) {
 				String literalClassification = varAssignmentSyntax();
 				if(literalClassification != null) varAssignmentExecute(literalClassification);
-				else validSyntax = true;
+				else validSyntax = false;
 			}
 			
 			//ARITHMETIC OPERATIONS
 			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
 				if(arithmeticSyntax(tokensPerLine)) arithmeticExecute(Token.IT,tokensPerLine);
-				else validSyntax = true;
+				else validSyntax = false;
 			}	
 
 			//BOOLEAN OPERATIONS
@@ -212,26 +213,17 @@ public class Interpreter {
 				}
 				else {
 					System.out.println("Line: "+lineCheck+" failed :(");
-					validSyntax = true;
+					validSyntax = false;
 				}
 			}
-		} else validSyntax = false;
+		}
 	}	
 	
 	//SYNTAX FOR PRINT = VISIBLE
-	private boolean printSyntax() {
-		String c;
-		
-		//return false if not a varident/it, literal, or expr
-		if(tokensPerLine.size() > 1) {
-			for(int i=1;i<tokensPerLine.size();i++) {
-				c = tokensPerLine.get(i).getClassification();
-				if(!(isAVarident(c) || isALitOrExpr(c)))
-					return false; 
-			}
-		} else return false;
-		
-		return true;
+	private boolean printSyntax() {		
+		if(tokensPerLine.size() > 1) return true; 
+		//return false if VISIBLE does not have anything to print
+		return false;
 	}
 	
 	//SEMANTICS FOR PRINT = VISIBLE
@@ -265,7 +257,7 @@ public class Interpreter {
 					arithmeticExecute(Token.IT,arithToken);
 					outputDisplayText += symbols.get(0).getValue();													
 				}
-				else validSyntax = true;
+				else validSyntax = false;
 			}
 			
 			//case 3: literals
@@ -276,7 +268,7 @@ public class Interpreter {
 			else if(tkn.getLexeme().equals(Token.STRING_DELIMITER))
 				continue;
 			else {
-				validSemantics = true;
+				validSemantics = false;
 				break;
 			}
 			i++;
@@ -338,7 +330,7 @@ public class Interpreter {
 					symbols.add(new Symbol(identifier,""));
 					arithmeticExecute(identifier,arithToken);
 				}
-				else validSyntax = true;
+				else validSyntax = false;
 			}
 
 			//case 2.3: literal
@@ -382,7 +374,7 @@ public class Interpreter {
 					
 					//check if the arithop has a valid syntax
 					if(arithmeticSyntax(arithToken)) arithmeticExecute(tokensPerLine.get(0).getLexeme(),arithToken);
-					else validSyntax = true;
+					else validSyntax = false;
 				}
 				
 				//case 3: literals
@@ -403,7 +395,10 @@ public class Interpreter {
 		
 		for(int i=0; i<arithToken.size(); i++) {
 			//implies that another operation has started in the same line
-			if(startingPopped) return false; 
+			if(startingPopped) {
+				if(i+1==arithToken.size() && arithToken.get(i).getLexeme().equals(Token.STRING_DELIMITER)) return true;
+				else return false; 
+			}
 			
 			//add keywords to stack
 			if(Token.ARITHMETIC_EXPRESSIONS.contains(arithToken.get(i).getClassification())) {
@@ -412,14 +407,14 @@ public class Interpreter {
 				//if not starting arithmetic expression, increment exprCount (meaning it is a nested expression)
 				if(i > 0) exprCount++;
 			} else if(arithToken.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
-				//if an is encountered, add to an count
+			//if an is encountered, add to an count
 				anCount++;
-			} else //else, add to an operand count
-				if(isADigit(arithToken.get(i).getClassification()) || isAVarident(arithToken.get(i).getClassification())) {
-				opCount++;
-			} else //lexeme does not belong in this expression
-				return false;
 			
+			//if a varident or literal is detected, add to an operand count
+			} else if(isADigit(arithToken.get(i).getClassification()) || isAVarident(arithToken.get(i).getClassification()) ||
+						Token.LITERALS.contains(arithToken.get(i).getClassification())) {
+				opCount++;
+			}
 			
 			//return false after detecting more than two operands
 			if(anCount >= 2) return false;
@@ -550,6 +545,9 @@ public class Interpreter {
 						break;
 					}
 				}
+			} else if(!tkn.getLexeme().equals(Token.AN_TYPE_LITERAL)){
+				validSemantics = false;
+				return null;
 			}
 		}
 
@@ -699,13 +697,13 @@ public class Interpreter {
 			
 			//case 1: troof literal
 			if(tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)){
-				operation.push(convertTROOFtoBoolean(tkn.getLexeme()));
+				operation.push(convertTroofToBoolean(tkn.getLexeme()));
 			//case 2: varident
 			}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
 				for(Symbol s:symbols) {
 					if(s.getSymbol().equals(tkn.getLexeme())) {
 						
-						operation.push(convertTROOFtoBoolean(s.getValue())); 
+						operation.push(convertTroofToBoolean(s.getValue())); 
 						
 						break;
 						
@@ -789,7 +787,7 @@ public class Interpreter {
 	}
 	
 	//converts troof to its corresponding boolean equivalent
-	private boolean convertTROOFtoBoolean(String literal) {
+	private boolean convertTroofToBoolean(String literal) {
 		if(literal.equals(Token.WIN_TROOF_LITERAL)) return true;
 		else return false;
 	}
