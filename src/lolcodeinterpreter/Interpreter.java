@@ -209,7 +209,10 @@ public class Interpreter {
 			//BOOLEAN OPERATIONS
 			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || 
 					Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
-				if(booleanSyntax(tokensPerLine)) System.out.println("Line: "+lineCheck+" passed!");
+				if(booleanSyntax(tokensPerLine)) {
+					System.out.println("Line: "+lineCheck+" passed!");
+					System.out.println("Result: "+booleanExecute(Token.IT, tokensPerLine));
+				}
 				else {
 					System.out.println("Line: "+lineCheck+" failed :(");
 					invalidSyntax = true;
@@ -659,6 +662,109 @@ public class Interpreter {
 			System.out.println("anCount = "+anCount+" popCount: "+popCount);
 			return false;
 		}
+	}
+	
+	
+	private boolean booleanExecute(String dataHolder, ArrayList<Token> booleanTokens) {
+		Stack<Boolean> operation = new Stack<Boolean>();
+		
+		for(Token tkn: booleanTokens) {
+			
+			//case 1: troof literal
+			if(tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)){
+				operation.push(convertTROOFtoBoolean(tkn.getLexeme()));
+			//case 2: varident
+			}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+				for(Symbol s:symbols) {
+					if(s.getSymbol().equals(tkn.getLexeme())) {
+						
+						operation.push(convertTROOFtoBoolean(s.getValue())); 
+						
+						break;
+						
+					}
+				}
+			//pop two operands for binary boolean expressions
+			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
+				boolean op1 = operation.pop();
+				boolean op2 = operation.pop();
+				
+				//perform the operation then push to stack
+				switch(tkn.getClassification()) {
+					case Token.BOTH_OF_CLASSIFIER:
+						operation.push((op1 && op2));
+						break;
+					
+					case Token.EITHER_OF_CLASSIFIER:
+						operation.push((op1 || op2));
+						break;
+					
+					case Token.WON_OF_CLASSIFIER:
+						operation.push((op1 ^ op2));
+						break;
+					
+				}
+				
+			}else if(Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
+				boolean op1;
+				
+				//since NOT is an unary operation, pop only 1 operand
+				if(tkn.getLexeme().equals(Token.NOT)) {
+					op1 = operation.pop();
+					operation.push(!op1);
+				}else {
+					boolean op2;
+					
+					//since ANY OF/ALL OF are infinite arity operations, pop all operands and perform the operation
+					int currentStackSize = operation.size();
+					
+					
+					if(tkn.getLexeme().equals(Token.ALL_OF)) {
+						
+						//perform AND operation one at a time
+						for(int i = 0; i < currentStackSize-1; i++) {
+							op1 = operation.pop();
+							op2 = operation.pop();
+							operation.push((op1 && op2));
+						}
+					}else {
+						
+						//perform OR operation one at a time
+						for(int i = 0; i < currentStackSize-1; i++) {
+							op1 = operation.pop();
+							op2 = operation.pop();
+							operation.push((op1 || op2));
+						}
+					}
+					
+					
+				}
+			}
+			
+			
+			
+		}
+		
+		//last item on the stack is the result
+		boolean result = operation.pop();
+		
+		//set the value of the varident to the result
+		for(Symbol s:symbols) {
+			if(dataHolder.equals(s.getSymbol())) {					
+				if(result == true) s.setValue(Token.WIN_TROOF_LITERAL);
+				else s.setValue(Token.FAIL_TROOF_LITERAL);
+				break;
+			}
+		}
+		
+		return result;
+		
+	}
+	
+	//converts troof to its corresponding boolean equivalent
+	private boolean convertTROOFtoBoolean(String literal) {
+		if(literal.equals(Token.WIN_TROOF_LITERAL)) return true;
+		else return false;
 	}
 	
 	//check if the classification of a token is a literal or an expression
