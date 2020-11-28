@@ -269,6 +269,8 @@ public class Interpreter {
 	private void printExecute() {
 		Token tkn;
 		int i=1;
+		boolean appendNewLine=true;
+		
 		while(i<tokensPerLine.size()) {
 			tkn = tokensPerLine.get(i);
 			
@@ -314,14 +316,22 @@ public class Interpreter {
 				i++;
 				continue;
 			}
+			//case where the visible ends with an exclamation
+			else if(tkn.getLexeme().equals(Token.EXCLAMATION_POINT)) {
+				if(i+1 == tokensPerLine.size()) appendNewLine = false;
+				else {
+					validSemantics = false;
+					break;
+				}
+			}
 			else {
 				validSemantics = false;
 				break;
 			}
 			i++;
-		}
+		}	
 		
-		outputDisplayText += "\n";						
+		if(appendNewLine) outputDisplayText += "\n";						
 	}
 	
 	//SYNTAX FOR ACCEPT = GIMMEH
@@ -962,26 +972,27 @@ public class Interpreter {
 			//get current character and increment position
 			currChar = line.charAt(currPos);
 			currPos++;
-
+			
 			//if the previous formed lexeme is accepted, ignore the next white space/s
 			if(acceptedLexeme) {
 				acceptedLexeme = false;
 
-				while(isASpace(line.charAt(currPos))) currPos++;
-				
-				currChar = line.charAt(currPos);
-				currPos++;
+				if(currPos < line.length()) {				
+					while(isASpace(line.charAt(currPos))) currPos++;
+	
+					currChar = line.charAt(currPos);
+					currPos++;
+				}
 			}
 
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
-			
-			//System.out.println(currentLexeme);
+					
+//			System.out.println(currentLexeme);
 			
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
-			if(currPos==line.length() || isASpace(line.charAt(currPos))) {
+			if(currPos==line.length() || isASpace(line.charAt(currPos)) || line.charAt(currPos-1) == '\"') {
 				classification = isAValidLexeme(currentLexeme);
-				
 				//if it is, then add it to the list of tokens
 				if(classification != null) {
 					acceptedLexeme = true;

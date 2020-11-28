@@ -2,7 +2,7 @@ BTW for USER INPUT/OUTPUT
 HAI
 
   BTW printing of literals
-  VISIBLE "henlo"
+  VISIBLE "henlo"!
   VISIBLE 17
   VISIBLE 1.7
   VISIBLE WIN
@@ -20,7 +20,6 @@ HAI
   I HAS A input
   VISIBLE "gif input "
   GIMMEH input
-  VISIBLE input
   VISIBLE "u gif meh " input "!"
 
 KTHXBYE

@@ -76,8 +76,7 @@ public class Token {
 	
 	//DELIMITERS
 	public final static String STRING_DELIMITER = "\"";
-	public final static String OPEN_PARENTHESIS_DELIMETER = "(";
-	public final static String CLOSE_PARENTHESIS_DELIMETER = ")";
+	public final static String EXCLAMATION_POINT = "!";
 	
 	
 	//CLASSIFICATION OF TOKENS
@@ -142,8 +141,7 @@ public class Token {
 	
 	//FOR DELIMITERS
 	public final static String STRING_DELIMITER_CLASSIFIER = "String Delimiter";
-	public final static String OPEN_PARENTHESIS_CLASSIFIER = "Open Parenthesis Delimiter";
-	public final static String CLOSE_PARENTHESIS_CLASSIFIER = "Close Parenthesis Delimiter";
+	public final static String EXCLAMATION_POINT_CLASSIFIER = "Output Terminator";
 	
 	
 	//MAPPING TOKEN (FOR BOOLEAN & TYPE LITERALS AND KEYWORDS) TO ITS CORRESPONDING CLASSIFICATION
@@ -204,6 +202,8 @@ public class Token {
 	    put(Token.TIL, Token.TIL_CLASSIFIER);
 	    put(Token.WILE, Token.WILE_CLASSIFIER);
 	    put(Token.IM_OUTTA_YR, Token.IM_OUTTA_YR_CLASSIFIER);
+	    put(Token.EXCLAMATION_POINT, Token.EXCLAMATION_POINT_CLASSIFIER);
+
 	}};
 	
 	//LIST OF ARITHMETIC EXPRESSIONS
