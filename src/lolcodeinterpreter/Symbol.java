@@ -1,4 +1,4 @@
-package lexical_analyzer;
+package lolcodeinterpreter;
 
 public class Symbol {
 	private String symbol, value;

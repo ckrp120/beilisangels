@@ -1,4 +1,4 @@
-package lexical_analyzer;
+package lolcodeinterpreter;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
@@ -9,7 +9,7 @@ public class Main extends Application {
 	}
 
 	public void start(Stage stage) {
-		LexicalAnalyzer lexical_analyzer_stage = new LexicalAnalyzer();
-		lexical_analyzer_stage.setStage(stage);
+		Interpreter interpreterStage = new Interpreter();
+		interpreterStage.setStage(stage);
 	}
 }

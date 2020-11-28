@@ -1,4 +1,4 @@
-package lexical_analyzer;
+package lolcodeinterpreter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -226,7 +226,7 @@ public class Token {
 			Token.WON_OF_CLASSIFIER
 		));
 			
-	//operations with other arities
+	//operations with other arity
 	public final static List<String> OTHER_BOOLEAN_EXPRESSIONS = new ArrayList<>(Arrays.asList(
 			Token.NOT_CLASSIFIER,
 			Token.ALL_OF_CLASSIFIER,

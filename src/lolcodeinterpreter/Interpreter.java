@@ -1,4 +1,4 @@
-package lexical_analyzer;
+package lolcodeinterpreter;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -23,7 +23,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
-public class LexicalAnalyzer {
+public class Interpreter {
 	private Stage stage;
 	private Scene scene;
 	private Group root;
@@ -33,8 +33,8 @@ public class LexicalAnalyzer {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-//	private File file = new File("testcases/ops/assignop.lol");
-	private File file = new File("testcases/vardecinit.lol");
+	private File file = new File("testcases/ops/boolop.lol");
+//	private File file = new File("testcases/vardecinit.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -43,6 +43,7 @@ public class LexicalAnalyzer {
 	private Button executeButton = new Button("EXECUTE");
 	private TextArea codeDisplay = new TextArea();
 	private TextArea outputDisplay = new TextArea();
+	private String outputDisplayText="";
 	private ImageView passIndicator = new ImageView(new Image("imgs/neutral.PNG", 150, 150, true,true));
 	private ImageView lexicalIndicator = new ImageView();
 	private ImageView syntaxIndicator = new ImageView();
@@ -61,19 +62,17 @@ public class LexicalAnalyzer {
     private TableView<Token> lexemeTableView = new TableView<Token>();
     private TableView<Symbol> symbolTableView = new TableView<Symbol>(); 
 	
-    //FOR LEXICAL ANALYSIS
+    //FOR LEXICAL/SYNTAX/SEMANTIC ANALYSES
     String[] lines;
     String currentLexeme;
     private int wordCheck,lineCheck,status;
-    private boolean invalidLexeme,possibleKeywordDetected,readBack;
+    private boolean invalidLexeme,invalidSyntax,possibleKeywordDetected,readBack;
 	ArrayList<Token> tokens = new ArrayList<Token>();
 	ArrayList<Token> tokensPerLine = new ArrayList<Token>();
 	ArrayList<Symbol> symbols = new ArrayList<Symbol>();
 	
-	private String outputDisplayText="";
 	
-	
-	public LexicalAnalyzer() {
+	public Interpreter() {
 		root = new Group();
 		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.BISQUE);
 		canvas = new Canvas(WINDOW_HEIGHT,WINDOW_HEIGHT);
@@ -139,9 +138,8 @@ public class LexicalAnalyzer {
 	}
 	
 	
-	//FUNCTIONS FOR EXECUTING LEXICAL ANALYZER
-	
-	private void getLexemes() {		
+	//FUNCTION FOR ANALYZING LOLCODE FILE
+	private void analyzeFile() {		
 		//process every line
 		while(lineCheck<lines.length) {
 			possibleKeywordDetected = false;
@@ -149,35 +147,23 @@ public class LexicalAnalyzer {
 			wordCheck = 0;
 			
 			//check status of the current line
-			//0 - valid lexeme
-			//1 - invalid lexeme
-			//2 - invalid lexeme, but process again because there's
-			//	  a variable identifier detected as a possible keyword
+			//0 - valid lexeme; 1 - invalid lexeme; 2 - invalid lexeme, but process again bc a varident is detected as a possible keyword
 			
-			status = checkLexemes(lines[lineCheck]);
+			status = checkLexeme(lines[lineCheck]);
 			
 			//case 2
 			if(status == 2) {
 				lineCheck--;
 				//process again starting from where an invalid lexeme is detected
-				status = checkLexemes(currentLexeme);
+				status = checkLexeme(currentLexeme);
 			}  
 			//case 1 or case 2 and there's still an invalid lexeme
 			if(status == 1) break;
-			
-			
-			checkSymbols();
-			checkSyntax();
-	    	executeTerminal();
+					
+			checkSyntaxAndSemantics();
 	    	
-//	    	System.out.println("LINE: "+lineCheck);
-//	    	for(Symbol s:symbols) {
-//	    		System.out.println(s.getSymbol()+"="+s.getValue());
-//	    	}
-//	    	System.out.println();
 			tokensPerLine.clear();
 		}
-	
 		
 //		System.out.println("\nLEXEMES");
 //		for(int i=0;i<tokens.size();i++) {
@@ -185,212 +171,234 @@ public class LexicalAnalyzer {
 //		}		
 	}
 	
-	private int checkLexemes(String line) {		
-		int currPos=0, commentDetected=0;
-	    char currChar;
-	    boolean acceptedLexeme=false;
-		String classification;
-		
-		lineCheck++;
-		
-		//if the current line has no code, continue to the next line
-		if(isEmpty(line)) return 0;
-					
-		currentLexeme = "";
-		
-		//ignore spaces/tabs at the beginning of the line
-		while(isSpace(line.charAt(currPos))) currPos++;
-				
-		//start checking the lexemes 
-		while(currPos < line.length()) {
-			//get current character and increment position
-			currChar = line.charAt(currPos);
-			currPos++;
-
-			//if the previous formed lexeme is accepted, ignore the next white space/s
-			if(acceptedLexeme) {
-				acceptedLexeme = false;
-
-				while(isSpace(line.charAt(currPos))) currPos++;
-				
-				currChar = line.charAt(currPos);
-				currPos++;
-			}
-
-			//concatenate the current character to the current lexeme
-			currentLexeme += currChar;
-			//System.out.println(currentLexeme);
-
-			
-			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
-			if(currPos==line.length() || isSpace(line.charAt(currPos))) {
-				classification = checkLexeme(currentLexeme);
-				
-				//if it is, then add it to the list of tokens
-				if(classification != null) {
-					acceptedLexeme = true;
-					
-					//if a string is detected, add the start quote, string literal, and end quote individually
-					if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {						
-						//matcher to capture group
-						Matcher m = Token.YARN_LITERAL.matcher(currentLexeme);
 	
-						if(m.find()) {
-							tokens.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
-							tokens.add(new Token(m.group(2), classification));
-							tokens.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
-							
-							tokensPerLine.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
-							tokensPerLine.add(new Token(m.group(2), classification));
-							tokensPerLine.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
-						}
-					
-					//if a comment is detected, ignore whatever comes after it
-					//0 - not a comment
-					//1 - one line comment (BTW)
-					//2 - multiline comment (OBTW)
-					} else if((commentDetected = isAComment(currentLexeme)) != 0) {
-						//case 1: BTW (skip the current line)
-						if(commentDetected == 1) {
-							tokens.add(new Token(currentLexeme,classification));
-							tokensPerLine.add(new Token(currentLexeme,classification));
-							currentLexeme = "";
-						//case 2: OBTW .. TLDR (must have their own lines)
-						} else if(wordCheck == 0) {
-							tokens.add(new Token(currentLexeme,classification));
-							tokensPerLine.add(new Token(currentLexeme,classification));
-							currentLexeme = "";
-							String commentEnder;
-							
-							//ignore lines until a TLDR is detected
-							do {
-								commentEnder="";
-								lineCheck++;
-								line = lines[lineCheck];
-								String[] lexemes = line.split(" ");
-								
-								
-								for(int i=0;i<lexemes.length;i++) {
-									if(!lexemes[i].equals("")) commentEnder+=lexemes[i];
-								}	
-							} while(!commentEnder.equals(Token.TLDR));		
-						}
-						break;
-					
-					//if not a string or a comment, add as is
-					} else{
-						tokens.add(new Token(currentLexeme,classification));
-						tokensPerLine.add(new Token(currentLexeme,classification));
-					}
-						
-					currentLexeme ="";
-					wordCheck++;
-				}
-			}	
-		}
-		
-		//ERROR DETECTION
-		
-		//there's an invalid lexeme, but process again because a variable identifier is detected as a possible keyword
-		if(!currentLexeme.equals("") && possibleKeywordDetected && status!=2) {
-			readBack=true;
-			return 2;
-		//there's an invalid lexeme, stop iteration for getting lexemes
-		} else if(currentLexeme!="") {
-			invalidLexeme = true;
-			return 1;
-		}		
-		
-		return 0;
-	}
+	//FUNCTIONS FOR SYNTAX AND SEMANTIC ANALYSES
 	
-	private void checkSyntax() {
+	private void checkSyntaxAndSemantics() {
 		if(tokensPerLine.size() > 1) {
-			//check if starting token is an arithmetic expression
-			if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
-				if(arithmeticSyntax(tokensPerLine)) {
-					System.out.println("ARITHMETIC");
-					System.out.println("Line: "+lineCheck+" passed!");
-					System.out.println("Answer: "+arithmeticExecute(Token.IT));
-				}
-			//R: check if current line is assigning data to a variable
-			} else if(tokensPerLine.get(1).getLexeme().equals(Token.R)) {
-				String literalClassification = varAssignmentSyntax();
-				if(literalClassification != null) {
-					System.out.println("VAR ASSIGNMENT");
-					System.out.println("Line: "+lineCheck+" passed!");
-					System.out.println("Answer: ");
-					varAssignmentExecute(literalClassification);
-				}
-			//VISIBLE: check if current line wants to print
-			} 
-//				else if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
-//				String literalClassification = varAssignmentSyntax();
-//				if(literalClassification != null) {
-//					System.out.println("VAR ASSIGNMENT");
-//					System.out.println("Line: "+lineCheck+" passed!");
-//					System.out.println("Answer: ");
-//					varAssignmentExecute(literalClassification);
-//				}
-//			}
+			//PRINT = VISIBLE
+			if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
+				if(printSyntax()) printExecute();
+				else invalidSyntax = true;
+			}
 			
-			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
-				System.out.println("BOOLEAN");
-				if(booleanSyntax(tokensPerLine)) {
-					
-					System.out.println("Line: "+lineCheck+" passed!");
-				}else {
+			//VARIABLE DECLARATION = I HAS A
+			else if(tokensPerLine.get(0).getLexeme().equals(Token.I_HAS_A)) {
+				if(varDeclarationSyntax()) varDeclarationExecute();
+				else invalidSyntax = true;				
+			}
 
+			//ASSIGNMENT STATEMENT = R
+			else if(tokensPerLine.get(1).getLexeme().equals(Token.R)) {
+				String literalClassification = varAssignmentSyntax();
+				if(literalClassification != null) varAssignmentExecute(literalClassification);
+				else invalidSyntax = true;
+			}
+			
+			//ARITHMETIC OPERATIONS
+			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
+				if(arithmeticSyntax(tokensPerLine)) arithmeticExecute(Token.IT);
+				else invalidSyntax = true;
+			}	
+
+			//BOOLEAN OPERATIONS
+			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
+				if(booleanSyntax(tokensPerLine)) System.out.println("Line: "+lineCheck+" passed!");
+				else {
 					System.out.println("Line: "+lineCheck+" failed :(");
+					invalidSyntax = true;
 				}
 			}
 		}
+	}	
+	
+	//SYNTAX FOR PRINT = VISIBLE
+	private boolean printSyntax() {
+		String c;
+		
+		//return false if not a varident/it, literal, or expr
+		if(tokensPerLine.size() > 1) {
+			for(int i=1;i<tokensPerLine.size();i++) {
+				c = tokensPerLine.get(i).getClassification();
+				if(!(isAVarident(c) || isALitOrExpr(c)))
+					return false; 
+			}
+		} else return false;
+		
+		return true;
 	}
 	
+	//SEMANTICS FOR PRINT = VISIBLE
+	private void printExecute() {
+		for(int i=1; i <tokensPerLine.size(); i++) {
+			//case 1: varident/it
+			if(isAVarident(tokensPerLine.get(i).getClassification())) {
+				for(Symbol s:symbols) {
+					//get the value of the varident/it in the symbols
+					if(s.getSymbol().equals(tokensPerLine.get(i).getLexeme())) {
+						outputDisplayText += s.getValue();													
+					}
+				}
+			} 
+			//case 2: literal
+			
+			//case 3: expr
+		}
+		
+		outputDisplayText += "\n";						
+	}
+	
+	//SYNTAX FOR VARIABLE DECLARATION = I HAS A
+	private boolean varDeclarationSyntax() {		
+		if(tokensPerLine.size() > 1) {
+			if(isAVarident(tokensPerLine.get(1).getClassification())) {	
+				//case 1: I HAS A var
+				if(tokensPerLine.size() == 2) return true;
+				//case 2: I HAS A var ITZ var/lit/expr
+				else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
+					if(isAVarident(tokensPerLine.get(3).getClassification()) ||
+						isALitOrExpr(tokensPerLine.get(3).getClassification()) ||
+						tokensPerLine.get(3).getLexeme().equals(Token.STRING_DELIMITER))
+						return true;
+				}
+			}
+		}
+		//return false if what's declared is not a varident/it
+		//or the value given is not a varident/it, literal, or expr
+		return false;
+	}
+	
+	//SEMANTICS FOR VARIABLE DECLARATION = I HAS A
+	public void varDeclarationExecute() {
+		String identifier = tokensPerLine.get(1).getLexeme();
+		
+		//case 1: I HAS A var
+		if(tokensPerLine.size() == 2) {
+			symbols.add(new Symbol(identifier,Token.NOOB_TYPE_LITERAL));	
+		//case 2: I HAS A var ITZ var/lit/expr
+		} else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
+			//case 2.1: varident
+			if(isAVarident(tokensPerLine.get(3).getClassification())) {							
+				for(Symbol s:symbols) {
+					if(s.getSymbol().equals(tokensPerLine.get(3).getLexeme())) {	
+						symbols.add(new Symbol(identifier,s.getValue()));
+						break;
+					}
+				}							
+			}
+			
+			//case 2.1: expr
+			
+
+			
+			//case 2.3: literal
+			//a yarn literal
+			else if(tokensPerLine.get(3).getLexeme().equals(Token.STRING_DELIMITER))
+				symbols.add(new Symbol(identifier, tokensPerLine.get(4).getLexeme()));
+			//or other type literals
+			else symbols.add(new Symbol(identifier, tokensPerLine.get(3).getLexeme()));
+		}
+	}
+		
+	//SYNTAX FOR ASSIGNMENT STATEMENT = R
 	private String varAssignmentSyntax() {
-		if(tokensPerLine.get(0).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || tokensPerLine.get(0).getClassification().equals(Token.IT_CLASSIFIER)) {
-			if(Token.LITERALS.contains(tokensPerLine.get(2).getClassification()) ||
-				Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(2).getClassification())) return tokensPerLine.get(2).getClassification();
-			
-			if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) return tokensPerLine.get(3).getClassification();			
+		//check if it is a valid varident
+		if(isAVarident(tokensPerLine.get(0).getClassification())) {
+			//return value if it is a varident/it, literal, or expr
+			if(isAVarident(tokensPerLine.get(2).getClassification()) ||
+				isALitOrExpr(tokensPerLine.get(2).getClassification()))
+				return tokensPerLine.get(2).getClassification();	
+			if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) 
+				return tokensPerLine.get(3).getClassification();			
 		}
 		
 		return null;
 	}
 	
-	private String printSyntax() {
-		if(tokensPerLine.get(0).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || tokensPerLine.get(0).getClassification().equals(Token.IT_CLASSIFIER)) {
-			if(Token.LITERALS.contains(tokensPerLine.get(2).getClassification()) ||
-				Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(2).getClassification())) return tokensPerLine.get(2).getClassification();
-			
-			if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) return tokensPerLine.get(3).getClassification();			
-		}
-		
-		return null;
-	}
-	
+	//SEMANTICS FOR ASSIGNMENT STATEMENT = R
 	private void varAssignmentExecute(String litClass) {
 		for(Symbol s:symbols) {
-			if(s.getSymbol().equals(tokensPerLine.get(0).getLexeme())) {
-				if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER)) s.setValue(tokensPerLine.get(3).getLexeme());
-				else if(Token.ARITHMETIC_EXPRESSIONS.contains(litClass)) {
+			//get the symbol, then set the value
+			if(s.getSymbol().equals(tokensPerLine.get(0).getLexeme())) {				
+				//case 1: varident
+				
+				//case 2: expr
+				if(Token.ARITHMETIC_EXPRESSIONS.contains(litClass)) {
 					ArrayList<Token> arithToken = new ArrayList<Token>();
 					
-					for(int i=2;i<tokensPerLine.size();i++) {
+					//copy the tokens starting from the arithmetic operation
+					for(int i=2;i<tokensPerLine.size();i++)
 						arithToken.add(tokensPerLine.get(i));
-					}
 					
-					if(arithmeticSyntax(arithToken)) {
-						System.out.println("Line: "+lineCheck+" passed!");
-						System.out.println("Answer: "+arithmeticExecute(tokensPerLine.get(0).getLexeme()));
-					}
+					//check if the arithop has a valid syntax
+					if(arithmeticSyntax(arithToken)) arithmeticExecute(tokensPerLine.get(0).getLexeme());
+					else invalidSyntax = true;
 				}
+				
+				//case 3: literals
+				//a yarn literal
+				else if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER)) s.setValue(tokensPerLine.get(3).getLexeme());
+				//or other type literals
 				else s.setValue(tokensPerLine.get(2).getLexeme());
 				break;
 			}
 		}
 	}
 	
+	//SYNTAX FOR ARITHMETIC OPERATIONS
+	private boolean arithmeticSyntax(ArrayList<Token> arithToken) {
+		Stack<Token> checker = new Stack<Token>();
+		int exprCount = 0, opCount = 0, anCount = 0;
+		boolean startingPopped = false;
+		
+		for(int i=0; i<arithToken.size(); i++) {
+			//implies that another operation has started in the same line
+			if(startingPopped) return false; 
+			
+			//add keywords to stack
+			if(Token.ARITHMETIC_EXPRESSIONS.contains(arithToken.get(i).getClassification())) {
+				checker.add(arithToken.get(i));
+				
+				//if not starting arithmetic expression, increment exprCount (meaning it is a nested expression)
+				if(i > 0) exprCount++;
+			} else if(arithToken.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+				//if an is encountered, add to an count
+				anCount++;
+			} else if(isADigit(arithToken.get(i).getClassification()) || isAVarident(arithToken.get(i).getClassification())) {
+				//if num/var is encountered, add to an operand count
+				opCount++;
+			} else //lexeme does not belong in this expression
+				return false;
+			
+			
+			//pop stack after detecting two operands
+			if(anCount >= 2) return false;
+			
+			//if operands are varident/literal or operands have atleast one expr 
+			if((opCount == 2 && anCount == 1) || (exprCount >= 1 && opCount >= 1 && anCount == 1)) {
+				if(!checker.isEmpty()) {
+					
+					if(checker.size() == 1) startingPopped = true;
+					checker.pop();
+					
+					if((opCount == 2 && anCount == 1)) opCount = 0;
+				
+					if(((exprCount >= 1 && opCount >= 1 && anCount == 1))) {
+						opCount--;
+						exprCount--;
+					}
+					
+					anCount--;
+				}
+				else return false;
+			}
+		}
+		
+		if(checker.isEmpty() && opCount == 0 && anCount == 0 && exprCount == 0) return true;
+		else return false;
+	}
+	
+	//SEMANTICS FOR ARITHMETIC OPERATIONS
 	private Number arithmeticExecute(String dataHolder) {
 		Stack<Number> operation = new Stack<Number>();
 			
@@ -398,26 +406,27 @@ public class LexicalAnalyzer {
 		Collections.reverse(tokensPerLine);
 		
 		for(Token tkn: tokensPerLine) {
-			//parse to float if operand is numbar
+			//case 1: numbar
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
 				operation.push(parseFloat(tkn));
-			//parse to int if operand is numbr
+			//case 2: numbr
 			}else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
 				operation.push(parseInt(tkn));
-			//if varident is detected, check its value's data type
+			//case 3: varident
 			}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
 				for(Symbol s:symbols) {
 					if(s.getSymbol().equals(tkn.getLexeme())) {						
-						String classification = checkLexeme(symbols.get(symbols.indexOf(s)).getValue());
+						//check its value's data type
+						String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
 						
-						//parse to float if varident is numbar
+						//varident is a numbar
 						if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
-						
-						//parse to int if varident is numbr
+						//varident is a numbr
 						else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
 						break;
 					}
 				}
+				
 			//if operation is detected, pop 2 operands and perform the operation
 			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
 				boolean resultIsNumbar = false;
@@ -440,34 +449,26 @@ public class LexicalAnalyzer {
 					case Token.DIFF_OF_CLASSIFIER:
 						operation.push(o1 - o2);
 						break;
-						
 					case Token.PRODUKT_OF_CLASSIFIER:
 						operation.push(o1 * o2);
 						break;
-						
 					case Token.QUOSHUNT_OF_CLASSIFIER:
 						operation.push(o1 / o2);
 						break;
-						
 					case Token.MOD_OF_CLASSIFIER:
 						operation.push(o1 % o2);
 						break;
-					
 					case Token.BIGGR_OF_CLASSIFIER:
-						
 						if(o1 > o2) operation.push(o1);
 						else operation.push(o2);
 						break;
-					
 					case Token.SMALLR_OF_CLASSIFIER:
 						if(o1 < o2) operation.push(o1);
 						else operation.push(o2);
 						break;
-					
 					}
-					
-				}else {
-					//since no numbar val is detected, operands are assumed to be both int
+				} else {
+					//since no numbar val is detected, operands are assumed to be both numbr
 					int o1 = op1.intValue();
 					int o2 = op2.intValue();
 					
@@ -479,38 +480,32 @@ public class LexicalAnalyzer {
 					case Token.DIFF_OF_CLASSIFIER:
 						operation.push(o1 - o2);
 						break;
-						
 					case Token.PRODUKT_OF_CLASSIFIER:
 						operation.push(o1 * o2);
-						break;
-						
+						break;	
 					case Token.QUOSHUNT_OF_CLASSIFIER:
 						operation.push(o1 / o2);
 						break;
-						
 					case Token.MOD_OF_CLASSIFIER:
 						operation.push(o1 % o2);
 						break;
-					
 					case Token.BIGGR_OF_CLASSIFIER:
-						
 						if(o1 > o2) operation.push(o1);
 						else operation.push(o2);
 						break;
-					
 					case Token.SMALLR_OF_CLASSIFIER:
 						if(o1 < o2) operation.push(o1);
 						else operation.push(o2);
 						break;
-					
 					}
-					
 				}
 			}
 		}
-		
+
+		//last item on the stack is the result
 		Number num = operation.pop();
-		 
+		
+		//set the value of the varident to the result
 		for(Symbol s:symbols) {
 			if(dataHolder.equals(s.getSymbol())) {					
 				s.setValue(num.toString());
@@ -518,10 +513,11 @@ public class LexicalAnalyzer {
 			}
 		}
 		
-		//last item on the stack is the result
 		return num;
 	}
 	
+
+	//SYNTAX FOR BOOLEAN OPERATIONS
 	private boolean booleanSyntax(ArrayList<Token> booleanTokens) {
 		Stack<Token> checker = new Stack<Token>();
 		Token currentToken;
@@ -580,7 +576,7 @@ public class LexicalAnalyzer {
 					return false;
 				}
 			
-			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) | currentToken.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) | isAVarident(currentToken.getClassification())) {
 				//if last token, it must be preceeded with an AN or NOT
 				if(i == 0) {
 					
@@ -644,134 +640,171 @@ public class LexicalAnalyzer {
 			return false;
 		}
 	}
-
 	
+		
+	//check if the classification of a token is a literal or an expression
+	private boolean isALitOrExpr(String classification) {
+		if(Token.LITERALS.contains(classification) || 
+			Token.ARITHMETIC_EXPRESSIONS.contains(classification)) return true;
+		return false;
+	}	
+	
+	//check if the classification of a token is a varident
+	private boolean isAVarident(String classification) {
+		if(classification.equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || 
+			classification.equals(Token.IT_CLASSIFIER)) return true;
+		return false;
+	}
+	
+	//check if the classification of a token is a numbr or numbar
+	private boolean isADigit(String classification) {
+		if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER) || 
+			classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) return true;
+		return false;
+	}
+	
+	//parses a string and returns a float
 	private float parseFloat(Token tkn) {
 		return Float.parseFloat(tkn.getLexeme());
 	}
-	
-	private int parseInt(Token tkn) {
-		return Integer.parseInt(tkn.getLexeme());
-	}
-	
+
 	private float parseFloat(int idx) {		
 		return Float.parseFloat(symbols.get(idx).getValue());
 	}
 	
+	//parses a string and returns an integer	
+	private int parseInt(Token tkn) {
+		return Integer.parseInt(tkn.getLexeme());
+	}
+		
 	private float parseInt(int idx) {		
 		return Integer.parseInt(symbols.get(idx).getValue());
 	}
 	
-	private boolean arithmeticSyntax(ArrayList<Token> arithToken) {
-		Stack<Token> checker = new Stack<Token>();
-		int exprCount = 0, opCount = 0, anCount = 0;
-		boolean startingPopped = false;
+	
+	//FUNCTIONS FOR THE LEXICAL ANALYSIS
+	
+	private int checkLexeme(String line) {		
+		int currPos=0, commentDetected=0;
+	    char currChar;
+	    boolean acceptedLexeme=false;
+		String classification;
 		
-		for(int i = 0; i < arithToken.size(); i++) {
-			//implies that another operation has started in the same line
-			if(startingPopped) {
-				return false; 
-			}
-			//add keywords to stack
-			if(Token.ARITHMETIC_EXPRESSIONS.contains(arithToken.get(i).getClassification())) {
-				checker.add(arithToken.get(i));
+		lineCheck++;
+		
+		//if the current line has no code, continue to the next line
+		if(isEmpty(line)) return 0;
+					
+		currentLexeme = "";
+		
+		//ignore spaces/tabs at the beginning of the line
+		while(isASpace(line.charAt(currPos))) currPos++;
 				
-				//if not starting arithmetic expression, inc exprCount (meaning it is a nested expression)
-				if(i > 0) exprCount++;
-			}else if(arithToken.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
-				//if an is encountered, add to an count
-				anCount++;
-			}else if(arithToken.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) | arithToken.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) | arithToken.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
-				//if num/var is encountered, add to an operand count
-				opCount++;
-			}else {
-				//lexeme does not belong in this expression
-				return false;
-			}
-			
-			
-			//pop stack after detecting two operands
-			 
-			if(anCount >= 2) return false;
-			if((opCount == 2 && anCount == 1) || (exprCount >= 1 && opCount >= 1 && anCount == 1)) {
-				if(!checker.isEmpty()) {
-					
-					if(checker.size() == 1) startingPopped = true;
-					checker.pop();
-					
-					if((opCount == 2 && anCount == 1)) {
-						opCount = 0;
-					}
-					if(((exprCount >= 1 && opCount >= 1 && anCount == 1))) {
-						opCount--;
-						exprCount--;
-					}
-					
-					anCount--;
-				}else {
-					return false;
-				}
-			}
-			
-		}
-		
-		if(checker.isEmpty() && opCount == 0 && anCount == 0 && exprCount == 0) return true;
-		else return false;
-	}
-	
-	
-	private void checkSymbols() {
-		String identifier = "";
-		String value = "";
-		
-		for(int i=1; i < tokensPerLine.size(); i++) {
+		//start forming and checking the lexemes 
+		while(currPos < line.length()) {
+			//get current character and increment position
+			currChar = line.charAt(currPos);
+			currPos++;
 
-			//IF VARIABLE IDENTIFIER
-			if(tokensPerLine.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)){
-				//CHECK IF DECLARED
-				if(tokensPerLine.get(i-1).getClassification().equals(Token.I_HAS_A_CLASSIFIER)) { //if I HAS A yung i-1
-					identifier = tokensPerLine.get(i).getLexeme(); //place lexeme in identifier
-					if(i+1 == tokensPerLine.size()) {
-						value = "NOOB"; //uninitialized var therefore value is NOOB
-						symbols.add(new Symbol(identifier, value));	
-					} else if(tokensPerLine.get(i+1).getClassification().equals(Token.ITZ_CLASSIFIER)){ //if i+1 == ITZ
-						if(tokensPerLine.get(i+2).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) ||
-							tokensPerLine.get(i+2).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
-							
-							for(Symbol s:symbols) {
-								if(s.getSymbol().equals(tokensPerLine.get(i+2).getLexeme())) {	
-									symbols.add(new Symbol(identifier,s.getValue()));
-									break;
-								}
-							}							
-						}
-						else if(tokensPerLine.get(i+2).getLexeme().equals(Token.STRING_DELIMITER))
-							symbols.add(new Symbol(identifier, tokensPerLine.get(i+3).getLexeme()));
-						else symbols.add(new Symbol(identifier, tokensPerLine.get(i+2).getLexeme()));
-					}
-				}
+			//if the previous formed lexeme is accepted, ignore the next white space/s
+			if(acceptedLexeme) {
+				acceptedLexeme = false;
+
+				while(isASpace(line.charAt(currPos))) currPos++;
+				
+				currChar = line.charAt(currPos);
+				currPos++;
 			}
-		} //end of for loop()
-	}
+
+			//concatenate the current character to the current lexeme
+			currentLexeme += currChar;
+			
+			//System.out.println(currentLexeme);
+			
+			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
+			if(currPos==line.length() || isASpace(line.charAt(currPos))) {
+				classification = isAValidLexeme(currentLexeme);
+				
+				//if it is, then add it to the list of tokens
+				if(classification != null) {
+					acceptedLexeme = true;
+					
+					//if a string is detected, add the start quote, string literal, and end quote individually
+					if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {						
+						//matcher to capture group
+						Matcher m = Token.YARN_LITERAL.matcher(currentLexeme);
 	
-	private void executeTerminal() { //MALI PA PU ITOO TESTING LANG
-		for(int i=1; i < tokensPerLine.size(); i++) {
-			if(tokensPerLine.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || tokensPerLine.get(i).getClassification().equals(Token.IT_CLASSIFIER)){
-				if(tokensPerLine.get(i-1).getClassification().equals(Token.VISIBLE_CLASSIFIER)) {
-					for(int j=0; j < symbols.size(); j++) {
-						if(tokensPerLine.get(i).getLexeme().equals(symbols.get(j).getSymbol()))
-							outputDisplayText += symbols.get(j).getValue() + "\n";						
+						if(m.find()) {
+							tokens.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
+							tokens.add(new Token(m.group(2), classification));
+							tokens.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
+							
+							tokensPerLine.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
+							tokensPerLine.add(new Token(m.group(2), classification));
+							tokensPerLine.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
+						}
+					
+					//if a comment is detected, ignore whatever comes after it
+					//0 - not a comment; 1 - one line comment (BTW); 2 - multiline comment (OBTW)
+					} else if((commentDetected = isAComment(currentLexeme)) != 0) {
+						//case 1: BTW (skip the current line)
+						if(commentDetected == 1) {
+							tokens.add(new Token(currentLexeme,classification));
+							tokensPerLine.add(new Token(currentLexeme,classification));
+							currentLexeme = "";
+						//case 2: OBTW .. TLDR (must have their own lines)
+						} else if(wordCheck == 0) {
+							tokens.add(new Token(currentLexeme,classification));
+							tokensPerLine.add(new Token(currentLexeme,classification));
+							currentLexeme = "";
+							String commentEnder;
+							
+							//ignore lines until a TLDR is detected
+							do {
+								commentEnder="";
+								lineCheck++;
+								line = lines[lineCheck];
+								String[] lexemes = line.split(" ");
+								
+								
+								for(int i=0;i<lexemes.length;i++) {
+									if(!lexemes[i].equals("")) commentEnder+=lexemes[i];
+								}	
+							} while(!commentEnder.equals(Token.TLDR));		
+						}
+						break;
+					
+					//if not a string or a comment, add as is
+					} else{
+						tokens.add(new Token(currentLexeme,classification));
+						tokensPerLine.add(new Token(currentLexeme,classification));
 					}
+						
+					currentLexeme ="";
+					wordCheck++;
 				}
-			}
+			}	
 		}
 		
+		//ERROR DETECTION
+		
+		//there's an invalid lexeme, but process again because a variable identifier is detected as a possible keyword
+		if(!currentLexeme.equals("") && possibleKeywordDetected && status!=2) {
+			readBack=true;
+			return 2;
+		//there's an invalid lexeme, stop iteration for getting lexemes
+		} else if(currentLexeme!="") {
+			invalidLexeme = true;
+			return 1;
+		}		
+		
+		return 0;
 	}
 	
 	//return classification if the current lexeme is a token
-	public String checkLexeme(String currentLexeme) {
+	public String isAValidLexeme(String currentLexeme) {
 		if(Token.TOKEN_CLASSIFIER.containsKey(currentLexeme)) return Token.TOKEN_CLASSIFIER.get(currentLexeme);
-		if(!possibleKeyword(currentLexeme)) {
+		if(!isAPossibleKeyword(currentLexeme)) {
 			if(Token.VARIABLE_IDENTIFIER.matcher(currentLexeme).matches()) return Token.VARIABLE_IDENTIFIER_CLASSIFIER;
 			if(Token.FUNCTION_LOOP_IDENTIFIER.matcher(currentLexeme).matches()) return Token.FUNCTION_LOOP_IDENTIFIER_CLASSIFIER;
 		}
@@ -780,9 +813,10 @@ public class LexicalAnalyzer {
 		if(Token.YARN_LITERAL.matcher(currentLexeme).matches()) return Token.YARN_LITERAL_CLASSIFIER;
 		return null;
 	} 
-
+	
 	//check if the current lexeme is a possible keyword
-	public boolean possibleKeyword(String s) {
+	public boolean isAPossibleKeyword(String s) {
+		//if the line is to be processed again because a variable identifier is detected as a possible keyword
 		if(readBack) return false;
 		
 		//iterate through keys in the hashmap of classifiers
@@ -798,16 +832,16 @@ public class LexicalAnalyzer {
 	}
 	
 	//check if the character is a space
-	public boolean isSpace(char c) {
+	public boolean isASpace(char c) {
 		return c == ' ' || c == '\t';                                 
 	}
 	
-	//check if the line has no code
+	//check if the line is empty (has no code)
 	public boolean isEmpty(String s) {
 		if(s.isEmpty()) return true;
 		
 		for(int i=0;i<s.length();i++) {
-			if(!isSpace(s.charAt(i))) return false;
+			if(!isASpace(s.charAt(i))) return false;
 		}
 		
 		return true;                     
@@ -862,24 +896,23 @@ public class LexicalAnalyzer {
 			System.out.println(fileString);
 		} catch(Exception a){
 			System.out.println("file not found!");
-		}
-		
-		//execute lexical analyzer after selecting lolcode file
-		
+		}		
 	}
 	
 	private void resetAnalyzer() {
 		//clear all values
 		fileString = "";
+		lineCheck = 0;		
+		invalidLexeme = false;
+		invalidSyntax = false;
 		tokens.clear();
 		lexemeTableView.getItems().clear();
-		invalidLexeme = false;
-		lineCheck = 0;
+		symbolTableView.getItems().clear();
+		outputDisplay.setText("");
 		passIndicator.setImage(neutralImg);
 		lexicalIndicator.setImage(null);
 		syntaxIndicator.setImage(null);
 		semanticIndicator.setImage(null);
-		outputDisplay.setText("");
 	}
 	
 	
@@ -965,7 +998,7 @@ public class LexicalAnalyzer {
 	private void generateLexemes() {
 		executeButton.setOnAction(e -> {
 			readFile();
-			getLexemes();
+			analyzeFile();
 			if(!invalidLexeme) showPass();
 			else showError();
         });
