@@ -36,7 +36,7 @@ public class Interpreter {
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
 	private File file = new File("testcases/ops/compop.lol");
-	//private File file = new File("testcases/io.lol");
+	//private File file = new File("testcases/vardecinit.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -133,7 +133,7 @@ public class Interpreter {
 		
 		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, lexicalIndicator, syntaxIndicator, semanticIndicator);
 		this.stage = stage;
-		this.stage.setTitle("LOLCode Interprete");
+		this.stage.setTitle("LOLCode Interpreter");
 		this.stage.setMinWidth(WINDOW_WIDTH);
 		this.stage.setMinHeight(WINDOW_HEIGHT);
 		this.stage.setScene(this.scene);
@@ -164,25 +164,18 @@ public class Interpreter {
 				validSyntax = false;
 				validSemantics = false;
 				break;
-			}
-//			System.out.println("Line "+lineCheck+" passed lexical");		
+			}	
 			if(!tokensPerLine.isEmpty()) {
 				checkSyntaxAndSemantics();
 		    	if(!validSyntax || !validSemantics) {
 		    		if(!validSyntax) validSemantics = false;
 		    		break;
-		    	}
-//				System.out.println("Line "+lineCheck+" passed syntax and semantics");		
+		    	}		
 			}
-//			System.out.println("Line "+lineCheck+" passed syntax and semantics");		
-	    	
+
 			tokensPerLine.clear();
 		}
 		
-//		System.out.println("\nLEXEMES");
-//		for(int i=0;i<tokens.size();i++) {
-//			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
-//		}		
 	}
 	
 	
@@ -432,7 +425,7 @@ public class Interpreter {
 				}							
 			}
 			
-			//case 2.1: expr
+			//case 2.1: arith expr
 			else if(Token.ARITHMETIC_EXPRESSIONS.contains(litClass)) {
 				ArrayList<Token> arithToken = new ArrayList<Token>();
 				
@@ -444,6 +437,22 @@ public class Interpreter {
 				if(arithmeticSyntax(arithToken)) {
 					symbols.add(new Symbol(identifier,""));
 					arithmeticExecute(identifier,arithToken);
+				}
+				else validSyntax = false;
+			} 
+			
+			//case 2.2: comp expr
+			else if(Token.COMPARISON_OPERATORS.contains(litClass)) {
+				ArrayList<Token> compToken = new ArrayList<Token>();
+				
+				//copy the tokens starting from the comparison operation
+				for(int i=3;i<tokensPerLine.size();i++)
+					compToken.add(tokensPerLine.get(i));
+				
+				//check if the compop has a valid syntax
+				if(comparisonSyntax(compToken)) {
+					symbols.add(new Symbol(identifier,""));
+					comparisonExecute(identifier,compToken);
 				}
 				else validSyntax = false;
 			}
@@ -479,7 +488,7 @@ public class Interpreter {
 			if(s.getSymbol().equals(tokensPerLine.get(0).getLexeme())) {				
 				//case 1: varident
 				
-				//case 2: expr
+				//case 2: arith expr
 				if(Token.ARITHMETIC_EXPRESSIONS.contains(litClass)) {
 					ArrayList<Token> arithToken = new ArrayList<Token>();
 					
@@ -489,6 +498,19 @@ public class Interpreter {
 					
 					//check if the arithop has a valid syntax
 					if(arithmeticSyntax(arithToken)) arithmeticExecute(tokensPerLine.get(0).getLexeme(),arithToken);
+					else validSyntax = false;
+				} 
+				
+				//case 2.1: comparison operators
+				else if(Token.COMPARISON_OPERATORS.contains(litClass)) {
+					ArrayList<Token> compToken = new ArrayList<Token>();
+					
+					//copy the tokens starting from the arithmetic operation
+					for(int i=2;i<tokensPerLine.size();i++)
+						compToken.add(tokensPerLine.get(i));
+					
+					//check if the comparison op has a valid syntax
+					if(comparisonSyntax(compToken)) comparisonExecute(tokensPerLine.get(0).getLexeme(),compToken);
 					else validSyntax = false;
 				}
 				
@@ -908,6 +930,7 @@ public class Interpreter {
 		
 		
 		for(int i = 0; i < comparisonTokens.size(); i++) {
+			
 			//implies that another operation has started in the same line
 			if(startingPopped) {
 				return false; 
@@ -920,7 +943,7 @@ public class Interpreter {
 			}else if(comparisonTokens.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
 				//if an is encountered, add to an count
 				anCount++;
-			}else if(comparisonTokens.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) | comparisonTokens.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) | comparisonTokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+			}else if(comparisonTokens.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
 				//if num/var is encountered, add to an operand count
 				opCount++;
 			}else {
@@ -953,12 +976,12 @@ public class Interpreter {
 	}
 	
 	//SEMANTICS FOR ARITHMETIC OPERATIONS
-	private String comparisonExecute(String dataHolder,ArrayList<Token> arithToken) {
+	private String comparisonExecute(String dataHolder,ArrayList<Token> compToken) {
 			Stack<Number> operation = new Stack<Number>();
 				
 			//since operations are in prefix, reverse the tokens 
-			Collections.reverse(arithToken);
-			for(Token tkn: arithToken) {
+			Collections.reverse(compToken);
+			for(Token tkn: compToken) {
 				//case 1: numbar - floating points
 				if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
 					operation.push(parseFloat(tkn));
@@ -968,11 +991,9 @@ public class Interpreter {
 				//case 3: varident
 				}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
 					for(Symbol s:symbols) {
-						if(s.getSymbol().equals(tkn.getLexeme())) {		
-							System.out.println(s.getValue());
+						if(s.getSymbol().equals(tkn.getLexeme())) {	
 							//check its value's data type
 							String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
-							
 							//varident is a numbar
 							if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
 							
@@ -985,6 +1006,8 @@ public class Interpreter {
 							//varident is a FAIL (false)
 							else if(s.getValue().equals(Token.FAIL_TROOF_LITERAL)) operation.push(0); 
 							
+							//varident is a yarn, pero nababasa ni valid lexeme as variable ident?
+							else if(classification.equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) operation.push(0);  
 							break;
 						}
 					}
@@ -1119,7 +1142,8 @@ public class Interpreter {
 	private boolean isAnExpr(String classification) {
 		if(Token.ARITHMETIC_EXPRESSIONS.contains(classification) || 
 			Token.BINARY_BOOLEAN_EXPRESSIONS.contains(classification) ||
-			Token.OTHER_BOOLEAN_EXPRESSIONS.contains(classification)) 
+			Token.OTHER_BOOLEAN_EXPRESSIONS.contains(classification) ||
+			Token.COMPARISON_OPERATORS.contains(classification)) 
 			return true;
 		return false;
 	}	
@@ -1196,7 +1220,6 @@ public class Interpreter {
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
 					
-//			System.out.println(currentLexeme);
 			
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isASpace(line.charAt(currPos)) || line.charAt(currPos-1) == '\"') {
