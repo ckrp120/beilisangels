@@ -204,12 +204,8 @@ public class Token {
 	    put(Token.TIL, Token.TIL_CLASSIFIER);
 	    put(Token.WILE, Token.WILE_CLASSIFIER);
 	    put(Token.IM_OUTTA_YR, Token.IM_OUTTA_YR_CLASSIFIER);
-<<<<<<< HEAD
 	    put(Token.GTFO, Token.GTFO_CLASSIFIER);
-=======
 	    put(Token.EXCLAMATION_POINT, Token.EXCLAMATION_POINT_CLASSIFIER);
-
->>>>>>> dccebab7d8c6c3a38c864f5ebe446d0c122c74cf
 	}};
 	
 	//LIST OF ARITHMETIC EXPRESSIONS
