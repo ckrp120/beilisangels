@@ -11,12 +11,15 @@ import java.util.Queue;
 import java.util.Scanner;
 import java.util.Stack;
 import java.util.regex.Matcher;
+
+import javafx.css.PseudoClass;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
@@ -38,8 +41,8 @@ public class Interpreter {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	//private File file = new File("testcases/ops/arithop.lol");
-	private File file = new File("testcases/switch.lol");
+	private File file = new File("testcases/ops/arithop.lol");
+	//private File file = new File("testcases/switch.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -53,9 +56,9 @@ public class Interpreter {
 	private ImageView lexicalIndicator = new ImageView();
 	private ImageView syntaxIndicator = new ImageView();
 	private ImageView semanticIndicator = new ImageView();
-	private Image happyImg = new Image("imgs/laughing.png", 150, 150, true,true);
+	private Image happyImg = new Image("imgs/laughing.gif", 150, 150, true,true);
 	private Image neutralImg = new Image("imgs/neutral.PNG", 150, 150, true,true);
-	private Image cryingImg = new Image("imgs/crying.png", 150, 150, true,true);
+	private Image cryingImg = new Image("imgs/crying.gif", 150, 150, true,true);
 	private Image lexicalPassImg = new Image("imgs/lexicalpassed.png", 150, 150, true,true);
 	private Image syntaxPassImg = new Image("imgs/syntaxpassed.png", 150, 150, true,true);
 	private Image semanticPassImg = new Image("imgs/semanticpassed.png", 150, 150, true,true);
@@ -83,7 +86,7 @@ public class Interpreter {
 	
 	public Interpreter() {
 		root = new Group();
-		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.BISQUE);
+		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.web("#315f72"));
 		canvas = new Canvas(WINDOW_HEIGHT,WINDOW_HEIGHT);
 		canvas.getGraphicsContext2D();
 		symbols.add(new Symbol(Token.IT,""));
@@ -137,6 +140,8 @@ public class Interpreter {
 		createTable("symbols");
 		
 		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, lexicalIndicator, syntaxIndicator, semanticIndicator);
+		//this.scene.getStylesheets().add("lolcodeinterpreter.css");
+		root.getStylesheets().add(getClass().getResource("lolcodeinterpreter.css").toString());
 		this.stage = stage;
 		this.stage.setTitle("LOLCode Interpreter");
 		this.stage.setMinWidth(WINDOW_WIDTH);
@@ -1642,7 +1647,11 @@ public class Interpreter {
     		//column header naming
         	lexemefirstDataColumn = new TableColumn<>("Lexeme");
         	lexemesecondDataColumn = new TableColumn<>("Classification"); 
-        	        	
+        	
+        	//select attribute to show in the column
+        	lexemefirstDataColumn.setCellValueFactory(new PropertyValueFactory<>("lexeme"));
+        	lexemesecondDataColumn.setCellValueFactory(new PropertyValueFactory<>("classification"));
+        	
         	//set table view column width preference
         	lexemefirstDataColumn.setMinWidth(250);
         	lexemesecondDataColumn.setMinWidth(250);
@@ -1657,9 +1666,15 @@ public class Interpreter {
         	lexemeTableView.getSelectionModel().setCellSelectionEnabled(true);
         	lexemeTableView.getColumns().addAll(lexemefirstDataColumn, lexemesecondDataColumn);
             root.getChildren().add(lexemeTableView);
+            
     	} else if(type == "symbols"){
-        	symbolfirstDataColumn = new TableColumn<>("Identifier"); 
+    		//column header naming
+        	symbolfirstDataColumn = new TableColumn<>("Symbol"); 
         	symbolsecondDataColumn = new TableColumn<>("Value"); 
+        	
+        	//select attribute to show in the column
+        	symbolfirstDataColumn.setCellValueFactory(new PropertyValueFactory<>("symbol"));
+        	symbolsecondDataColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
         	
         	//set table view column width preference
         	symbolfirstDataColumn.setMinWidth(250);
@@ -1679,13 +1694,6 @@ public class Interpreter {
     }
     
     private void populateTable() {
-    	//select attribute to show in the column
-    	lexemefirstDataColumn.setCellValueFactory(new PropertyValueFactory<>("lexeme"));
-    	lexemesecondDataColumn.setCellValueFactory(new PropertyValueFactory<>("classification"));
-    	
-    	symbolfirstDataColumn.setCellValueFactory(new PropertyValueFactory<>("symbol"));
-    	symbolsecondDataColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
-    	
     	//populate table
     	for(Token token: tokens) lexemeTableView.getItems().add(token);
     	for(Symbol symbol: symbols) symbolTableView.getItems().add(symbol);
@@ -1707,7 +1715,7 @@ public class Interpreter {
 
 		//prompt error dialog
 		Alert alert = new Alert(AlertType.INFORMATION);
-		alert.setContentText("[!] Errors were found in your code.");
+		alert.setContentText("[!] Errors found in your code.");
 		alert.setTitle("Error Dialog");
 		alert.setHeaderText(null);
 		alert.show();
