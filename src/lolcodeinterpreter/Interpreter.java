@@ -38,8 +38,8 @@ public class Interpreter {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	//private File file = new File("testcases/ops/compop.lol");
-	private File file = new File("testcases/ifelse.lol");
+	//private File file = new File("testcases/ops/arithop.lol");
+	private File file = new File("testcases/switch.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -185,7 +185,6 @@ public class Interpreter {
 	
 	//FUNCTIONS FOR SYNTAX AND SEMANTIC ANALYSIS
 	private void checkSyntaxAndSemantics() {
-		System.out.println(tokensPerLine.size());
 		if(tokensPerLine.size() > 1) {
 			
 			//IF WTF? was the previous operation, it must be followed by an OMG keyword
@@ -277,10 +276,7 @@ public class Interpreter {
 					else storeTokensToQueue();
 					validSyntax = true;
 				}
-				else {
-					System.out.println("Line: "+lineCheck+" failed :(");
-					validSyntax = false;
-				}
+				else validSyntax = false;
 			}
 			
 			//COMPARISON OPERATORS
@@ -293,7 +289,6 @@ public class Interpreter {
 				else validSyntax = false;
 			}
 		} else {
-			System.out.println("lexeme: " + tokensPerLine.get(0).getLexeme() + " class: " + tokensPerLine.get(0).getClassification());
 			switch(tokensPerLine.get(0).getClassification()) {
 				case Token.HAI_CLASSIFIER:
 					validSyntax=true;
@@ -348,7 +343,6 @@ public class Interpreter {
 					validSyntax=false;
 					break;
 			}
-			System.out.println("valid syntax? " + validSyntax);
 		}
 	}	
 	
@@ -1712,12 +1706,11 @@ public class Interpreter {
     	else semanticIndicator.setImage(semanticPassImg);
 
 		//prompt error dialog
-    	//cinomment ko muna kasi hassle magpindot ng ok HAHAHA -tin
-//		Alert alert = new Alert(AlertType.INFORMATION);
-//		alert.setContentText("[!] Errors were found in your code.");
-//		alert.setTitle("Error Dialog");
-//		alert.setHeaderText(null);
-//		alert.show();
+		Alert alert = new Alert(AlertType.INFORMATION);
+		alert.setContentText("[!] Errors were found in your code.");
+		alert.setTitle("Error Dialog");
+		alert.setHeaderText(null);
+		alert.show();
     }
     
     private void showPass() {
