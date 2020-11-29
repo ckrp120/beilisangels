@@ -35,8 +35,8 @@ public class Interpreter {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("testcases/ops/compop.lol");
-	//private File file = new File("testcases/vardecinit.lol");
+	//private File file = new File("testcases/ops/compop.lol");
+	private File file = new File("testcases/ifelse.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -122,9 +122,6 @@ public class Interpreter {
         this.semanticIndicator.setLayoutX(1270);
         this.semanticIndicator.setLayoutY(840);
         
-
-         
-        
         //call to functions
 		openFile();	
 		generateLexemes();
@@ -150,7 +147,6 @@ public class Interpreter {
 			
 			//check status of the current line
 			//0 - valid lexeme; 1 - invalid lexeme; 2 - invalid lexeme, but process again bc a varident is detected as a possible keyword
-			
 			status = checkLexeme(lines[lineCheck]);
 			
 			//case 2
@@ -179,9 +175,9 @@ public class Interpreter {
 	}
 	
 	
-	//FUNCTIONS FOR SYNTAX AND SEMANTIC ANALYSES
-		
+	//FUNCTIONS FOR SYNTAX AND SEMANTIC ANALYSIS
 	private void checkSyntaxAndSemantics() {
+		System.out.println(tokensPerLine.size());
 		if(tokensPerLine.size() > 1) {
 			//PRINT = VISIBLE
 			if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
@@ -234,6 +230,7 @@ public class Interpreter {
 				else validSyntax = false;
 			}
 		} else {
+			System.out.println("lexeme: " + tokensPerLine.get(0).getLexeme() + " class: " + tokensPerLine.get(0).getClassification());
 			switch(tokensPerLine.get(0).getClassification()) {
 				case Token.HAI_CLASSIFIER:
 					validSyntax=true;
@@ -250,10 +247,23 @@ public class Interpreter {
 				case Token.TLDR_CLASSIFIER:
 					validSyntax=true;
 					break;
+				case Token.O_RLY_CLASSIFIER:
+					validSyntax=true;
+					break;
+				case Token.YA_RLY_CLASSIFIER:
+					validSyntax=true;
+					break;
+				case Token.NO_WAI_CLASSIFIER:
+					validSyntax=true;
+					break;
+				case Token.OIC_CLASSIFIER:
+					validSyntax=true;
+					break;
 				default:
 					validSyntax=false;
 					break;
 			}
+			System.out.println("valid syntax? " + validSyntax);
 		}
 	}	
 	
