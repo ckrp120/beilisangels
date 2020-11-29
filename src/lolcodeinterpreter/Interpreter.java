@@ -38,8 +38,8 @@ public class Interpreter {
 	
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
-	private File file = new File("testcases/ops/compop.lol");
-	//private File file = new File("testcases/io.lol");
+	//private File file = new File("testcases/ops/compop.lol");
+	private File file = new File("testcases/ifelse.lol");
 	private String fileString="";
 	private Scanner scanner;
 
@@ -130,9 +130,6 @@ public class Interpreter {
         this.semanticIndicator.setLayoutX(1270);
         this.semanticIndicator.setLayoutY(840);
         
-
-         
-        
         //call to functions
 		openFile();	
 		generateLexemes();
@@ -141,7 +138,7 @@ public class Interpreter {
 		
 		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, lexicalIndicator, syntaxIndicator, semanticIndicator);
 		this.stage = stage;
-		this.stage.setTitle("LOLCode Interprete");
+		this.stage.setTitle("LOLCode Interpreter");
 		this.stage.setMinWidth(WINDOW_WIDTH);
 		this.stage.setMinHeight(WINDOW_HEIGHT);
 		this.stage.setScene(this.scene);
@@ -158,7 +155,6 @@ public class Interpreter {
 			
 			//check status of the current line
 			//0 - valid lexeme; 1 - invalid lexeme; 2 - invalid lexeme, but process again bc a varident is detected as a possible keyword
-			
 			status = checkLexeme(lines[lineCheck]);
 			
 			//case 2
@@ -172,31 +168,24 @@ public class Interpreter {
 				validSyntax = false;
 				validSemantics = false;
 				break;
-			}
-//			System.out.println("Line "+lineCheck+" passed lexical");		
+			}	
 			if(!tokensPerLine.isEmpty()) {
 				checkSyntaxAndSemantics();
 		    	if(!validSyntax || !validSemantics) {
 		    		if(!validSyntax) validSemantics = false;
 		    		break;
-		    	}
-//				System.out.println("Line "+lineCheck+" passed syntax and semantics");		
+		    	}		
 			}
-//			System.out.println("Line "+lineCheck+" passed syntax and semantics");		
-	    	
+
 			tokensPerLine.clear();
 		}
 		
-//		System.out.println("\nLEXEMES");
-//		for(int i=0;i<tokens.size();i++) {
-//			System.out.println(i+1 + ". " + tokens.get(i).getLexeme()+ ":" + tokens.get(i).getClassification() + "\n");
-//		}		
 	}
 	
 	
-	//FUNCTIONS FOR SYNTAX AND SEMANTIC ANALYSES
-		
+	//FUNCTIONS FOR SYNTAX AND SEMANTIC ANALYSIS
 	private void checkSyntaxAndSemantics() {
+		System.out.println(tokensPerLine.size());
 		if(tokensPerLine.size() > 1) {
 			
 			//IF WTF? was the previous operation, it must be followed by an OMG keyword
@@ -304,6 +293,7 @@ public class Interpreter {
 				else validSyntax = false;
 			}
 		} else {
+			System.out.println("lexeme: " + tokensPerLine.get(0).getLexeme() + " class: " + tokensPerLine.get(0).getClassification());
 			switch(tokensPerLine.get(0).getClassification()) {
 				case Token.HAI_CLASSIFIER:
 					validSyntax=true;
@@ -344,11 +334,21 @@ public class Interpreter {
 					
 				case Token.OMGWTF_CLASSIFIER:
 					storeTokensToQueue();
+					
+				case Token.O_RLY_CLASSIFIER:
+					validSyntax=true;
+					break;
+				case Token.YA_RLY_CLASSIFIER:
+					validSyntax=true;
+					break;
+				case Token.NO_WAI_CLASSIFIER:
+					validSyntax=true;
 					break;
 				default:
 					validSyntax=false;
 					break;
 			}
+			System.out.println("valid syntax? " + validSyntax);
 		}
 	}	
 	
@@ -454,6 +454,8 @@ public class Interpreter {
 	private void printExecute() {
 		Token tkn;
 		int i=1;
+		boolean appendNewLine=true;
+		
 		while(i<tokensPerLine.size()) {
 			tkn = tokensPerLine.get(i);
 			
@@ -499,14 +501,22 @@ public class Interpreter {
 				i++;
 				continue;
 			}
+			//case where the visible ends with an exclamation
+			else if(tkn.getLexeme().equals(Token.EXCLAMATION_POINT)) {
+				if(i+1 == tokensPerLine.size()) appendNewLine = false;
+				else {
+					validSemantics = false;
+					break;
+				}
+			}
 			else {
 				validSemantics = false;
 				break;
 			}
 			i++;
-		}
+		}	
 		
-		outputDisplayText += "\n";						
+		if(appendNewLine) outputDisplayText += "\n";						
 	}
 	
 	//SYNTAX FOR ACCEPT = GIMMEH
@@ -601,7 +611,7 @@ public class Interpreter {
 				}							
 			}
 			
-			//case 2.1: expr
+			//case 2.1: arith expr
 			else if(Token.ARITHMETIC_EXPRESSIONS.contains(litClass)) {
 				ArrayList<Token> arithToken = new ArrayList<Token>();
 				
@@ -613,6 +623,22 @@ public class Interpreter {
 				if(arithmeticSyntax(arithToken)) {
 					symbols.add(new Symbol(identifier,""));
 					arithmeticExecute(identifier,arithToken);
+				}
+				else validSyntax = false;
+			} 
+			
+			//case 2.2: comp expr
+			else if(Token.COMPARISON_OPERATORS.contains(litClass)) {
+				ArrayList<Token> compToken = new ArrayList<Token>();
+				
+				//copy the tokens starting from the comparison operation
+				for(int i=3;i<tokensPerLine.size();i++)
+					compToken.add(tokensPerLine.get(i));
+				
+				//check if the compop has a valid syntax
+				if(comparisonSyntax(compToken)) {
+					symbols.add(new Symbol(identifier,""));
+					comparisonExecute(identifier,compToken);
 				}
 				else validSyntax = false;
 			}
@@ -648,7 +674,7 @@ public class Interpreter {
 			if(s.getSymbol().equals(tokensPerLine.get(0).getLexeme())) {				
 				//case 1: varident
 				
-				//case 2: expr
+				//case 2: arith expr
 				if(Token.ARITHMETIC_EXPRESSIONS.contains(litClass)) {
 					ArrayList<Token> arithToken = new ArrayList<Token>();
 					
@@ -658,6 +684,19 @@ public class Interpreter {
 					
 					//check if the arithop has a valid syntax
 					if(arithmeticSyntax(arithToken)) arithmeticExecute(tokensPerLine.get(0).getLexeme(),arithToken);
+					else validSyntax = false;
+				} 
+				
+				//case 2.1: comparison operators
+				else if(Token.COMPARISON_OPERATORS.contains(litClass)) {
+					ArrayList<Token> compToken = new ArrayList<Token>();
+					
+					//copy the tokens starting from the arithmetic operation
+					for(int i=2;i<tokensPerLine.size();i++)
+						compToken.add(tokensPerLine.get(i));
+					
+					//check if the comparison op has a valid syntax
+					if(comparisonSyntax(compToken)) comparisonExecute(tokensPerLine.get(0).getLexeme(),compToken);
 					else validSyntax = false;
 				}
 				
@@ -1095,6 +1134,7 @@ public class Interpreter {
 		
 		
 		for(int i = 0; i < comparisonTokens.size(); i++) {
+			
 			//implies that another operation has started in the same line
 			if(startingPopped) {
 				return false; 
@@ -1107,7 +1147,7 @@ public class Interpreter {
 			}else if(comparisonTokens.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
 				//if an is encountered, add to an count
 				anCount++;
-			}else if(comparisonTokens.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) | comparisonTokens.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) | comparisonTokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+			}else if(comparisonTokens.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
 				//if num/var is encountered, add to an operand count
 				opCount++;
 			}else {
@@ -1140,12 +1180,12 @@ public class Interpreter {
 	}
 	
 	//SEMANTICS FOR ARITHMETIC OPERATIONS
-	private String comparisonExecute(String dataHolder,ArrayList<Token> arithToken) {
+	private String comparisonExecute(String dataHolder,ArrayList<Token> compToken) {
 			Stack<Number> operation = new Stack<Number>();
 				
 			//since operations are in prefix, reverse the tokens 
-			Collections.reverse(arithToken);
-			for(Token tkn: arithToken) {
+			Collections.reverse(compToken);
+			for(Token tkn: compToken) {
 				//case 1: numbar - floating points
 				if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
 					operation.push(parseFloat(tkn));
@@ -1155,11 +1195,9 @@ public class Interpreter {
 				//case 3: varident
 				}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
 					for(Symbol s:symbols) {
-						if(s.getSymbol().equals(tkn.getLexeme())) {		
-							System.out.println(s.getValue());
+						if(s.getSymbol().equals(tkn.getLexeme())) {	
 							//check its value's data type
 							String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
-							
 							//varident is a numbar
 							if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
 							
@@ -1172,6 +1210,8 @@ public class Interpreter {
 							//varident is a FAIL (false)
 							else if(s.getValue().equals(Token.FAIL_TROOF_LITERAL)) operation.push(0); 
 							
+							//varident is a yarn, pero nababasa ni valid lexeme as variable ident?
+							else if(classification.equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) operation.push(0);  
 							break;
 						}
 					}
@@ -1306,7 +1346,8 @@ public class Interpreter {
 	private boolean isAnExpr(String classification) {
 		if(Token.ARITHMETIC_EXPRESSIONS.contains(classification) || 
 			Token.BINARY_BOOLEAN_EXPRESSIONS.contains(classification) ||
-			Token.OTHER_BOOLEAN_EXPRESSIONS.contains(classification)) 
+			Token.OTHER_BOOLEAN_EXPRESSIONS.contains(classification) ||
+			Token.COMPARISON_OPERATORS.contains(classification)) 
 			return true;
 		return false;
 	}	
@@ -1367,26 +1408,26 @@ public class Interpreter {
 			//get current character and increment position
 			currChar = line.charAt(currPos);
 			currPos++;
-
+			
 			//if the previous formed lexeme is accepted, ignore the next white space/s
 			if(acceptedLexeme) {
 				acceptedLexeme = false;
 
-				while(isASpace(line.charAt(currPos))) currPos++;
-				
-				currChar = line.charAt(currPos);
-				currPos++;
+				if(currPos < line.length()) {				
+					while(isASpace(line.charAt(currPos))) currPos++;
+	
+					currChar = line.charAt(currPos);
+					currPos++;
+				}
 			}
 
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
-			
-			//System.out.println(currentLexeme);
+					
 			
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
-			if(currPos==line.length() || isASpace(line.charAt(currPos))) {
+			if(currPos==line.length() || isASpace(line.charAt(currPos)) || line.charAt(currPos-1) == '\"') {
 				classification = isAValidLexeme(currentLexeme);
-				
 				//if it is, then add it to the list of tokens
 				if(classification != null) {
 					acceptedLexeme = true;
