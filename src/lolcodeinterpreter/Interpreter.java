@@ -2,9 +2,12 @@ package lolcodeinterpreter;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Scanner;
 import java.util.Stack;
 import java.util.regex.Matcher;
@@ -72,6 +75,11 @@ public class Interpreter {
     private ArrayList<Token> tokens = new ArrayList<Token>();
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
+    
+    //process queue for if/switch
+    private Queue<ArrayList<Token>> pQueue = new LinkedList<>();
+    private boolean checkingSwitchStatement = false;
+    private boolean executingSwitchStatement = false;
 	
 	public Interpreter() {
 		root = new Group();
@@ -190,35 +198,85 @@ public class Interpreter {
 		
 	private void checkSyntaxAndSemantics() {
 		if(tokensPerLine.size() > 1) {
+			
+			//IF WTF? was the previous operation, it must be followed by an OMG keyword
+			if(checkingSwitchStatement && pQueue.size() == 1) {
+				if(tokensPerLine.get(0).getClassification().equals(Token.OMG_CLASSIFIER) && tokensPerLine.size() == 2) {
+					if(Token.LITERALS.contains(tokensPerLine.get(1).getClassification())) {
+						storeTokensToQueue();
+						validSyntax = true;
+					}
+					else validSyntax = false;
+				}
+				
+				else validSyntax = false;
+				
+			}
+			
+			//OMG
+			else if(tokensPerLine.get(0).getLexeme().equals(Token.OMG)) {
+				
+				//check if the line next to OMG is a literal
+				if(Token.LITERALS.contains(tokensPerLine.get(1).getClassification()) && tokensPerLine.size() == 2) {
+					storeTokensToQueue();
+					validSyntax = true;
+				}
+				else validSyntax = false;
+			}
+			
 			//PRINT = VISIBLE
-			if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
-				if(printSyntax()) printExecute();
+			else if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
+				if(printSyntax()) {
+					if(!checkingSwitchStatement) printExecute();
+					else storeTokensToQueue();
+					validSyntax = true;
+				}
 				else validSyntax = false;
 			}
 			
 			//ACCEPT = GIMMEH
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.GIMMEH)) {
-				if(acceptSyntax()) acceptExecute();
+				if(acceptSyntax()) {
+					
+					if(!checkingSwitchStatement)acceptExecute();
+					else storeTokensToQueue();
+					validSyntax = true;
+					
+				}
 				else validSyntax = false;
 			}
 			
 			//VARIABLE DECLARATION = I HAS A
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.I_HAS_A)) {
 				String literalClassification = varDeclarationSyntax();
-				if(literalClassification != null) varDeclarationExecute(literalClassification);
+				if(literalClassification != null) {
+					if(!checkingSwitchStatement) varDeclarationExecute(literalClassification);
+					else storeTokensToQueue();
+					validSyntax = true;
+					
+				}
 				else validSyntax = false;				
 			}
 
 			//ASSIGNMENT STATEMENT = R
 			else if(tokensPerLine.get(1).getLexeme().equals(Token.R)) {
 				String literalClassification = varAssignmentSyntax();
-				if(literalClassification != null) varAssignmentExecute(literalClassification);
+				if(literalClassification != null) {
+					
+					if(!checkingSwitchStatement) varAssignmentExecute(literalClassification);
+					else storeTokensToQueue();
+					validSyntax = true;
+				}
 				else validSyntax = false;
 			}
 			
 			//ARITHMETIC OPERATIONS
 			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
-				if(arithmeticSyntax(tokensPerLine)) arithmeticExecute(Token.IT,tokensPerLine);
+				if(arithmeticSyntax(tokensPerLine)) {
+					if(!checkingSwitchStatement) arithmeticExecute(Token.IT,tokensPerLine);
+					else storeTokensToQueue();
+					validSyntax = true;
+				}
 				else validSyntax = false;
 			}	
 
@@ -226,8 +284,9 @@ public class Interpreter {
 			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || 
 					Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
 				if(booleanSyntax(tokensPerLine)) {
-					System.out.println("Line: "+lineCheck+" passed!");
-					System.out.println("Result: "+booleanExecute(Token.IT, tokensPerLine));
+					if(!checkingSwitchStatement) booleanExecute(Token.IT, tokensPerLine);
+					else storeTokensToQueue();
+					validSyntax = true;
 				}
 				else {
 					System.out.println("Line: "+lineCheck+" failed :(");
@@ -237,7 +296,11 @@ public class Interpreter {
 			
 			//COMPARISON OPERATORS
 			else if(Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification()) ) {
-				if(comparisonSyntax(tokensPerLine)) comparisonExecute(Token.IT,tokensPerLine);
+				if(comparisonSyntax(tokensPerLine)) {
+					if(!checkingSwitchStatement) comparisonExecute(Token.IT,tokensPerLine);
+					else storeTokensToQueue();
+					validSyntax = true;
+				}
 				else validSyntax = false;
 			}
 		} else {
@@ -257,6 +320,31 @@ public class Interpreter {
 				case Token.TLDR_CLASSIFIER:
 					validSyntax=true;
 					break;
+				case Token.WTF_CLASSIFIER:
+					validSyntax = true;
+					checkingSwitchStatement = true;
+					storeTokensToQueue();
+					break;
+				
+				case Token.OIC_CLASSIFIER:
+					//check if WTF and OMGs are already in the switch statement
+					if((inProcessQueue(Token.WTF) && inProcessQueue(Token.OMG) && checkingSwitchStatement) || executingSwitchStatement) {
+						validSyntax = true;
+						storeTokensToQueue();
+						executeSwitch();	
+						break;
+					}else {
+						validSyntax = false;
+						break;
+					}
+					
+				case Token.GTFO_CLASSIFIER:
+					storeTokensToQueue();
+					break;
+					
+				case Token.OMGWTF_CLASSIFIER:
+					storeTokensToQueue();
+					break;
 				default:
 					validSyntax=false;
 					break;
@@ -270,6 +358,97 @@ public class Interpreter {
 		//return false if VISIBLE does not have anything to print
 		return false;
 	}
+	
+	//FUNCTION TO MAKE DEEP COPY OF TOKENS PER LINE
+	private void storeTokensToQueue() {
+		ArrayList<Token> lineTokens = new ArrayList<Token>();
+		for(Token tkn: tokensPerLine) {
+			lineTokens.add(new Token(tkn.getLexeme(), tkn.getClassification()));
+		}
+		
+		pQueue.add(lineTokens);
+	}
+	
+	//check if instruction exists in pQueue
+	private boolean inProcessQueue(String lexeme) {
+		for(ArrayList<Token> line: pQueue) {
+			if(line.get(0).getLexeme().equals(lexeme)) return true;
+		} return false;
+	}
+	
+	private void executeSwitch() {
+		
+		executingSwitchStatement = true;
+		//checks if it has entered case
+		boolean enteredCase = false;
+		
+		//set checking switch statement to false so that it would execute instructions
+		checkingSwitchStatement = false;
+		
+		//get current queue size to get length of loop
+		int queueSize = pQueue.size();
+		
+		//execute instructions in pQueue
+		for(int i = 0; i < queueSize; i++) {
+			
+			//dequeues the process queue
+			tokensPerLine = pQueue.remove();
+			
+			//skip WTF
+			if(i == 0) continue; 
+			
+			//detects OMG
+			else if(tokensPerLine.get(0).getLexeme().equals(Token.OMG)) {
+				
+				//if has yet to enter a case, check condition
+				if(!enteredCase) {
+					
+					/* compare IT and literal */
+					
+					//check if same datatype
+					String classificationIT = isAValidLexeme(getIT().getValue());
+					String classificationCase = isAValidLexeme(tokensPerLine.get(1).getLexeme());
+					
+					//if classification is the same, check if value is the same
+					if(classificationIT.equals(classificationCase)) {
+						
+						//if same, activate flag
+						if(getIT().getValue().equals(tokensPerLine.get(1).getLexeme())) enteredCase = true;
+					}
+				}else continue;
+			
+			//if GTFO, clear the process queue and exit switch statement
+			}else if(tokensPerLine.get(0).getLexeme().equals(Token.GTFO) && enteredCase) {
+				pQueue.clear();
+				executingSwitchStatement = false;
+				break;
+				
+			//if OIC, clear the process queue and exit the switch statement	
+			}else if(tokensPerLine.get(0).getLexeme().equals(Token.OIC)){
+				pQueue.clear();
+				executingSwitchStatement = false;
+				break;
+			
+			//default case
+			}else if(tokensPerLine.get(0).getLexeme().equals(Token.OMGWTF)){
+				enteredCase = true;
+				
+			//execute instruction
+			}else {
+				if(enteredCase) checkSyntaxAndSemantics();
+			}
+			
+			
+		}
+	}
+	
+	//FUNCTION TO GET IT
+	private Symbol getIT() {
+		for(Symbol s: symbols) {
+			if(s.getSymbol().equals(Token.IT)) return s;
+		} return null;
+	}
+	
 	
 	//SEMANTICS FOR PRINT = VISIBLE
 	private void printExecute() {
@@ -578,8 +757,26 @@ public class Interpreter {
 						break;
 					}
 				}
+			
+			//case 4: IT
+			}else if(tkn.getLexeme().equals(Token.IT)) {
+				Symbol it = getIT();
+				String classification = isAValidLexeme(it.getValue());
+				
+				//IT is a numbar
+				if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(Float.parseFloat(it.getValue()));
+				
+				//IT is a numbr
+				else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(Integer.parseInt(it.getValue()));
+				
+				//invalid data type
+				else{
+					validSemantics = false;
+					return null;
+				}
+			
 			//if operation is detected, pop 2 operands and perform the operation
-			} else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
+			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
 				boolean resultIsNumbar = false;
 				Number op1 = operation.pop();
 				Number op2 = operation.pop();

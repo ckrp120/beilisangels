@@ -66,6 +66,7 @@ public class Token {
 	public final static String WTF = "WTF?";
 	public final static String OMG = "OMG";
 	public final static String OMGWTF = "OMGWTF";
+	public final static String GTFO = "GTFO";
 	public final static String IM_IN_YR = "IM IN YR";
 	public final static String UPPIN = "UPPIN";
 	public final static String NERFIN = "NERFIN";
@@ -131,6 +132,7 @@ public class Token {
 	public final static String OIC_CLASSIFIER = "If-then Terminator";
 	public final static String WTF_CLASSIFIER = "Switch case Initializer";
 	public final static String OMG_CLASSIFIER = "Case keyword";
+	public final static String GTFO_CLASSIFIER = "Break keyword";
 	public final static String OMGWTF_CLASSIFIER = "Default case keyword";
 	public final static String IM_IN_YR_CLASSIFIER = "Loop Initializer";
 	public final static String UPPIN_CLASSIFIER = "Increment Keyword";
@@ -204,6 +206,7 @@ public class Token {
 	    put(Token.TIL, Token.TIL_CLASSIFIER);
 	    put(Token.WILE, Token.WILE_CLASSIFIER);
 	    put(Token.IM_OUTTA_YR, Token.IM_OUTTA_YR_CLASSIFIER);
+	    put(Token.GTFO, Token.GTFO_CLASSIFIER);
 	}};
 	
 	//LIST OF ARITHMETIC EXPRESSIONS
