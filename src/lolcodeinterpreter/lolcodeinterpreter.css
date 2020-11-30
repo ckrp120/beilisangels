@@ -40,12 +40,20 @@
 }
 
 /* ==================== TABLE VIEW SECTION ==================*/
+.table-view{
+   -fx-background-color: linear-gradient(to bottom, #12232E, #203647);
+}
 
-.table-view .column-header-background .filler {
+.table-view .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.table-view .column-header-background .filler{
     -fx-background-color: transparent;
 }
 
-.table-view .corner {
+.table-view .corner{
     -fx-background-color: transparent;
 }
 
@@ -67,7 +75,7 @@
 }
 
 .table-view .table-cell{
-    -fx-border-color: transparent;
+    -fx-border-color: black;
     -fx-padding: 2 0 2 10px;
 }
 

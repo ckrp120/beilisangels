@@ -42,7 +42,7 @@ public class Interpreter {
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
 	private File file = new File("testcases/ops/arithop.lol");
-	//private File file = new File("testcases/switch.lol");
+	//private File file = new File("testcases/ifelse.lol");
 	private String fileString="";
 	private Scanner scanner;
 
