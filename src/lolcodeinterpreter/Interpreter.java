@@ -52,12 +52,12 @@ public class Interpreter {
 	private TextArea codeDisplay = new TextArea();
 	private TextArea outputDisplay = new TextArea();
 	private String outputDisplayText="";
-	private ImageView passIndicator = new ImageView(new Image("imgs/neutral.PNG", 150, 150, true,true));
+	private ImageView passIndicator = new ImageView(new Image("imgs/neutral.gif", 150, 150, true,true));
 	private ImageView lexicalIndicator = new ImageView();
 	private ImageView syntaxIndicator = new ImageView();
 	private ImageView semanticIndicator = new ImageView();
 	private Image happyImg = new Image("imgs/laughing.gif", 150, 150, true,true);
-	private Image neutralImg = new Image("imgs/neutral.PNG", 150, 150, true,true);
+	private Image neutralImg = new Image("imgs/neutral.gif", 150, 150, true,true);
 	private Image cryingImg = new Image("imgs/crying.gif", 150, 150, true,true);
 	private Image lexicalPassImg = new Image("imgs/lexicalpassed.png", 150, 150, true,true);
 	private Image syntaxPassImg = new Image("imgs/syntaxpassed.png", 150, 150, true,true);
