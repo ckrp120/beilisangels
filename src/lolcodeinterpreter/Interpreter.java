@@ -11,14 +11,12 @@ import java.util.Scanner;
 import java.util.Stack;
 import java.util.regex.Matcher;
 
-import javafx.css.PseudoClass;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
@@ -78,17 +76,21 @@ public class Interpreter {
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
     
-    //process queue for if/switch
+    //process queue for switch
     private Queue<ArrayList<Token>> pQueue = new LinkedList<>();
     private boolean checkingSwitchStatement = false;
     private boolean executingSwitchStatement = false;
+    
+    //process queue for if-then
+    private Queue<ArrayList<Token>> ifQueue = new LinkedList<>();
+    private boolean checkingIfStatement = false;
+    private boolean executingIfStatement = false;
 	
 	public Interpreter() {
 		root = new Group();
 		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.web("#315f72"));
 		canvas = new Canvas(WINDOW_HEIGHT,WINDOW_HEIGHT);
 		canvas.getGraphicsContext2D();
-		symbols.add(new Symbol(Token.IT,""));
 	}
 	
 	public void setStage(Stage stage) {
@@ -1582,10 +1584,7 @@ public class Interpreter {
             	System.out.println("[!] User cancelled input dialog");
             } else { //file chosen
             	//check if file extension ends with .lol
-            	if(file.getAbsolutePath().matches(".*.lol$")) {
-            		readFile();
-            		resetAnalyzer();
-            	}
+            	if(file.getAbsolutePath().matches(".*.lol$")) readFile();
             	else System.out.println("Invalid file!");
             }
         });
@@ -1622,18 +1621,23 @@ public class Interpreter {
 	private void resetAnalyzer() {
 		//clear all values
 		fileString = "";
+		outputDisplayText = "";
 		lineCheck = 0;		
 		validLexeme = true;
 		validSyntax = true;
 		validSemantics = true;
 		tokens.clear();
-		lexemeTableView.getItems().clear();
-		symbolTableView.getItems().clear();
-		outputDisplay.setText("");
+		tokensPerLine.clear();
+		symbols.clear();
+		outputDisplay.clear();
+		for(int i=0; i<lexemeTableView.getItems().size(); i++) lexemeTableView.getItems().clear();
+		for(int i=0; i<symbolTableView.getItems().size(); i++) symbolTableView.getItems().clear();
+		
 		passIndicator.setImage(neutralImg);
 		lexicalIndicator.setImage(null);
 		syntaxIndicator.setImage(null);
 		semanticIndicator.setImage(null);
+		symbols.add(new Symbol(Token.IT,""));
 	}
 	
 	
