@@ -155,7 +155,7 @@ public class Interpreter {
 	//FUNCTION FOR ANALYZING LOLCODE FILE
 	private void analyzeFile() {		
 		//process every line
-		while(lineCheck<lines.length) {
+		while(lineCheck<lines.length && (validLexeme && validSyntax && validSemantics)) {
 			readBack=false;
 			wordCheck = 0;
 			
@@ -1501,8 +1501,7 @@ public class Interpreter {
 
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
-					
-			
+								
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isASpace(line.charAt(currPos)) || line.charAt(currPos-1) == '\"') {
 				classification = isAValidLexeme(currentLexeme);
@@ -1525,6 +1524,12 @@ public class Interpreter {
 							tokensPerLine.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
 						}
 					
+					//if the lexeme is TLDR, syntax is invalid because it has no OBTW pair
+					} else if(currentLexeme.equals(Token.TLDR)) {
+						currentLexeme = "";
+						validSyntax = false;
+						break;
+			
 					//if a comment is detected, ignore whatever comes after it
 					//0 - not a comment; 1 - one line comment (BTW); 2 - multiline comment (OBTW)
 					} else if((commentDetected = isAComment(currentLexeme)) != 0) {
@@ -1538,20 +1543,31 @@ public class Interpreter {
 							tokens.add(new Token(currentLexeme,classification));
 							tokensPerLine.add(new Token(currentLexeme,classification));
 							currentLexeme = "";
-							String commentEnder;
+							String commentEnder = "";
+							int lineCheckCopy = lineCheck;
 							
 							//ignore lines until a TLDR is detected
 							do {
 								commentEnder="";
-								lineCheck++;
 								line = lines[lineCheck];
+								lineCheck++;
 								String[] lexemes = line.split(" ");
 								
 								
-								for(int i=0;i<lexemes.length;i++) {
+								for(int i=0;i<lexemes.length;i++)
 									if(!lexemes[i].equals("")) commentEnder+=lexemes[i];
-								}	
-							} while(!commentEnder.equals(Token.TLDR));		
+								
+								if(commentEnder.contains(Token.TLDR)) lineCheckCopy = lineCheck;
+							} while(!commentEnder.equals(Token.TLDR) && lineCheck<lines.length);	
+							
+							if(!commentEnder.equals(Token.TLDR)) {
+								lineCheck = lineCheckCopy;
+								currentLexeme = "";
+								validSyntax = false;
+							}
+						} else {
+							currentLexeme = "";
+							validSyntax = false;
 						}
 						break;
 					
@@ -1786,6 +1802,12 @@ public class Interpreter {
     	passIndicator.setImage(cryingImg);
 		outputDisplay.setText("[!] Error detected in line " + lineCheck);
     	
+		if(!validLexeme) {
+			validSyntax = false;
+			validSemantics = false;
+		}
+		if(!validSyntax) validSemantics = false;
+		
     	if(!validLexeme) lexicalIndicator.setImage(lexicalFailImg);
     	else lexicalIndicator.setImage(lexicalPassImg);
     		
