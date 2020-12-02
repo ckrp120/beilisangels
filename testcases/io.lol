@@ -2,7 +2,7 @@ BTW for USER INPUT/OUTPUT
 HAI
 
   BTW printing of literals
-  VISIBLE "henlo"!
+  VISIBLE "henlo"
   VISIBLE 17
   VISIBLE 1.7
   VISIBLE WIN
@@ -13,13 +13,14 @@ HAI
 
   BTW printing of expressions
   VISIBLE SUM OF 2 AN PRODUKT OF 3 AN 5
-  BTW VISIBLE BOTH SAEM 2 AN 3
-  BTW VISIBLE EITHER OF WIN AN FAIL
+  VISIBLE BOTH SAEM 2 AN 3
+  VISIBLE EITHER OF WIN AN FAIL
 
   BTW printing of variables and use of GIMMEH
-  I HAS A input
-  VISIBLE "gif input "
+  I HAS A input 
+  VISIBLE "gif imput "
   GIMMEH input
+  VISIBLE input
   VISIBLE "u gif meh " input "!"
 
 KTHXBYE

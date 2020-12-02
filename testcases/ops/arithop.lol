@@ -6,7 +6,6 @@ HAI
   TLDR
 
   BTW basic expressions
-  
   SUM OF 1 AN 2
   VISIBLE IT
   DIFF OF 1 AN 2

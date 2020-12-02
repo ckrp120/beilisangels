@@ -226,15 +226,20 @@ public class Token {
 			Token.BOTH_OF_CLASSIFIER,
 			Token.EITHER_OF_CLASSIFIER,
 			Token.WON_OF_CLASSIFIER
-		));
+	));
 			
 	//operations with other arity
 	public final static List<String> OTHER_BOOLEAN_EXPRESSIONS = new ArrayList<>(Arrays.asList(
 			Token.NOT_CLASSIFIER,
 			Token.ALL_OF_CLASSIFIER,
 			Token.ANY_OF_CLASSIFIER
-		));
+	));
 		
+	//LIST OF COMPARISON OPERATORS
+	public final static List<String> COMPARISON_OPERATORS = new ArrayList<>(Arrays.asList(
+			Token.BOTH_SAEM_CLASSIFIER,
+			Token.DIFFRINT_CLASSIFIER
+	));
 	
 	//LIST OF LITERALS
 	public final static List<String> LITERALS = new ArrayList<>(Arrays.asList(
@@ -244,12 +249,6 @@ public class Token {
 		Token.TROOF_LITERAL_CLASSIFIER,
 		Token.TYPE_LITERAL_CLASSIFIER
 	));
-	
-	//LIST OF COMPARISON OPERATORS
-	public final static List<String> COMPARISON_OPERATORS = new ArrayList<>(Arrays.asList(
-			Token.BOTH_SAEM_CLASSIFIER,
-			Token.DIFFRINT_CLASSIFIER
-		));
 	
 	private String lexeme;
 	private String classification;
