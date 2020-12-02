@@ -181,12 +181,8 @@ public class Interpreter {
 			if(!tokensPerLine.isEmpty() && tokensPerLine.get(tokensPerLine.size()-1).getLexeme().equals(Token.BTW))
 				tokensPerLine.remove(tokensPerLine.size()-1);
 			
-			if(validLexeme) System.out.println("Line "+lineCheck+": passed lexical");
 			if(!tokensPerLine.isEmpty()) {
 				checkSyntaxAndSemantics();
-
-				if(validSyntax) System.out.println("Line "+lineCheck+": passed syntax");
-				if(validSemantics) System.out.println("Line "+lineCheck+": passed semantics");
 
 				if(!validSyntax || !validSemantics) {
 		    		if(!validSyntax) validSemantics = false; //SYNTAX ERROR
@@ -568,10 +564,6 @@ public class Interpreter {
 			else if((operation = isAnExpr(litClass)) != 0) {
 				symbols.add(new Symbol(identifier,""));
 				
-				System.out.println("\n\n\n");
-				System.out.println("I HAS A OPERATION "+operation);
-
-
 				ArrayList<Token> opToken = new ArrayList<Token>();
 				
 				//copy the tokens starting from the operation
@@ -580,7 +572,6 @@ public class Interpreter {
 				
 				for(int i=0;i<opToken.size();i++)
 					System.out.print(opToken.get(i).getLexeme()+" ");
-				System.out.print("-\n");
 				
 				//case 2.2.1: arith op
 				if(operation == 1) {
@@ -599,7 +590,7 @@ public class Interpreter {
 					if(booleanSyntax(opToken)) {
 						if(checkingSwitchStatement) storeTokensToQueue("switch");
 						else if(checkingIfStatement) storeTokensToQueue("ifelse");
-						else booleanExecute(Token.IT,opToken);
+						else booleanExecute(identifier,opToken);
 					}
 					else validSyntax = false;
 				}	
@@ -1664,6 +1655,49 @@ public class Interpreter {
 		return 0;                    
 	}
 	
+	//check syntax of beginning and end of the file
+	public boolean correctFormat() {
+		String l;
+		
+		for(int i=0;i<tokens.size();i++) {
+			l = tokens.get(i).getLexeme();
+			
+			if(isAComment(l)!=0 || l.equals(Token.TLDR)) continue;
+			else {
+				if(l.equals(Token.HAI)) {
+					validSyntax = true;
+					break;
+				} else {
+					for(int j=0;j<lines.length;j++) {
+						if(lines[j].contains(l)) {
+							lineCheck = j+1;
+							break;
+						}
+					}
+					validSyntax = false;
+					return false;
+				}
+			}
+		}
+
+		for(int i=tokens.size()-1;i>=0;i--) {
+			l = tokens.get(i).getLexeme();
+			System.out.println(l+"=="+Token.KTHXBYE+"?");
+			if(isAComment(l)!=0 || l.equals(Token.TLDR)) continue;
+			else {
+				if(l.equals(Token.KTHXBYE)) {
+					validSyntax = true;
+					return true;
+				} else {				
+					validSyntax = false;
+					return false;
+				}
+			}
+		}
+		
+		return false;
+	}
+	
 	
 	//FUNCTIONS FOR FILE READING
 
@@ -1691,18 +1725,19 @@ public class Interpreter {
 		try {
 			scanner = new Scanner(file);
 			
+			int i=0;
+			
 			//save file to a string
 			while(scanner.hasNextLine()) {
 				String line = scanner.nextLine();
 				fileString += line += '\n';
+				fileWithLines += String.format("%2d", i+1) + " " + line;
+				i++;
 			} 
 			
 			//split file into lines
 			lines = fileString.split("\n");
-			
-			for(int i=0;i<lines.length;i++)
-				fileWithLines += String.format("%2d", i+1) + " " + lines[i] + "\n";
-				
+
 			//add to text area the content of file read
 			this.codeDisplay.setText(fileWithLines); 
 			System.out.println(fileString);
@@ -1839,7 +1874,7 @@ public class Interpreter {
 			if(file!=null) {
 				readFile();
 				analyzeFile();
-				if(validLexeme && validSyntax && validSemantics) showPass();
+				if(validLexeme && validSyntax && validSemantics && correctFormat()) showPass();
 				else showError();
 			} else {
 				//prompt error dialog
