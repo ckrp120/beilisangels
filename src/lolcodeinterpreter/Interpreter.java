@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -54,6 +55,8 @@ public class Interpreter {
 	private ImageView lexicalIndicator = new ImageView();
 	private ImageView syntaxIndicator = new ImageView();
 	private ImageView semanticIndicator = new ImageView();
+	private ImageView titleImage = new ImageView(new Image("imgs/title.png", 1000, 90, true,true));
+	private Image titleImg = new Image("imgs/title.png", 1000, 90, true,true);
 	private Image happyImg = new Image("imgs/laughing.gif", 150, 150, true,true);
 	private Image neutralImg = new Image("imgs/neutral.gif", 150, 150, true,true);
 	private Image cryingImg = new Image("imgs/crying.gif", 150, 150, true,true);
@@ -72,7 +75,7 @@ public class Interpreter {
     private String[] lines;
     private String currentLexeme,dialogText;
     private int wordCheck,lineCheck,status;
-    private boolean validLexeme,validSyntax,validSemantics,readBack;
+    private boolean validLexeme,validSyntax,validSemantics,readBack,conditionalStatement,switchStatement;
     private ArrayList<Token> tokens = new ArrayList<Token>();
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
@@ -97,43 +100,47 @@ public class Interpreter {
 	public void setStage(Stage stage) {
 		//set preferences for "select LOLCODE file" button
         this.fileButton.setLayoutX(0);
-        this.fileButton.setLayoutY(50);
+        this.fileButton.setLayoutY(100);
         this.fileButton.setMinWidth(500);
         
         //set preferences for "EXECUTE" button
         this.executeButton.setLayoutX(0);
-        this.executeButton.setLayoutY(550);
+        this.executeButton.setLayoutY(600);
         this.executeButton.setMinWidth(1500);
         
         //set preferences for displaying code
         this.codeDisplay.setLayoutX(0);
-        this.codeDisplay.setLayoutY(80);
+        this.codeDisplay.setLayoutY(130);
         this.codeDisplay.setPrefWidth(500);
         this.codeDisplay.setPrefHeight(470);
         this.codeDisplay.setEditable(false);
         
         //set preferences for displaying output
         this.outputDisplay.setLayoutX(10);
-        this.outputDisplay.setLayoutY(600);
+        this.outputDisplay.setLayoutY(650);
         this.outputDisplay.setPrefWidth(1200);
         this.outputDisplay.setPrefHeight(270);
         this.outputDisplay.setEditable(false);
         
         //set preferences for imageview of pass indicator
         this.passIndicator.setLayoutX(1270);
-        this.passIndicator.setLayoutY(600);
+        this.passIndicator.setLayoutY(650);
         
         //set preferences for imageview of lexical analysis indicator
         this.lexicalIndicator.setLayoutX(1270);
-        this.lexicalIndicator.setLayoutY(760);
+        this.lexicalIndicator.setLayoutY(810);
         
         //set preferences for imageview of syntax analysis indicator
         this.syntaxIndicator.setLayoutX(1270);
-        this.syntaxIndicator.setLayoutY(800);
+        this.syntaxIndicator.setLayoutY(850);
         
         //set preferences for imageview of semantic analysis indicator
         this.semanticIndicator.setLayoutX(1270);
-        this.semanticIndicator.setLayoutY(840);
+        this.semanticIndicator.setLayoutY(890);
+        
+        //set preferences for imageview of title
+        this.titleImage.setLayoutX(530);
+        this.titleImage.setLayoutY(10);
         
         //call to functions
 		openFile();	
@@ -141,10 +148,11 @@ public class Interpreter {
 		createTable("lexemes");
 		createTable("symbols");
 		
-		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, lexicalIndicator, syntaxIndicator, semanticIndicator);
+		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, lexicalIndicator, syntaxIndicator, semanticIndicator, titleImage);
 		root.getStylesheets().add(getClass().getResource("lolcodeinterpreter.css").toString());
 		this.stage = stage;
-		this.stage.setTitle("LOLCode Interpreter");
+		this.stage.getIcons().add(new Image(("imgs/title.png")));
+		this.stage.setTitle("LOLCODE INTERPRETER");
 		this.stage.setMinWidth(WINDOW_WIDTH);
 		this.stage.setMinHeight(WINDOW_HEIGHT);
 		this.stage.setScene(this.scene);
@@ -296,6 +304,27 @@ public class Interpreter {
 				case Token.HAI_CLASSIFIER:
 					break;
 				case Token.KTHXBYE_CLASSIFIER:
+					if(conditionalStatement==true) {
+						for(int i=0; i<tokens.size(); i++) {
+							if(!tokens.get(i).getLexeme().equals(Token.OIC)) {
+								validSyntax = false;
+							} else {
+								validSyntax = true;
+								break;
+							}
+						}
+					} else if(switchStatement==true) {
+						for(int i=0; i<tokens.size(); i++) {
+							if(!tokens.get(i).getLexeme().equals(Token.OIC)) {
+								validSyntax = false;
+							} else {
+								validSyntax = true;
+								break;
+							}
+						}
+					} else {
+						validSyntax = true;
+					}
 					break;
 				case Token.OBTW_CLASSIFIER:
 					break;	
@@ -303,6 +332,7 @@ public class Interpreter {
 					break;
 				case Token.WTF_CLASSIFIER:
 					checkingSwitchStatement = true;
+					switchStatement = true;
 					storeTokensToQueue("switch");
 					break;
 				case Token.OIC_CLASSIFIER:
@@ -311,7 +341,7 @@ public class Interpreter {
 						storeTokensToQueue("switch");
 						switchCaseExecute();	
 					}
-					//check if ORLY, YA RLY and NO WAI are already in the switch statement
+					//check if ORLY, YA RLY and NO WAI are already in the if-then statement
 					else if((inProcessQueue(Token.O_RLY, "ifelse") && inProcessQueue(Token.YA_RLY, "ifelse") && inProcessQueue(Token.NO_WAI, "ifelse") && checkingIfStatement) || executingIfStatement) {
 						storeTokensToQueue("ifelse");
 						ifElseExecute();	
@@ -324,20 +354,21 @@ public class Interpreter {
 					storeTokensToQueue("switch");
 					break;
 				case Token.O_RLY_CLASSIFIER:
-					validSyntax=true;
 					checkingIfStatement = true;
+					conditionalStatement = true;
 					storeTokensToQueue("ifelse");
 					break;
 				case Token.YA_RLY_CLASSIFIER:
-					if(checkingIfStatement) {
-						validSyntax=true;
-						storeTokensToQueue("ifelse");
-					} else validSyntax=false;
+					if(checkingIfStatement && ifQueue.size() == 1) storeTokensToQueue("ifelse");
+					else validSyntax=false;
 					break;
 				case Token.NO_WAI_CLASSIFIER:
-					if(checkingIfStatement) {
-						validSyntax=true;
-						storeTokensToQueue("ifelse");
+					if(checkingIfStatement && ifQueue.size() > 2) {
+						Iterator<ArrayList<Token>> iterator = ifQueue.iterator(); 
+						if(iterator.next().get(0).getLexeme().equals(Token.O_RLY)) {
+							if(iterator.next().get(0).getLexeme().equals(Token.YA_RLY)) storeTokensToQueue("ifelse");
+							else validSyntax=false;
+						} else validSyntax=false;
 					} else validSyntax=false;
 					break;
 				default:
@@ -1755,6 +1786,8 @@ public class Interpreter {
 		validLexeme = true;
 		validSyntax = true;
 		validSemantics = true;
+		conditionalStatement = false;
+		switchStatement = false;
 		tokens.clear();
 		symbols.clear();
 		pQueue.clear();
@@ -1764,6 +1797,7 @@ public class Interpreter {
 		for(int i=0; i<lexemeTableView.getItems().size(); i++) lexemeTableView.getItems().clear();
 		for(int i=0; i<symbolTableView.getItems().size(); i++) symbolTableView.getItems().clear();
 		passIndicator.setImage(neutralImg);
+		titleImage.setImage(titleImg);
 		lexicalIndicator.setImage(null);
 		syntaxIndicator.setImage(null);
 		semanticIndicator.setImage(null);
@@ -1791,7 +1825,7 @@ public class Interpreter {
         	
         	//set table view size preference
         	lexemeTableView.setLayoutX(500);
-        	lexemeTableView.setLayoutY(50);
+        	lexemeTableView.setLayoutY(100);
         	lexemeTableView.setPrefHeight(500);
         	
         	//not editable, output should be based on analyzer
@@ -1815,7 +1849,7 @@ public class Interpreter {
         	
         	//set table view size preference
         	symbolTableView.setLayoutX(1000);
-        	symbolTableView.setLayoutY(50);
+        	symbolTableView.setLayoutY(100);
         	symbolTableView.setPrefHeight(500);
 
         	//not editable, output should be based on analyzer
