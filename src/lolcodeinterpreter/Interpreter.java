@@ -544,8 +544,14 @@ public class Interpreter {
 				else if (tokensPerLine.size() == 6 && Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(4).getClassification())) 
 					return tokensPerLine.get(4).getClassification();
 				else if((operation = isAnExpr(tokensPerLine.get(3).getClassification())) != 0) {
+					opTokens.clear();
+
+					//copy the tokens starting from the operation
+					for(int i=3;i<tokensPerLine.size();i++)
+						opTokens.add(tokensPerLine.get(i));
+
 					if(operation == 1) { //check if the arithop has a valid syntax
-						if(!arithmeticSyntax(opTokens)) return tokensPerLine.get(3).getClassification();
+						if(arithmeticSyntax(opTokens)) return tokensPerLine.get(3).getClassification();
 						else validSyntax = false;
 					}
 					else if(operation == 2 || operation == 3) {	//check if the boolop has a valid syntax
