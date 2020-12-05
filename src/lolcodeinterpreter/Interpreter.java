@@ -530,38 +530,17 @@ public class Interpreter {
 	
 	//SYNTAX FOR VARIABLE DECLARATION = I HAS A
 	private String varDeclarationSyntax() {
-		int operation;
-		
-		if(isAVarident(tokensPerLine.get(1).getClassification())) {	
-			//case 1: I HAS A var
-			if(tokensPerLine.size() == 2) return "";
-			//case 2: I HAS A var ITZ var/lit/expr
-			if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
-				if(tokensPerLine.size() == 4 &&
-					(isAVarident(tokensPerLine.get(3).getClassification()) || 
-							Token.LITERALS.contains(tokensPerLine.get(3).getClassification())))
-					return tokensPerLine.get(3).getClassification();
-				else if (tokensPerLine.size() == 6 && Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(4).getClassification())) 
-					return tokensPerLine.get(4).getClassification();
-				else if((operation = isAnExpr(tokensPerLine.get(3).getClassification())) != 0) {
-					opTokens.clear();
-
-					//copy the tokens starting from the operation
-					for(int i=3;i<tokensPerLine.size();i++)
-						opTokens.add(tokensPerLine.get(i));
-
-					if(operation == 1) { //check if the arithop has a valid syntax
-						if(arithmeticSyntax(opTokens)) return tokensPerLine.get(3).getClassification();
-						else validSyntax = false;
-					}
-					else if(operation == 2 || operation == 3) {	//check if the boolop has a valid syntax
-						if(booleanSyntax(opTokens)) return tokensPerLine.get(3).getClassification();
-						else validSyntax = false;
-					}	
-					else { //check if the compop has a valid syntax
-						if(comparisonSyntax(opTokens)) return tokensPerLine.get(3).getClassification();
-						else validSyntax = false;
-					}
+		if(tokensPerLine.size() > 1) {
+			if(isAVarident(tokensPerLine.get(1).getClassification())) {	
+				//case 1: I HAS A var
+				if(tokensPerLine.size() == 2) return "";
+				//case 2: I HAS A var ITZ var/lit/expr
+				else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
+					if(isAVarident(tokensPerLine.get(3).getClassification()) ||
+						isALitOrExpr(tokensPerLine.get(3).getClassification()))
+						return tokensPerLine.get(3).getClassification();	
+					if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(4).getClassification())) 
+						return tokensPerLine.get(4).getClassification();
 				}
 			}
 		}
@@ -592,34 +571,47 @@ public class Interpreter {
 			
 			//case 2.2: expr
 			else if((operation = isAnExpr(litClass)) != 0) {
-				symbols.add(new Symbol(identifier,""));				
+				symbols.add(new Symbol(identifier,""));
 
+				ArrayList<Token> opToken = new ArrayList<Token>();
+				
 				opTokens.clear();
 
 				//copy the tokens starting from the operation
 				for(int i=3;i<tokensPerLine.size();i++)
-					opTokens.add(tokensPerLine.get(i));
+					opToken.add(tokensPerLine.get(i));
 
-				
 				//case 2.2.1: arith op
 				if(operation == 1) {
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
-					else arithmeticExecute(identifier,opTokens);
+					//check if the arithop has a valid syntax
+					if(arithmeticSyntax(opToken)) {
+						if(checkingSwitchStatement) storeTokensToQueue("switch");
+						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						else arithmeticExecute(identifier,opToken);
+					}
+					else validSyntax = false;
 				}
-				
+
 				//case 2.2.2: bool op
 				else if(operation == 2 || operation == 3) {	
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
-					else booleanExecute(identifier,opTokens);
+					//check if the boolop has a valid syntax
+					if(booleanSyntax(opToken)) {
+						if(checkingSwitchStatement) storeTokensToQueue("switch");
+						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						else booleanExecute(identifier,opToken);
+					}
+					else validSyntax = false;
 				}	
-				
+
 				//case 2.2.3: comp op
 				else {	
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
-					else comparisonExecute(identifier,opTokens);
+					//check if the compop has a valid syntax
+					if(comparisonSyntax(opToken)) {
+						if(checkingSwitchStatement) storeTokensToQueue("switch");
+						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						else comparisonExecute(identifier,opToken);
+					}
+					else validSyntax = false;
 				}
 			}
 
@@ -637,15 +629,11 @@ public class Interpreter {
 		//check if it assigns to a varident
 		if(isAVarident(tokensPerLine.get(0).getClassification())) {
 			//return value if it is a varident/it, literal, or expr
-			if(tokensPerLine.size() == 3 &&
-				(isAVarident(tokensPerLine.get(2).getClassification()) || 
-				Token.LITERALS.contains(tokensPerLine.get(2).getClassification())))
-				return tokensPerLine.get(2).getClassification();
-			else if (tokensPerLine.size() == 5 && Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) 
+			if(isAVarident(tokensPerLine.get(2).getClassification()) ||
+				isALitOrExpr(tokensPerLine.get(2).getClassification()))
+				return tokensPerLine.get(2).getClassification();	
+			if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) 
 				return tokensPerLine.get(3).getClassification();
-			else if(isAnExpr(tokensPerLine.get(2).getClassification()) != 0) {
-				//INSERT CODE	
-			}
 		}
 		return null;
 	}
