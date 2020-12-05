@@ -586,29 +586,14 @@ public class Interpreter {
 			
 			//case 2.2: expr
 			else if((operation = isAnExpr(litClass)) != 0) {
-				symbols.add(new Symbol(identifier,""));
-				
-<<<<<<< HEAD
+				symbols.add(new Symbol(identifier,""));				
+
 				opTokens.clear();
 
 				//copy the tokens starting from the operation
 				for(int i=3;i<tokensPerLine.size();i++)
 					opTokens.add(tokensPerLine.get(i));
-=======
-				System.out.println("\n\n\n");
-				System.out.println("I HAS A OPERATION "+operation);
 
-
-				ArrayList<Token> opToken = new ArrayList<Token>();
-				
-				//copy the tokens starting from the operation
-				for(int i=3;i<tokensPerLine.size();i++)
-					opToken.add(tokensPerLine.get(i));
-				
-				for(int i=0;i<opToken.size();i++)
-					System.out.print(opToken.get(i).getLexeme()+" ");
-				System.out.print("-\n");
->>>>>>> 43818f5bc1796e4c1755aac88c26e3ec9901f2b1
 				
 				//case 2.2.1: arith op
 				if(operation == 1) {
@@ -692,7 +677,6 @@ public class Interpreter {
 					else validSyntax = false;
 				}
 				
-<<<<<<< HEAD
 				//case 2.2.2: bool op
 				else if(operation == 2 || operation == 3) {	
 					//check if the boolop has a valid syntax
@@ -711,52 +695,6 @@ public class Interpreter {
 						if(checkingSwitchStatement) storeTokensToQueue("switch");
 						else if(checkingIfStatement) storeTokensToQueue("ifelse");
 						else comparisonExecute(tokensPerLine.get(0).getLexeme(),opTokens);
-=======
-				//case 2.2: expr
-				if((operation = isAnExpr(litClass)) != 0) {
-					System.out.println("Operation: "+operation);
-					ArrayList<Token> opToken = new ArrayList<Token>();
-					
-					//copy the tokens starting from the operation
-					for(int i=2;i<tokensPerLine.size();i++)
-						opToken.add(tokensPerLine.get(i));
-					
-					//case 2.2.1: arith op
-					if(operation == 1) {
-						//check if the arithop has a valid syntax
-						if(arithmeticSyntax(opToken)) {
-							if(checkingSwitchStatement) storeTokensToQueue("switch");
-							else if(checkingIfStatement) storeTokensToQueue("ifelse");
-							else arithmeticExecute(tokensPerLine.get(0).getLexeme(),opToken);
-						}
-						else validSyntax = false;
-					}
-					
-					//case 2.2.2: bool op
-					else if(operation == 2 || operation == 3) {	
-						System.out.print("Bool" + opToken);
-						
-						//check if the boolop has a valid syntax
-						if(booleanSyntax(opToken)) {
-							
-							if(checkingSwitchStatement) storeTokensToQueue("switch");
-							else if(checkingIfStatement) storeTokensToQueue("ifelse");
-							else booleanExecute(tokensPerLine.get(0).getLexeme(),opToken);
-							System.out.println(tokensPerLine.get(0).getLexeme());
-						}
-						else validSyntax = false;
-					}	
-					
-					//case 2.2.3: comp op
-					else {	
-						//check if the compop has a valid syntax
-						if(comparisonSyntax(opToken)) {
-							if(checkingSwitchStatement) storeTokensToQueue("switch");
-							else if(checkingIfStatement) storeTokensToQueue("ifelse");
-							else comparisonExecute(tokensPerLine.get(0).getLexeme(),opToken);
-						}
-						else validSyntax = false;
->>>>>>> 43818f5bc1796e4c1755aac88c26e3ec9901f2b1
 					}
 					else validSyntax = false;
 				}
