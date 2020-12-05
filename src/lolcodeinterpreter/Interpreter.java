@@ -2181,7 +2181,6 @@ public class Interpreter {
 		return 0;                    
 	}
 	
-<<<<<<< HEAD
 	//check syntax of beginning and end of the file
 	public boolean correctFormat() {
 		String l;
@@ -2220,9 +2219,6 @@ public class Interpreter {
 		
 		return false;
 	}
-	
-=======
->>>>>>> 43818f5bc1796e4c1755aac88c26e3ec9901f2b1
 	
 	//FUNCTIONS FOR FILE READING
 
