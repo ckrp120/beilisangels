@@ -1482,6 +1482,11 @@ public class Interpreter {
 				Symbol var = getSymbol(tkn.getLexeme());
 				
 				if(var != null) {
+					
+					if(isEmpty(var.getValue())) {
+						validSemantics = false;
+						return null;
+					}
 					operation.push(var.getValue());
 				}
 				else {
@@ -1786,6 +1791,7 @@ public class Interpreter {
 	
 	//SEMANTICS FOR SWITCH CASE STATEMENT
 	private void switchCaseExecute() {
+		
 		executingSwitchStatement = true;
 		//checks if it has entered case
 		boolean enteredCase = false;
@@ -1796,10 +1802,19 @@ public class Interpreter {
 		//get current queue size to get length of loop
 		int queueSize = pQueue.size();
 		
+		//store original value of LineCheck
+		int originalLineCheck = lineCheck;
+		
+		//change linecheck back to start of switch case
+		lineCheck -= queueSize;
+		
+		
 		//execute instructions in pQueue
 		for(int i=0; i<queueSize; i++) {
 			//dequeues the process queue
 			tokensPerLine = pQueue.remove();
+			
+			lineCheck++;
 			
 			//skip WTF
 			if(i == 0) continue; 
@@ -1818,10 +1833,17 @@ public class Interpreter {
 					if(classificationIT.equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
 						it = getSymbol(it.getValue());
 						
-						classificationIT = isAValidLexeme(it.getValue());
+						if(it != null) {
+							classificationIT = isAValidLexeme(it.getValue());
+						}else {
+							validSemantics = false;
+							return;
+						}
+						
 					}
 					String classificationCase = isAValidLexeme(tokensPerLine.get(1).getLexeme());
 					
+					if(classificationIT == null) classificationIT = Token.YARN_LITERAL_CLASSIFIER;
 					//if classification is the same, check if value is the same
 					if(classificationIT.equals(classificationCase)) {
 						//if same, activate flag
@@ -1851,6 +1873,8 @@ public class Interpreter {
 			} else
 				if(enteredCase) checkSyntaxAndSemantics();
 		}
+		
+		lineCheck = originalLineCheck;
 	}
 	
 	//SEMANTICS FOR IF ELSE STATEMENT
@@ -1864,11 +1888,18 @@ public class Interpreter {
 		
 		//get current queue size to get length of loop
 		int queueSize = ifQueue.size();
+		
+		//store original value of LineCheck
+		int originalLineCheck = lineCheck;
+				
+		//change linecheck back to start of switch case
+		lineCheck -= queueSize;
+		
 		//execute instructions in ifQueue
 		for(int i = 0; i < queueSize; i++) {
 			//dequeues the process queue
 			tokensPerLine = ifQueue.remove();
-			
+			lineCheck++;
 			//skip O RLY?
 			if(i == 0) continue;
 			
@@ -1898,6 +1929,8 @@ public class Interpreter {
 				break;			
 			} else if(enteredCase) checkSyntaxAndSemantics();
 		}
+		
+		lineCheck = originalLineCheck;
 	}
 	
 	//function to make deep copy of tokens per line
