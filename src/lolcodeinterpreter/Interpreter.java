@@ -79,7 +79,8 @@ public class Interpreter {
     private ArrayList<Token> tokens = new ArrayList<Token>();
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
-    
+    private ArrayList<Token> opTokens = new ArrayList<Token>();
+
     //process queue for switch
     private Queue<ArrayList<Token>> pQueue = new LinkedList<>();
     private boolean checkingSwitchStatement = false;
@@ -396,37 +397,62 @@ public class Interpreter {
 			
 			//case 1: varident/it
 			if(isAVarident(tkn.getClassification())) {
-				boolean validSymbol=false;
-				for(Symbol s:symbols) {
-					//get the value of the varident/it in the symbols
-					if(s.getSymbol().equals(tkn.getLexeme())) {
-						outputDisplayText += s.getValue();	
-						validSymbol=true;
-						break;
-					}
-				}
-				
-				if(!validSymbol) validSemantics = false;
+				Symbol s;
+				//check if the varident is in the symbols
+				if((s = isASymbol(tkn.getLexeme())) != null) {
+					outputDisplayText += s.getValue();	
+					break;
+				} else validSemantics = false;
 			} 
 			
 			//case 2: expr
 			else if((operation = isAnExpr(tkn.getClassification())) != 0) {
-				ArrayList<Token> opToken = new ArrayList<Token>();
+				opTokens.clear();
 				
-				//copy the tokens starting from the operation
-				while(i<tokensPerLine.size()) {
-					opToken.add(tokensPerLine.get(i));
+				//copy the tokens starting from the operation until the end of the expression
+				int an=0;
+				
+				do {
+					System.out.print("I: "+i);
+					opTokens.add(tokensPerLine.get(i));
+					System.out.print(" "+tokensPerLine.get(i).getLexeme());
+					if(isAnExpr(tokensPerLine.get(i).getClassification())!=0) {
+						an++;
+						System.out.println(" expr AN num:" + an);
+					}
+					else if(tokensPerLine.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+						an--;
+						System.out.println(" an AN num: "+ an);
+						
+						i++;
+						System.out.print("I: "+i);
+						opTokens.add(tokensPerLine.get(i));				
+						System.out.print(" "+tokensPerLine.get(i).getLexeme());
+
+						if(isAnExpr(tokensPerLine.get(i).getClassification())!=0) {
+							an++;
+							System.out.println(" expr AN num: "+an);							
+						}
+						else {
+							an--;
+							System.out.println(" an AN num: "+an);
+						}
+					} else {
+						System.out.println(" op AN num: "+an);
+					}
+					
 					i++;
-				}
-				
+				} while(i<tokensPerLine.size() && an>=0);
+				i--;
+				System.out.println("NEXT I: "+i);
 				//case 2.1: arith op
 				if(operation == 1) {
 					//check if the arithop has a valid syntax
-					if(arithmeticSyntax(opToken)) {
+					if(arithmeticSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue("switch");
 						else if(checkingIfStatement) storeTokensToQueue("ifelse");
 						else {
-							arithmeticExecute(Token.IT,opToken);
+							arithmeticExecute(Token.IT,opTokens);
 							outputDisplayText += symbols.get(0).getValue();
 						}
 					}
@@ -436,13 +462,12 @@ public class Interpreter {
 				//case 2.2: bool op
 				else if(operation == 2 || operation == 3) {	
 					//check if the boolop has a valid syntax
-					if(booleanSyntax(opToken)) {
+					if(booleanSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue("switch");
 						else if(checkingIfStatement) storeTokensToQueue("ifelse");
 						else {
-							booleanExecute(Token.IT,opToken);
+							booleanExecute(Token.IT,opTokens);
 							outputDisplayText += symbols.get(0).getValue();
-
 						}
 					}
 					else validSyntax = false;
@@ -451,11 +476,11 @@ public class Interpreter {
 				//case 2.3: comp op
 				else {	
 					//check if the compop has a valid syntax
-					if(comparisonSyntax(opToken)) {
+					if(comparisonSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue("switch");
 						else if(checkingIfStatement) storeTokensToQueue("ifelse");
 						else {
-							comparisonExecute(Token.IT,opToken);
+							comparisonExecute(Token.IT,opTokens);
 							outputDisplayText += symbols.get(0).getValue();
 						}
 					}
@@ -507,21 +532,14 @@ public class Interpreter {
 	
 	//SEMANTICS FOR ACCEPT = GIMMEH
 	private void acceptExecute() {
-		String tkn = tokensPerLine.get(1).getLexeme();
-			
-		boolean validSymbol=false;
-		for(Symbol s:symbols) {
-			//get the value of the varident in the symbols
-			if(s.getSymbol().equals(tkn)) {
-				outputDisplay.setText(outputDisplayText);
-				validSymbol=true;
-				//get user input
-		        getInput(s,dialogText);
-				break;
-			}
-		}
-				
-		if(!validSymbol) validSemantics = false;
+		Symbol s;
+		
+		//check if the varident is in the symbols
+		if((s = isASymbol(tokensPerLine.get(1).getLexeme())) != null) {
+			outputDisplay.setText(outputDisplayText);
+			//get user input
+	        getInput(s,dialogText);
+		} else validSemantics = false;
 	}
 	
 	private void getInput(Symbol s,String dialogText) {
@@ -546,18 +564,33 @@ public class Interpreter {
 	}
 	
 	//SYNTAX FOR VARIABLE DECLARATION = I HAS A
-	private String varDeclarationSyntax() {		
-		if(tokensPerLine.size() > 1) {
-			if(isAVarident(tokensPerLine.get(1).getClassification())) {	
-				//case 1: I HAS A var
-				if(tokensPerLine.size() == 2) return "";
-				//case 2: I HAS A var ITZ var/lit/expr
-				else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
-					if(isAVarident(tokensPerLine.get(3).getClassification()) ||
-						isALitOrExpr(tokensPerLine.get(3).getClassification()))
-						return tokensPerLine.get(3).getClassification();	
-					if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(4).getClassification())) 
-						return tokensPerLine.get(4).getClassification();	
+	private String varDeclarationSyntax() {
+		int operation;
+		
+		if(isAVarident(tokensPerLine.get(1).getClassification())) {	
+			//case 1: I HAS A var
+			if(tokensPerLine.size() == 2) return "";
+			//case 2: I HAS A var ITZ var/lit/expr
+			if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
+				if(tokensPerLine.size() == 4 &&
+					(isAVarident(tokensPerLine.get(3).getClassification()) || 
+							Token.LITERALS.contains(tokensPerLine.get(3).getClassification())))
+					return tokensPerLine.get(3).getClassification();
+				else if (tokensPerLine.size() == 6 && Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(4).getClassification())) 
+					return tokensPerLine.get(4).getClassification();
+				else if((operation = isAnExpr(tokensPerLine.get(3).getClassification())) != 0) {
+					if(operation == 1) { //check if the arithop has a valid syntax
+						if(!arithmeticSyntax(opTokens)) return tokensPerLine.get(3).getClassification();
+						else validSyntax = false;
+					}
+					else if(operation == 2 || operation == 3) {	//check if the boolop has a valid syntax
+						if(booleanSyntax(opTokens)) return tokensPerLine.get(3).getClassification();
+						else validSyntax = false;
+					}	
+					else { //check if the compop has a valid syntax
+						if(comparisonSyntax(opTokens)) return tokensPerLine.get(3).getClassification();
+						else validSyntax = false;
+					}
 				}
 			}
 		}
@@ -568,76 +601,54 @@ public class Interpreter {
 	
 	//SEMANTICS FOR VARIABLE DECLARATION = I HAS A
 	public void varDeclarationExecute(String litClass) {
+		Symbol s;
 		String identifier = tokensPerLine.get(1).getLexeme();
 		int operation;
 		
+		//check if the varident is already declared before
+		if(isASymbol(identifier) != null) validSemantics = false;
 		//case 1: I HAS A var
-		if(tokensPerLine.size() == 2) {
+		else if(tokensPerLine.size() == 2) {
 			symbols.add(new Symbol(identifier,Token.NOOB_TYPE_LITERAL));	
 		//case 2: I HAS A var ITZ var/lit/expr
 		} else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
 			//case 2.1: varident
-			if(isAVarident(litClass)) {							
-				boolean validSymbol=false;
-
-				for(Symbol s:symbols) {
-					if(s.getSymbol().equals(tokensPerLine.get(3).getLexeme())) {	
-						validSymbol=true;
-						symbols.add(new Symbol(identifier,s.getValue()));
-						break;
-					}
-				}	
-				
-				if(!validSymbol) validSemantics = false;
+			if(isAVarident(litClass)) {	
+				if((s = isASymbol(tokensPerLine.get(3).getLexeme())) != null)
+					symbols.add(new Symbol(identifier,s.getValue()));
+				else validSemantics = false;
 			}
 			
 			//case 2.2: expr
 			else if((operation = isAnExpr(litClass)) != 0) {
 				symbols.add(new Symbol(identifier,""));
 				
-				ArrayList<Token> opToken = new ArrayList<Token>();
-				
+				opTokens.clear();
+
 				//copy the tokens starting from the operation
 				for(int i=3;i<tokensPerLine.size();i++)
-					opToken.add(tokensPerLine.get(i));
-				
-				for(int i=0;i<opToken.size();i++)
-					System.out.print(opToken.get(i).getLexeme()+" ");
+					opTokens.add(tokensPerLine.get(i));
 				
 				//case 2.2.1: arith op
 				if(operation == 1) {
-					//check if the arithop has a valid syntax
-					if(arithmeticSyntax(opToken)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
-						else arithmeticExecute(identifier,opToken);
-					}
-					else validSyntax = false;
+					if(checkingSwitchStatement) storeTokensToQueue("switch");
+					else if(checkingIfStatement) storeTokensToQueue("ifelse");
+					else arithmeticExecute(identifier,opTokens);
 				}
 				
 				//case 2.2.2: bool op
 				else if(operation == 2 || operation == 3) {	
-					//check if the boolop has a valid syntax
-					if(booleanSyntax(opToken)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
-						else booleanExecute(identifier,opToken);
-					}
-					else validSyntax = false;
+					if(checkingSwitchStatement) storeTokensToQueue("switch");
+					else if(checkingIfStatement) storeTokensToQueue("ifelse");
+					else booleanExecute(identifier,opTokens);
 				}	
 				
 				//case 2.2.3: comp op
 				else {	
-					//check if the compop has a valid syntax
-					if(comparisonSyntax(opToken)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
-						else comparisonExecute(identifier,opToken);
-					}
-					else validSyntax = false;
+					if(checkingSwitchStatement) storeTokensToQueue("switch");
+					else if(checkingIfStatement) storeTokensToQueue("ifelse");
+					else comparisonExecute(identifier,opTokens);
 				}
-				System.out.println("\n\n\n");
-
 			}
 
 			//case 2.3: literal
@@ -654,119 +665,109 @@ public class Interpreter {
 		//check if it assigns to a varident
 		if(isAVarident(tokensPerLine.get(0).getClassification())) {
 			//return value if it is a varident/it, literal, or expr
-			if(isAVarident(tokensPerLine.get(2).getClassification()) ||
-				isALitOrExpr(tokensPerLine.get(2).getClassification()))
-				return tokensPerLine.get(2).getClassification();	
-			if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) 
-				return tokensPerLine.get(3).getClassification();			
+			if(tokensPerLine.size() == 3 &&
+				(isAVarident(tokensPerLine.get(2).getClassification()) || 
+				Token.LITERALS.contains(tokensPerLine.get(2).getClassification())))
+				return tokensPerLine.get(2).getClassification();
+			else if (tokensPerLine.size() == 5 && Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) 
+				return tokensPerLine.get(3).getClassification();
+			else if(isAnExpr(tokensPerLine.get(2).getClassification()) != 0) {
+				//INSERT CODE	
+			}
 		}
 		return null;
 	}
 	
 	//SEMANTICS FOR ASSIGNMENT STATEMENT = R
 	private void varAssignmentExecute(String litClass) {
+		Symbol s,sv;
 		int operation;
-		boolean validLeftHandSymbol = false;
 		
-		for(Symbol s:symbols) {
-			//get the symbol, then set the value
-			if(s.getSymbol().equals(tokensPerLine.get(0).getLexeme())) {				
-				validLeftHandSymbol = true;
-				
-				//case 1: varident
-				if(isAVarident(litClass)) {							
-					boolean validRightHandSymbol = false;
-
-					for(Symbol sv:symbols) {
-						if(sv.getSymbol().equals(tokensPerLine.get(2).getLexeme())) {	
-							validRightHandSymbol=true;
-							s.setValue(sv.getValue());
-							break;
-						}
-					}	
-					if(!validRightHandSymbol) validSemantics = false;
-				}
-				
-				//case 2.2: expr
-				if((operation = isAnExpr(litClass)) != 0) {
-					ArrayList<Token> opToken = new ArrayList<Token>();
-					
-					//copy the tokens starting from the operation
-					for(int i=2;i<tokensPerLine.size();i++)
-						opToken.add(tokensPerLine.get(i));
-					
-					//case 2.2.1: arith op
-					if(operation == 1) {
-						//check if the arithop has a valid syntax
-						if(arithmeticSyntax(opToken)) {
-							if(checkingSwitchStatement) storeTokensToQueue("switch");
-							else if(checkingIfStatement) storeTokensToQueue("ifelse");
-							else arithmeticExecute(tokensPerLine.get(0).getLexeme(),opToken);
-						}
-						else validSyntax = false;
-					}
-					
-					//case 2.2.2: bool op
-					else if(operation == 2 || operation == 3) {	
-						//check if the boolop has a valid syntax
-						if(booleanSyntax(opToken)) {
-							if(checkingSwitchStatement) storeTokensToQueue("switch");
-							else if(checkingIfStatement) storeTokensToQueue("ifelse");
-							else booleanExecute(tokensPerLine.get(0).getLexeme(),opToken);
-						}
-						else validSyntax = false;
-					}	
-					
-					//case 2.2.3: comp op
-					else {	
-						//check if the compop has a valid syntax
-						if(comparisonSyntax(opToken)) {
-							if(checkingSwitchStatement) storeTokensToQueue("switch");
-							else if(checkingIfStatement) storeTokensToQueue("ifelse");
-							else comparisonExecute(tokensPerLine.get(0).getLexeme(),opToken);
-						}
-						else validSyntax = false;
-					}
-				}
-								
-				//case 3: literals
-				//a yarn literal
-				else if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER)) s.setValue(tokensPerLine.get(3).getLexeme());
-				//or other type literals
-				else s.setValue(tokensPerLine.get(2).getLexeme());
-				break;
+		//get the symbol, then set the value
+		if((s = isASymbol(tokensPerLine.get(0).getLexeme())) != null) {							
+			//case 1: varident
+			if(isAVarident(litClass)) {							
+				if((sv = isASymbol(tokensPerLine.get(2).getLexeme())) != null)	
+					s.setValue(sv.getValue());
+				else validSemantics = false;
 			}
-		}
-		
-		if(!validLeftHandSymbol) validSemantics = false;
+			
+			//case 2.2: expr
+			if((operation = isAnExpr(litClass)) != 0) {
+				opTokens.clear();
+				
+				//copy the tokens starting from the operation
+				for(int i=2;i<tokensPerLine.size();i++)
+					opTokens.add(tokensPerLine.get(i));
+				
+				//case 2.2.1: arith op
+				if(operation == 1) {
+					//check if the arithop has a valid syntax
+					if(arithmeticSyntax(opTokens)) {
+						if(checkingSwitchStatement) storeTokensToQueue("switch");
+						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						else arithmeticExecute(tokensPerLine.get(0).getLexeme(),opTokens);
+					}
+					else validSyntax = false;
+				}
+				
+				//case 2.2.2: bool op
+				else if(operation == 2 || operation == 3) {	
+					//check if the boolop has a valid syntax
+					if(booleanSyntax(opTokens)) {
+						if(checkingSwitchStatement) storeTokensToQueue("switch");
+						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						else booleanExecute(tokensPerLine.get(0).getLexeme(),opTokens);
+					}
+					else validSyntax = false;
+				}	
+				
+				//case 2.2.3: comp op
+				else {	
+					//check if the compop has a valid syntax
+					if(comparisonSyntax(opTokens)) {
+						if(checkingSwitchStatement) storeTokensToQueue("switch");
+						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						else comparisonExecute(tokensPerLine.get(0).getLexeme(),opTokens);
+					}
+					else validSyntax = false;
+				}
+			}
+							
+			//case 3: literals
+			//a yarn literal
+			else if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER)) s.setValue(tokensPerLine.get(3).getLexeme());
+			//or other type literals
+			else s.setValue(tokensPerLine.get(2).getLexeme());
+		} else validSemantics = false;
 	}
 	
 	//SYNTAX FOR ARITHMETIC OPERATIONS
-	private boolean arithmeticSyntax(ArrayList<Token> opToken) {
+	private boolean arithmeticSyntax(ArrayList<Token> opTokens) {
 		Stack<Token> checker = new Stack<Token>();
 		int exprCount = 0, opCount = 0, anCount = 0;
 		boolean startingPopped = false;
 		
-		for(int i=0; i<opToken.size(); i++) {
+		for(int i=0; i<opTokens.size(); i++) {
 			//implies that another operation has started in the same line
 			if(startingPopped) {
-				if(i+1==opToken.size() && opToken.get(i).getLexeme().equals(Token.STRING_DELIMITER)) return true;
+				if(i+1==opTokens.size() && opTokens.get(i).getLexeme().equals(Token.STRING_DELIMITER)) return true;
 				else return false; 
 			}
 			
 			//add keywords to stack
-			if(Token.ARITHMETIC_EXPRESSIONS.contains(opToken.get(i).getClassification())) {
-				checker.add(opToken.get(i));
+			if(Token.ARITHMETIC_EXPRESSIONS.contains(opTokens.get(i).getClassification())) {
+				checker.add(opTokens.get(i));
 				
 				//if not starting arithmetic expression, increment exprCount (meaning it is a nested expression)
 				if(i > 0) exprCount++;
-			} else if(opToken.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+			} else if(opTokens.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
 			//if an is encountered, add to an count
 				anCount++;
 			
 			//if a varident or literal is detected, add to an operand count
-			} else if(isADigit(opToken.get(i).getClassification()) || isAVarident(opToken.get(i).getClassification()) ||
-						Token.LITERALS.contains(opToken.get(i).getClassification())) {
+			} else if(isADigit(opTokens.get(i).getClassification()) || isAVarident(opTokens.get(i).getClassification()) ||
+						Token.LITERALS.contains(opTokens.get(i).getClassification())) {
 				opCount++;
 			}
 			
@@ -799,13 +800,13 @@ public class Interpreter {
 	}
 	
 	//SEMANTICS FOR ARITHMETIC OPERATIONS
-	private Number arithmeticExecute(String dataHolder,ArrayList<Token> opToken) {
+	private Number arithmeticExecute(String dataHolder,ArrayList<Token> opTokens) {
 		Stack<Number> operation = new Stack<Number>();
 			
 		//since operations are in prefix, reverse the tokens 
-		Collections.reverse(opToken);
+		Collections.reverse(opTokens);
 		
-		for(Token tkn: opToken) {
+		for(Token tkn: opTokens) {
 			//case 1: numbar
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
 				operation.push(parseFloat(tkn));
@@ -1451,6 +1452,15 @@ public class Interpreter {
 		else if(Token.COMPARISON_OPERATORS.contains(classification)) return 4;
 		return 0;
 	}	
+
+	//return symbol if the varident is already added to or is part of the symbols
+	private Symbol isASymbol(String var) {
+		for(Symbol s: symbols) {
+			if(s.getSymbol().equals(var))
+				return s;
+		}
+		return null;
+	}
 	
 	//check if the classification of a token is a varident
 	private boolean isAVarident(String classification) {
@@ -1695,10 +1705,8 @@ public class Interpreter {
 			
 			if(isAComment(l)!=0 || l.equals(Token.TLDR)) continue;
 			else {
-				if(l.equals(Token.HAI)) {
-					validSyntax = true;
-					break;
-				} else {
+				if(l.equals(Token.HAI)) break;
+				else {
 					for(int j=0;j<lines.length;j++) {
 						if(lines[j].contains(l)) {
 							lineCheck = j+1;
@@ -1716,10 +1724,8 @@ public class Interpreter {
 			System.out.println(l+"=="+Token.KTHXBYE+"?");
 			if(isAComment(l)!=0 || l.equals(Token.TLDR)) continue;
 			else {
-				if(l.equals(Token.KTHXBYE)) {
-					validSyntax = true;
-					return true;
-				} else {				
+				if(l.equals(Token.KTHXBYE)) return true;
+				else {				
 					validSyntax = false;
 					return false;
 				}
@@ -1789,11 +1795,12 @@ public class Interpreter {
 		conditionalStatement = false;
 		switchStatement = false;
 		tokens.clear();
+		tokensPerLine.clear();
 		symbols.clear();
+		opTokens.clear();
 		pQueue.clear();
 		ifQueue.clear();
 		outputDisplay.clear();
-		tokensPerLine.clear();
 		for(int i=0; i<lexemeTableView.getItems().size(); i++) lexemeTableView.getItems().clear();
 		for(int i=0; i<symbolTableView.getItems().size(); i++) symbolTableView.getItems().clear();
 		passIndicator.setImage(neutralImg);
