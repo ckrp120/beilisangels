@@ -2315,7 +2315,7 @@ public class Interpreter {
 		lexicalIndicator.setImage(null);
 		syntaxIndicator.setImage(null);
 		semanticIndicator.setImage(null);
-		symbols.add(new Symbol(Token.IT,""));
+		symbols.add(new Symbol(Token.IT,Token.NOOB_TYPE_LITERAL));
 	}
 	
 	
