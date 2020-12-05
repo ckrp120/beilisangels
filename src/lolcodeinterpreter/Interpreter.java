@@ -287,15 +287,6 @@ public class Interpreter {
 				else validSyntax = false;
 			}
 			
-			//COMPARISON OPERATORS
-			else if(Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification()) ) {
-				if(comparisonSyntax(tokensPerLine)) {
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
-					else comparisonExecute(Token.IT,tokensPerLine);
-				}
-				else validSyntax = false;
-			}
 		} else {
 			switch(tokensPerLine.get(0).getClassification()) {
 				case Token.HAI_CLASSIFIER:
@@ -1313,16 +1304,32 @@ public class Interpreter {
 					return false;
 				
 				else anCount++;
-			}else if(currentToken.getLexeme().equals(Token.NOT)) {
-							
+			}else if(currentToken.getClassification().equals(Token.NOT_CLASSIFIER)) {
+			
 				//NOT is last token
-				if(i == 0) return false;
+				if(i == 0) {
+					System.out.println("last");
+					return false;
+				}
 				
 				//followed by AN
-				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+					System.out.println("AN");
 					return false;
+				}
+					
 				
-				else continue;
+				else {
+					if(checker.size() > 0) {
+						String op1 = checker.pop();
+						if(!(op1.equals("TROOF") || op1.equals("VARIDENT"))) {
+							System.out.println("here");
+							return false;
+						}
+						
+						checker.push("TROOF");
+					}
+				}
 			}else if(currentToken.getLexeme().equals(Token.ALL_OF) || currentToken.getLexeme().equals(Token.ANY_OF)) {
 				
 				//if it starts with ANY OF/ALL OF then num of stack is ignored since these are infinite arity operations
@@ -1452,7 +1459,7 @@ public class Interpreter {
 					
 					//if popped is not troof, then operand is not valid
 					
-					if(!(op1.equals("DIGIT") || op1.equals("VARIDENT")) || !(op2.equals("DIGIT") || op2.equals("VARIDENT"))) return false;
+					if(!(op1.equals("DIGIT") || op1.equals("VARIDENT") || op1.equals("TROOF")) || !(op2.equals("DIGIT") || op2.equals("VARIDENT") || op2.equals("TROOF"))) return false;
 					else{
 						popCount++;
 						checker.push("TROOF");
@@ -1470,17 +1477,13 @@ public class Interpreter {
 		Stack<String> operation = new Stack<String>();
 		
 		for(Token tkn: combiTokens) {
-			if(operation.size() != 0) System.out.println("TOS: "+operation.peek());
 			
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
-				
-				System.out.println("PUSH: "+tkn.getLexeme());
 				operation.push(tkn.getLexeme());
 			}else if(isAVarident(tkn.getClassification())) {
 				Symbol var = getSymbol(tkn.getLexeme());
 				
 				if(var != null) {
-					System.out.println("PUSH: "+var.getValue());
 					operation.push(var.getValue());
 				}
 				else {
@@ -1552,8 +1555,9 @@ public class Interpreter {
 						
 					}
 				}
-			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification()) || Token.COMPARISON_OPERATORS.contains(tkn.getClassification())) {
-				System.out.println("Current lexeme: "+tkn.getLexeme());
+			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
+				System.out.println("Line check: "+lineCheck);
+				viewStack(operation);
 				boolean resultIsNumbar = false;
 				String op1 = operation.pop();
 				String op2 = operation.pop();
@@ -1580,18 +1584,6 @@ public class Interpreter {
 					Float answer;
 					//perform the operation then push to stack
 					switch(tkn.getClassification()) {
-					case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
-						if(classificationOp1.equals(classificationOp2)) {
-							if(o1 == o2) operation.push(Token.WIN_TROOF_LITERAL);
-							else operation.push(Token.FAIL_TROOF_LITERAL);
-						}else operation.push(Token.FAIL_TROOF_LITERAL);
-						break;
-					case Token.DIFFRINT_CLASSIFIER: //o1 != o2
-						if(classificationOp1.equals(classificationOp2)) {
-							if(o1.equals(o2)) operation.push(Token.WIN_TROOF_LITERAL);
-							else operation.push(Token.FAIL_TROOF_LITERAL);
-						}else operation.push(Token.WIN_TROOF_LITERAL);
-						break;
 					case Token.SUM_OF_CLASSIFIER:
 						answer = o1 + o2;
 						operation.push(String.valueOf(answer));
@@ -1613,12 +1605,31 @@ public class Interpreter {
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.BIGGR_OF_CLASSIFIER:
-						if(o1 > o2) operation.push(String.valueOf(o1));
-						else operation.push(String.valueOf(o2));
+						System.out.println(o1+" vs "+o2);
+						if(o1 > o2) {
+							System.out.println("BIGGR: "+o1);
+							operation.push(String.valueOf(o1));
+						}
+						else{
+							System.out.println("BIGGR: "+o2);
+							operation.push(String.valueOf(o2));
+						}
+						
+						viewStack(operation);
 						break;
 					case Token.SMALLR_OF_CLASSIFIER:
-						if(o1 < o2) operation.push(String.valueOf(o1));
-						else operation.push(String.valueOf(o1));
+						System.out.println(o1+" vs "+o2);
+						if(o1 < o2) {
+							System.out.println("SMALLR: "+o1);
+							operation.push(String.valueOf(o1));
+							viewStack(operation);
+						}
+						else{
+							System.out.println("SMALLR: "+o2);
+							operation.push(String.valueOf(o2));
+						}
+						
+						viewStack(operation);
 						break;
 					}
 				} else {
@@ -1626,22 +1637,11 @@ public class Interpreter {
 					int o1 = Integer.parseInt(op1);
 					int o2 = Integer.parseInt(op2);
 					
-					System.out.println("o1: "+o1+"o2: "+o2);
+					System.out.println("o1: "+o1+" o2: "+o2);
+					
 					int answer;
 					//perform the operation then push to stack
 					switch(tkn.getClassification()) {
-					case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
-						if(classificationOp1.equals(classificationOp2)) {
-							if(o1 == o2) operation.push(Token.WIN_TROOF_LITERAL);
-							else operation.push(Token.FAIL_TROOF_LITERAL);
-						}else operation.push(Token.FAIL_TROOF_LITERAL);
-						break;
-					case Token.DIFFRINT_CLASSIFIER: //o1 != o2
-						if(classificationOp1.equals(classificationOp2)) {
-							if(o1 != o2) operation.push(Token.WIN_TROOF_LITERAL);
-							else operation.push(Token.FAIL_TROOF_LITERAL);
-						}else operation.push(Token.WIN_TROOF_LITERAL);
-						break;
 					case Token.SUM_OF_CLASSIFIER:
 						answer = o1 + o2;
 						operation.push(String.valueOf(answer));
@@ -1663,15 +1663,71 @@ public class Interpreter {
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.BIGGR_OF_CLASSIFIER:
-						if(o1 > o2) operation.push(String.valueOf(o1));
-						else operation.push(String.valueOf(o2));
+						System.out.println(o1+" vs "+o2);
+						if(o1 > o2) {
+							System.out.println("BIGGR: "+o1);
+							operation.push(String.valueOf(o1));
+							viewStack(operation);
+						}
+						else{
+							System.out.println("BIGGR: "+o2);
+							operation.push(String.valueOf(o2));
+						}
+						
+						viewStack(operation);
 						break;
 					case Token.SMALLR_OF_CLASSIFIER:
-						if(o1 < o2) operation.push(String.valueOf(o1));
-						else operation.push(String.valueOf(o1));
+	
+						System.out.println(o1+" vs "+o2);
+						if(o1 < o2) {
+							System.out.println("SMALLR: "+o1);
+							operation.push(String.valueOf(o1));
+							viewStack(operation);
+						}
+						else{
+							System.out.println("SMALLR: "+o2);
+							operation.push(String.valueOf(o2));
+						}
+						
+						viewStack(operation);
 						break;
 					}
 				} 
+			}else if(Token.COMPARISON_OPERATORS.contains(tkn.getClassification())) {
+				System.out.println("Line: "+lineCheck);
+				viewStack(operation);
+				String op1 = operation.pop();
+				String op2 = operation.pop();
+				
+				String classificationOp1 = isAValidLexeme(op1);
+				String classificationOp2 = isAValidLexeme(op2);
+				
+				switch(tkn.getClassification()) {
+					case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
+						if(classificationOp1.equals(classificationOp2)) {
+							if(op1.equals(op2)) operation.push(Token.WIN_TROOF_LITERAL);
+							else operation.push(Token.FAIL_TROOF_LITERAL);
+						}else operation.push(Token.FAIL_TROOF_LITERAL);
+						break;
+					case Token.DIFFRINT_CLASSIFIER: //o1 != o2
+						System.out.println(op1+" vs "+op2);
+						if(classificationOp1.equals(classificationOp2)) {
+							if(!op1.equals(op2)) {
+								System.out.println("Result: WIN");
+								operation.push(Token.WIN_TROOF_LITERAL);
+							}
+							else{
+								System.out.println("Result: FAIL");
+								operation.push(Token.FAIL_TROOF_LITERAL);
+							}
+						}else{
+							System.out.println("Result: WIN");
+							operation.push(Token.WIN_TROOF_LITERAL);
+						}
+						
+						viewStack(operation);
+						break;
+				}
 			}
 		}
 		
@@ -1685,6 +1741,15 @@ public class Interpreter {
 			}
 		}
 		return result;
+	}
+	
+	private void viewStack(Stack<String> op) {
+		System.out.println("----------------------");
+		System.out.println("STACK: ");
+		for(String o: op) {
+			System.out.println(o);
+		}
+		System.out.println("----------------------");
 	}
 	
 	private String notOperator(String op1) {
