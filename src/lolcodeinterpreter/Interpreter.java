@@ -508,7 +508,7 @@ public class Interpreter {
 	}
 	
 	private void getInput(Symbol s,String dialogText) {
-        TextInputDialog inputDialog = new TextInputDialog("Enter input");
+        TextInputDialog inputDialog = new TextInputDialog();
 
         //set the title,header text, and context text of input dialog
         inputDialog.setTitle("USER INPUT");
