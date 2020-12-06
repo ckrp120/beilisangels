@@ -2335,8 +2335,8 @@ public class Interpreter {
 		return 0;                    
 	}
 	
-	//check syntax of beginning and end of the file
-	public boolean correctFormat() {
+	//check if there are no errors in the file
+	public boolean execute() {
 		String l;
 		
 		for(int i=0;i<tokens.size();i++) {
@@ -2355,7 +2355,6 @@ public class Interpreter {
 
 		for(int i=tokens.size()-1;i>=0;i--) {
 			l = tokens.get(i).getLexeme();
-			System.out.println(l+"=="+Token.KTHXBYE+"?");
 			if(isAComment(l)!=0 || l.equals(Token.TLDR)) continue;
 			else {
 				if(l.equals(Token.KTHXBYE)) return true;
@@ -2366,6 +2365,7 @@ public class Interpreter {
 			}
 		}
 		
+		if(validLexeme && validSyntax && validSemantics) return true;
 		return false;
 	}
 	
@@ -2551,7 +2551,7 @@ public class Interpreter {
 			if(file!=null) {
 				readFile();
 				analyzeFile();
-				if(validLexeme && validSyntax && validSemantics && correctFormat()) showPass();
+				if(execute()) showPass();
 				else showError();
 			} else {
 				//prompt error dialog
