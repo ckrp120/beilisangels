@@ -2346,12 +2346,7 @@ public class Interpreter {
 			else {
 				if(l.equals(Token.HAI)) break;
 				else {
-					for(int j=0;j<lines.length;j++) {
-						if(lines[j].contains(l)) {
-							lineCheck = j+1;
-							break;
-						}
-					}
+					lineCheck = 1;
 					validSyntax = false;
 					return false;
 				}
@@ -2518,10 +2513,17 @@ public class Interpreter {
     	passIndicator.setImage(cryingImg);
 		outputDisplay.setText("[!] Error detected in line " + lineCheck);
     	
-    	if(!validLexeme) lexicalIndicator.setImage(lexicalFailImg);
+    	if(!validLexeme) {
+    		lexicalIndicator.setImage(lexicalFailImg);
+    		validSyntax = false;
+    		validSemantics = false;
+    	}
     	else lexicalIndicator.setImage(lexicalPassImg);
     		
-		if(!validSyntax) syntaxIndicator.setImage(syntaxFailImg);
+		if(!validSyntax) {
+			syntaxIndicator.setImage(syntaxFailImg);
+    		validSemantics = false;
+		}
     	else syntaxIndicator.setImage(syntaxPassImg);
     		
     	if(!validSemantics) semanticIndicator.setImage(semanticFailImg);

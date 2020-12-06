@@ -1,6 +1,5 @@
 BTW test case for variables
 HAI
-
   BTW variable declarations
   BTW initialization of literal values
   I HAS A var1
@@ -26,7 +25,7 @@ HAI
     make sure that the values are updated in the symbol table
   TLDR
 
-  VISIBLE var1  BTW cannot be printed coz NOOB
+  BTW VISIBLE var1  BTW cannot be printed coz NOOB
   VISIBLE var2
   VISIBLE var3
   VISIBLE var4
@@ -37,5 +36,5 @@ HAI
   VISIBLE var9
   VISIBLE var10
   VISIBLE var11
-z
+
 KTHXBYE
