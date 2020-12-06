@@ -405,15 +405,12 @@ public class Interpreter {
 			
 			//case 1: varident/it
 			if(isAVarident(tkn.getClassification())) {
-				Symbol s;
+				
 				//check if the varident is in the symbols
-				if((s = isASymbol(tkn.getLexeme())) != null) {
-					if(!s.getDataType().equals(Symbol.UNINITIALIZED)) {
-						visibleValue += s.getValue();	
-					} else {
-						validSemantics = false;
-						break;
-					}
+				Symbol s = isASymbol(tkn.getLexeme());
+				
+				if(s != null && !s.getDataType().equals(Symbol.UNINITIALIZED)) {
+					visibleValue += s.getValue();	
 				} else {
 					validSemantics = false;
 					break;
@@ -610,7 +607,6 @@ public class Interpreter {
 	
 	//SEMANTICS FOR VARIABLE DECLARATION = I HAS A
 	public void varDeclarationExecute(String litClass) {
-		Symbol s;
 		String identifier = tokensPerLine.get(1).getLexeme();
 		int operation;
 		
@@ -623,7 +619,9 @@ public class Interpreter {
 		} else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
 			//case 2.1: varident
 			if(isAVarident(litClass)) {	
-				if((s = isASymbol(tokensPerLine.get(3).getLexeme())) != null)
+				Symbol s = isASymbol(tokensPerLine.get(3).getLexeme());
+				
+				if(s != null && !s.getDataType().equals(Symbol.UNINITIALIZED))
 					symbols.add(new Symbol(identifier,s.getValue(), s.getDataType()));
 				else validSemantics = false;
 			}
@@ -705,19 +703,18 @@ public class Interpreter {
 	
 	//SEMANTICS FOR ASSIGNMENT STATEMENT = R
 	private void varAssignmentExecute(String litClass) {
-		Symbol s,sv;
+		Symbol s = isASymbol(tokensPerLine.get(0).getLexeme());
+		Symbol sv = isASymbol(tokensPerLine.get(2).getLexeme());
 		int operation;
 		
 		//get the symbol, then set the value
-		if((s = isASymbol(tokensPerLine.get(0).getLexeme())) != null) {							
+		if(s != null) {							
 			//case 1: varident
 			if(isAVarident(litClass)) {							
-				if((sv = isASymbol(tokensPerLine.get(2).getLexeme())) != null) {
+				if(sv != null && !sv.getDataType().equals(Symbol.UNINITIALIZED)) {
 					s.setValue(sv.getValue());
 					s.setDataType(sv.getDataType());
-				}
-					
-				else validSemantics = false;
+				} else validSemantics = false;
 			}
 			
 			//case 2.2: expr
@@ -858,49 +855,30 @@ public class Interpreter {
 			} else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
 				operation.push(parseInt(tkn));
 			//case 3: varident
-			} else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
-				boolean varExists = false;
-				for(Symbol s:symbols) {
-					if(s.getSymbol().equals(tkn.getLexeme())) {	
-						System.out.println(s.getSymbol()+" Data Type: "+s.getDataType());
-						
-						//variable is in symbol table
-						varExists = true;
-						
-						//integer detected
-						if(s.getDataType().equals(Symbol.INTEGER)) operation.push(parseInt(symbols.indexOf(s)));
-						
-						//float detected
-						else if(s.getDataType().equals(Symbol.FLOAT)) operation.push(parseFloat(symbols.indexOf(s)));
-						
-						//string detected
-						else if(s.getDataType().equals(Symbol.STRING)) {
-							//check its value's data type
-							String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
-							
-							//string is a numbar
-							if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
-							
-							//string is a numbr
-							else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
-							
-							else {
-								validSemantics = false;
-								return null;
-							}
-
-						}else {
-							
-							//invalid dataType
-							validSemantics = false;
-							return null;
-						}
-						break;
-					}
-				}
+			} else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {				
+				Symbol s = isASymbol(tkn.getLexeme());
 				
-				//variable is not in symbol table
-				if(!varExists) {
+				if(s != null && !s.getDataType().equals(Symbol.UNINITIALIZED)) {
+					System.out.println(s.getSymbol()+" Data Type: "+s.getDataType());
+									
+					//integer detected
+					if(s.getDataType().equals(Symbol.INTEGER)) operation.push(parseInt(symbols.indexOf(s)));
+					
+					//float detected
+					else if(s.getDataType().equals(Symbol.FLOAT)) operation.push(parseFloat(symbols.indexOf(s)));
+					
+					//string detected
+					else if(s.getDataType().equals(Symbol.STRING)) {
+						//check its value's data type
+						String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
+						
+						//string is a numbar
+						if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
+						
+						//string is a numbr
+						else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
+					}
+				} else {
 					validSemantics = false;
 					return null;
 				}
@@ -1019,23 +997,19 @@ public class Interpreter {
 		//last item on the stack is the result
 		Number num = operation.pop();
 		
-		boolean varExists = false;
 		//set the value of the varident to the result
-		for(Symbol s:symbols) {
-			if(dataHolder.equals(s.getSymbol())) {	
-				varExists = true;
-				s.setValue(num.toString());
-				
-				if(num instanceof Float) s.setDataType(Symbol.FLOAT);
-				else if(num instanceof Integer) s.setDataType(Symbol.INTEGER);
-				break;
-			}
-		}
-		
-		if(!varExists) {
+		Symbol s = isASymbol(dataHolder);
+		if(s != null) {
+			s.setValue(num.toString());
+			
+			if(num instanceof Float) s.setDataType(Symbol.FLOAT);
+			else if(num instanceof Integer) s.setDataType(Symbol.INTEGER);
+			return num;
+		}	
+		else {
 			validSemantics = false;
 			return null;
-		}else return num;
+		} 
 	}
 	
 	//SYNTAX FOR BOOLEAN OPERATIONS
@@ -1194,20 +1168,18 @@ public class Interpreter {
 		System.out.println("result: "+result);
 		
 		//set the value of the varident to the result
-		for(Symbol s:symbols) {
-			if(dataHolder.equals(s.getSymbol())) {					
-				if(result == true) s.setValue(Token.WIN_TROOF_LITERAL);
-				else s.setValue(Token.FAIL_TROOF_LITERAL);
-				
-				s.setDataType(Symbol.BOOLEAN);
-				System.out.println(s.getSymbol() + s.getValue());
-				break;
-			}
+		Symbol s = isASymbol(dataHolder);
+		if(s != null) {				
+			if(result == true) s.setValue(Token.WIN_TROOF_LITERAL);
+			else s.setValue(Token.FAIL_TROOF_LITERAL);
+			
+			s.setDataType(Symbol.BOOLEAN);
+			return result;
+
 		}
 		
-		
-		
-		return result;
+		validSemantics = false;
+		return false;
 	}
 	
 	//SYNTAX FOR COMPARISON OPERATIONS
@@ -1277,9 +1249,9 @@ public class Interpreter {
 				operation.push(parseInt(tkn));
 			//case 3: varident
 			}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
-				for(Symbol s:symbols) {
-					//System.out.println("symbol: " + s.getSymbol() + " tkn: " + tkn.getLexeme());
-					if(s.getSymbol().equals(tkn.getLexeme())) {	
+				
+				Symbol s = isASymbol(tkn.getLexeme());
+				if(s != null && !s.getDataType().equals(Symbol.UNINITIALIZED)) {	
 						//check its value's data type
 						String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
 						//varident is a numbar
@@ -1297,8 +1269,10 @@ public class Interpreter {
 						//varident is a yarn, pero nababasa ni valid lexeme as variable ident?
 						else if(classification.equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) isNumber = false;
 						else isNumber = false;
-						break;
 					}
+				else {
+					validSemantics = false;
+					break;
 				}
 				
 			//if operation is detected, pop 2 operands and perform the operation
@@ -1406,16 +1380,14 @@ public class Interpreter {
 
 		//if(isNumber == false) answer = "FAIL";
 		//set the value of the varident to the result
-		for(Symbol s:symbols) {
-			if(dataHolder.equals(s.getSymbol())) {	
-				s.setValue(answer);
-				s.setDataType(Symbol.BOOLEAN);
-				break;
-			}
-		}
+		Symbol s = isASymbol(dataHolder);
+		if(s != null) {	
+			s.setValue(answer);
+			s.setDataType(Symbol.BOOLEAN);
+		} else validSemantics = false;
 		
 		return answer;
-		}
+	}
 	
 	
 	private boolean combiSyntax(ArrayList<Token> combiTokens) {
@@ -1618,14 +1590,9 @@ public class Interpreter {
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
 				operation.push(tkn.getLexeme());
 			}else if(isAVarident(tkn.getClassification())) {
-				Symbol var = getSymbol(tkn.getLexeme());
+				Symbol var = isASymbol(tkn.getLexeme());
 				
-				if(var != null) {
-					
-					if(isEmpty(var.getValue())) {
-						validSemantics = false;
-						return null;
-					}
+				if(var != null && !var.getDataType().equals(Symbol.UNINITIALIZED)) {
 					operation.push(var.getValue());
 				}
 				else {
@@ -1874,13 +1841,12 @@ public class Interpreter {
 		
 		String result = operation.pop();
 		
-		for(Symbol s:symbols) {
-			if(dataHolder.equals(s.getSymbol())) {	
-				s.setValue(result);
-				s.setDataType(Symbol.BOOLEAN);
-				break;
-			}
-		}
+		Symbol s = isASymbol(dataHolder);
+	
+		if(s != null) {	
+			s.setValue(result);
+			s.setDataType(Symbol.BOOLEAN);
+		} else validSemantics = false;
 		return result;
 	}
 	
@@ -1969,7 +1935,7 @@ public class Interpreter {
 					String classificationIT = isAValidLexeme(it.getValue());
 					
 					if(classificationIT.equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
-						it = getSymbol(it.getValue());
+						it = isASymbol(it.getValue());
 						
 						if(it != null) {
 							classificationIT = isAValidLexeme(it.getValue());
@@ -2094,13 +2060,7 @@ public class Interpreter {
 		
 		return false;
 	}
-	
-	private Symbol getSymbol(String varName) {
-		for(Symbol s: symbols) {
-			if(s.getSymbol().equals(varName)) return s;
-		} return null;
-	}
-	
+		
 	//function to get IT
 	private Symbol getIT() {
 		for(Symbol s: symbols) {
@@ -2130,7 +2090,7 @@ public class Interpreter {
 		else if(Token.COMPARISON_OPERATORS.contains(classification)) return 4;
 		return 0;
 	}	
-
+	
 	//return symbol if the varident is already added to or is part of the symbols
 	private Symbol isASymbol(String var) {
 		for(Symbol s: symbols) {
