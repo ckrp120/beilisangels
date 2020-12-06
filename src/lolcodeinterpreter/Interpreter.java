@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -54,6 +55,8 @@ public class Interpreter {
 	private ImageView lexicalIndicator = new ImageView();
 	private ImageView syntaxIndicator = new ImageView();
 	private ImageView semanticIndicator = new ImageView();
+	private ImageView titleImage = new ImageView(new Image("imgs/title.png", 1000, 90, true,true));
+	private Image titleImg = new Image("imgs/title.png", 1000, 90, true,true);
 	private Image happyImg = new Image("imgs/laughing.gif", 150, 150, true,true);
 	private Image neutralImg = new Image("imgs/neutral.gif", 150, 150, true,true);
 	private Image cryingImg = new Image("imgs/crying.gif", 150, 150, true,true);
@@ -72,7 +75,7 @@ public class Interpreter {
     private String[] lines;
     private String currentLexeme,dialogText;
     private int wordCheck,lineCheck,status;
-    private boolean validLexeme,validSyntax,validSemantics,readBack;
+    private boolean validLexeme,validSyntax,validSemantics,readBack,conditionalStatement,switchStatement;
     private ArrayList<Token> tokens = new ArrayList<Token>();
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
@@ -98,43 +101,47 @@ public class Interpreter {
 	public void setStage(Stage stage) {
 		//set preferences for "select LOLCODE file" button
         this.fileButton.setLayoutX(0);
-        this.fileButton.setLayoutY(50);
+        this.fileButton.setLayoutY(100);
         this.fileButton.setMinWidth(500);
         
         //set preferences for "EXECUTE" button
         this.executeButton.setLayoutX(0);
-        this.executeButton.setLayoutY(550);
+        this.executeButton.setLayoutY(600);
         this.executeButton.setMinWidth(1500);
         
         //set preferences for displaying code
         this.codeDisplay.setLayoutX(0);
-        this.codeDisplay.setLayoutY(80);
+        this.codeDisplay.setLayoutY(130);
         this.codeDisplay.setPrefWidth(500);
         this.codeDisplay.setPrefHeight(470);
         this.codeDisplay.setEditable(false);
         
         //set preferences for displaying output
         this.outputDisplay.setLayoutX(10);
-        this.outputDisplay.setLayoutY(600);
+        this.outputDisplay.setLayoutY(650);
         this.outputDisplay.setPrefWidth(1200);
         this.outputDisplay.setPrefHeight(270);
         this.outputDisplay.setEditable(false);
         
         //set preferences for imageview of pass indicator
         this.passIndicator.setLayoutX(1270);
-        this.passIndicator.setLayoutY(600);
+        this.passIndicator.setLayoutY(650);
         
         //set preferences for imageview of lexical analysis indicator
         this.lexicalIndicator.setLayoutX(1270);
-        this.lexicalIndicator.setLayoutY(760);
+        this.lexicalIndicator.setLayoutY(810);
         
         //set preferences for imageview of syntax analysis indicator
         this.syntaxIndicator.setLayoutX(1270);
-        this.syntaxIndicator.setLayoutY(800);
+        this.syntaxIndicator.setLayoutY(850);
         
         //set preferences for imageview of semantic analysis indicator
         this.semanticIndicator.setLayoutX(1270);
-        this.semanticIndicator.setLayoutY(840);
+        this.semanticIndicator.setLayoutY(890);
+        
+        //set preferences for imageview of title
+        this.titleImage.setLayoutX(530);
+        this.titleImage.setLayoutY(10);
         
         //call to functions
 		openFile();	
@@ -142,10 +149,11 @@ public class Interpreter {
 		createTable("lexemes");
 		createTable("symbols");
 		
-		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, lexicalIndicator, syntaxIndicator, semanticIndicator);
+		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, lexicalIndicator, syntaxIndicator, semanticIndicator, titleImage);
 		root.getStylesheets().add(getClass().getResource("lolcodeinterpreter.css").toString());
 		this.stage = stage;
-		this.stage.setTitle("LOLCode Interpreter");
+		this.stage.getIcons().add(new Image(("imgs/title.png")));
+		this.stage.setTitle("LOLCODE INTERPRETER");
 		this.stage.setMinWidth(WINDOW_WIDTH);
 		this.stage.setMinHeight(WINDOW_HEIGHT);
 		this.stage.setScene(this.scene);
@@ -280,10 +288,20 @@ public class Interpreter {
 			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || 
 					Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification())) {
 				if(combiSyntax(tokensPerLine)) {
-					System.out.println("Passed!");
+					//System.out.println("Passed!");
 					if(checkingSwitchStatement) storeTokensToQueue("switch");
 					else if(checkingIfStatement) storeTokensToQueue("ifelse");
 					else combiExecute(Token.IT, tokensPerLine);
+				}
+				else validSyntax = false;
+			}
+			
+			//COMPARISON OPERATORS
+			else if(Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification()) ) {
+				if(comparisonSyntax(tokensPerLine)) {
+					if(checkingSwitchStatement) storeTokensToQueue("switch");
+					else if(checkingIfStatement) storeTokensToQueue("ifelse");
+					else comparisonExecute(Token.IT,tokensPerLine);
 				}
 				else validSyntax = false;
 			}
@@ -293,6 +311,27 @@ public class Interpreter {
 				case Token.HAI_CLASSIFIER:
 					break;
 				case Token.KTHXBYE_CLASSIFIER:
+					if(conditionalStatement==true) {
+						for(int i=0; i<tokens.size(); i++) {
+							if(!tokens.get(i).getLexeme().equals(Token.OIC)) {
+								validSyntax = false;
+							} else {
+								validSyntax = true;
+								break;
+							}
+						}
+					} else if(switchStatement==true) {
+						for(int i=0; i<tokens.size(); i++) {
+							if(!tokens.get(i).getLexeme().equals(Token.OIC)) {
+								validSyntax = false;
+							} else {
+								validSyntax = true;
+								break;
+							}
+						}
+					} else {
+						validSyntax = true;
+					}
 					break;
 				case Token.OBTW_CLASSIFIER:
 					break;	
@@ -300,6 +339,7 @@ public class Interpreter {
 					break;
 				case Token.WTF_CLASSIFIER:
 					checkingSwitchStatement = true;
+					switchStatement = true;
 					storeTokensToQueue("switch");
 					break;
 				case Token.OIC_CLASSIFIER:
@@ -308,7 +348,7 @@ public class Interpreter {
 						storeTokensToQueue("switch");
 						switchCaseExecute();	
 					}
-					//check if ORLY, YA RLY and NO WAI are already in the switch statement
+					//check if ORLY, YA RLY and NO WAI are already in the if-then statement
 					else if((inProcessQueue(Token.O_RLY, "ifelse") && inProcessQueue(Token.YA_RLY, "ifelse") && inProcessQueue(Token.NO_WAI, "ifelse") && checkingIfStatement) || executingIfStatement) {
 						storeTokensToQueue("ifelse");
 						ifElseExecute();	
@@ -321,20 +361,21 @@ public class Interpreter {
 					storeTokensToQueue("switch");
 					break;
 				case Token.O_RLY_CLASSIFIER:
-					validSyntax=true;
 					checkingIfStatement = true;
+					conditionalStatement = true;
 					storeTokensToQueue("ifelse");
 					break;
 				case Token.YA_RLY_CLASSIFIER:
-					if(checkingIfStatement) {
-						validSyntax=true;
-						storeTokensToQueue("ifelse");
-					} else validSyntax=false;
+					if(checkingIfStatement && ifQueue.size() == 1) storeTokensToQueue("ifelse");
+					else validSyntax=false;
 					break;
 				case Token.NO_WAI_CLASSIFIER:
-					if(checkingIfStatement) {
-						validSyntax=true;
-						storeTokensToQueue("ifelse");
+					if(checkingIfStatement && ifQueue.size() > 2) {
+						Iterator<ArrayList<Token>> iterator = ifQueue.iterator(); 
+						if(iterator.next().get(0).getLexeme().equals(Token.O_RLY)) {
+							if(iterator.next().get(0).getLexeme().equals(Token.YA_RLY)) storeTokensToQueue("ifelse");
+							else validSyntax=false;
+						} else validSyntax=false;
 					} else validSyntax=false;
 					break;
 				default:
@@ -983,9 +1024,9 @@ public class Interpreter {
 		System.out.println("Data holder"+ dataHolder);
 		
 		for(Token tkn: booleanTokens) {	
-			System.out.print("TOS: ");
+			//System.out.print("TOS: ");
 			if(!operation.empty()) {
-				System.out.println(operation.peek());
+				//System.out.println(operation.peek());
 			}
 			
 			//case 1: troof literal
@@ -1121,46 +1162,51 @@ public class Interpreter {
 	
 	//SEMANTICS FOR COMPARISON OPERATIONS
 	private String comparisonExecute(String dataHolder,ArrayList<Token> compToken) {
-			Stack<Number> operation = new Stack<Number>();
-			//since operations are in prefix, reverse the tokens 
-			Collections.reverse(compToken);
-			
-			for(Token tkn: compToken) {
-				//case 1: numbar - floating points
-				if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
-					operation.push(parseFloat(tkn));
-				//case 2: numbr - integer
-				}else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
-					operation.push(parseInt(tkn));
-				//case 3: varident
-				}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
-					for(Symbol s:symbols) {
-						if(s.getSymbol().equals(tkn.getLexeme())) {	
-							//check its value's data type
-							String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
-							//varident is a numbar
-							if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
-							
-							//varident is a numbr
-							else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
-							
-							//varident is a WIN (true)
-							else if(s.getValue().equals(Token.WIN_TROOF_LITERAL)) operation.push(1); 
-							
-							//varident is a FAIL (false)
-							else if(s.getValue().equals(Token.FAIL_TROOF_LITERAL)) operation.push(0); 
-							
-							//varident is a yarn, pero nababasa ni valid lexeme as variable ident?
-							else if(classification.equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) operation.push(0);  
-							break;
-						}
+		Stack<Number> operation = new Stack<Number>();
+		Boolean isNumber = true;
+		//since operations are in prefix, reverse the tokens 
+		Collections.reverse(compToken);
+		
+		for(Token tkn: compToken) {
+			System.out.println(tkn.getLexeme());
+			//case 1: numbar - floating points
+			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
+				operation.push(parseFloat(tkn));
+			//case 2: numbr - integer
+			}else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
+				operation.push(parseInt(tkn));
+			//case 3: varident
+			}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+				for(Symbol s:symbols) {
+					//System.out.println("symbol: " + s.getSymbol() + " tkn: " + tkn.getLexeme());
+					if(s.getSymbol().equals(tkn.getLexeme())) {	
+						//check its value's data type
+						String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
+						//varident is a numbar
+						if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
+						
+						//varident is a numbr
+						else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
+						
+						//varident is a WIN (true)
+						else if(s.getValue().equals(Token.WIN_TROOF_LITERAL)) operation.push(1); 
+						
+						//varident is a FAIL (false)
+						else if(s.getValue().equals(Token.FAIL_TROOF_LITERAL)) operation.push(0); 
+						
+						//varident is a yarn, pero nababasa ni valid lexeme as variable ident?
+						else if(classification.equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) isNumber = false;
+						else isNumber = false;
+						break;
 					}
-					
-				//if operation is detected, pop 2 operands and perform the operation
-				}else if(Token.COMPARISON_OPERATORS.contains(tkn.getClassification()) || Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
-					
-					boolean resultIsNumbar = false;
-					boolean resultIsNumbr = false;
+				}
+				
+			//if operation is detected, pop 2 operands and perform the operation
+			}else if(Token.COMPARISON_OPERATORS.contains(tkn.getClassification()) || Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
+				
+				boolean resultIsNumbar = false;
+				boolean resultIsNumbr = false;
+				if(isNumber) {
 					Number op1 = operation.pop();
 					Number op2 = operation.pop();
 					//check if one of the operands is numbar
@@ -1248,22 +1294,26 @@ public class Interpreter {
 					}
 				}
 			}
+		}
 
-			//last item on the stack is the result
+		//last item on the stack is the result
+		String answer = "";
+		if(isNumber) {
 			Number num = operation.pop();
-			String answer = "";
 			if(num.equals(1)) answer = "WIN";
 			else if(num.equals(0)) answer = "FAIL";
-			
-			//set the value of the varident to the result
-			for(Symbol s:symbols) {
-				if(dataHolder.equals(s.getSymbol())) {	
-					s.setValue(answer);
-					break;
-				}
+		} else answer = "FAIL";
+
+		//if(isNumber == false) answer = "FAIL";
+		//set the value of the varident to the result
+		for(Symbol s:symbols) {
+			if(dataHolder.equals(s.getSymbol())) {	
+				s.setValue(answer);
+				break;
 			}
-			
-			return answer;
+		}
+		
+		return answer;
 		}
 	
 	
@@ -1547,7 +1597,7 @@ public class Interpreter {
 					}
 				}
 			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
-				System.out.println("Line check: "+lineCheck);
+				//System.out.println("Line check: "+lineCheck);
 				viewStack(operation);
 				boolean resultIsNumbar = false;
 				String op1 = operation.pop();
@@ -1628,7 +1678,6 @@ public class Interpreter {
 					int o1 = Integer.parseInt(op1);
 					int o2 = Integer.parseInt(op2);
 					
-					System.out.println("o1: "+o1+" o2: "+o2);
 					
 					int answer;
 					//perform the operation then push to stack
@@ -2252,6 +2301,9 @@ public class Interpreter {
 	private void openFile() {
 		//action for "select LOLCODE file" button
         fileButton.setOnAction(e -> {
+        	resetAnalyzer();
+        	codeDisplay.clear();
+        	
         	fileChooser.setInitialDirectory(new File(currentPath));
         	file = fileChooser.showOpenDialog(stage);
         	
@@ -2302,6 +2354,8 @@ public class Interpreter {
 		validLexeme = true;
 		validSyntax = true;
 		validSemantics = true;
+		conditionalStatement = false;
+		switchStatement = false;
 		tokens.clear();
 		tokensPerLine.clear();
 		symbols.clear();
@@ -2312,6 +2366,7 @@ public class Interpreter {
 		for(int i=0; i<lexemeTableView.getItems().size(); i++) lexemeTableView.getItems().clear();
 		for(int i=0; i<symbolTableView.getItems().size(); i++) symbolTableView.getItems().clear();
 		passIndicator.setImage(neutralImg);
+		titleImage.setImage(titleImg);
 		lexicalIndicator.setImage(null);
 		syntaxIndicator.setImage(null);
 		semanticIndicator.setImage(null);
@@ -2339,7 +2394,7 @@ public class Interpreter {
         	
         	//set table view size preference
         	lexemeTableView.setLayoutX(500);
-        	lexemeTableView.setLayoutY(50);
+        	lexemeTableView.setLayoutY(100);
         	lexemeTableView.setPrefHeight(500);
         	
         	//not editable, output should be based on analyzer
@@ -2363,7 +2418,7 @@ public class Interpreter {
         	
         	//set table view size preference
         	symbolTableView.setLayoutX(1000);
-        	symbolTableView.setLayoutY(50);
+        	symbolTableView.setLayoutY(100);
         	symbolTableView.setPrefHeight(500);
 
         	//not editable, output should be based on analyzer
