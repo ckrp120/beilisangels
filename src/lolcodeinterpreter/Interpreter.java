@@ -397,6 +397,8 @@ public class Interpreter {
 		Token tkn;
 		int i=1,operation;
 		boolean appendNewLine=true;
+		String itValue = symbols.get(0).getValue();
+		String visibleValue = "";
 		
 		while(i<tokensPerLine.size()) {
 			tkn = tokensPerLine.get(i);
@@ -406,7 +408,7 @@ public class Interpreter {
 				Symbol s;
 				//check if the varident is in the symbols
 				if((s = isASymbol(tkn.getLexeme())) != null) {
-					outputDisplayText += s.getValue();	
+					visibleValue += s.getValue();	
 					break;
 				} else validSemantics = false;
 			} 
@@ -459,7 +461,8 @@ public class Interpreter {
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else {
 							arithmeticExecute(Token.IT,opTokens);
-							outputDisplayText += symbols.get(0).getValue();
+							visibleValue += symbols.get(0).getValue();
+							symbols.get(0).setValue(itValue);
 						}
 					}
 					else validSyntax = false;
@@ -473,7 +476,8 @@ public class Interpreter {
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else {
 							booleanExecute(Token.IT,opTokens);
-							outputDisplayText += symbols.get(0).getValue();
+							visibleValue += symbols.get(0).getValue();
+							symbols.get(0).setValue(itValue);
 						}
 					}
 					else validSyntax = false;
@@ -487,7 +491,8 @@ public class Interpreter {
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else {
 							comparisonExecute(Token.IT,opTokens);
-							outputDisplayText += symbols.get(0).getValue();
+							visibleValue += symbols.get(0).getValue();
+							symbols.get(0).setValue(itValue);
 						}
 					}
 					else validSyntax = false;
@@ -496,7 +501,7 @@ public class Interpreter {
 			
 			//case 3: literals
 			else if(Token.LITERALS.contains(tkn.getClassification())) {
-				outputDisplayText += tkn.getLexeme();
+				visibleValue += tkn.getLexeme();
 				dialogText = tkn.getLexeme();
 			}
 			
@@ -521,6 +526,9 @@ public class Interpreter {
 			i++;
 		}	
 		
+		outputDisplayText += visibleValue;
+		symbols.get(0).setValue(visibleValue);
+
 		if(appendNewLine) outputDisplayText += "\n";						
 	}
 	
