@@ -527,8 +527,12 @@ public class Interpreter {
 			i++;
 		}	
 		
+		
 		outputDisplayText += visibleValue;
 		symbols.get(0).setValue(visibleValue);
+		symbols.get(0).setDataType(Symbol.STRING);
+		System.out.println("Symbol: "+symbols.get(0).getSymbol() + " Data Type: " + symbols.get(0).getDataType());
+		
 
 		if(appendNewLine) outputDisplayText += "\n";						
 	}
@@ -911,7 +915,7 @@ public class Interpreter {
 					Symbol it = getIT();
 					//integer detected
 					
-					System.out.println("IT: "+it.getValue());
+					System.out.println("IT: "+it.getValue() + "Data Type: " + it.getDataType());
 					if(it.getDataType().equals(Symbol.INTEGER)) operation.push(Integer.parseInt(it.getValue()));
 					
 					//float detected
@@ -920,7 +924,7 @@ public class Interpreter {
 					//string detected
 					else if(it.getDataType().equals(Symbol.STRING)) {
 						//check its value's data type
-						String classification = isAValidLexeme(it.getValue());
+						String classification = getClass(it.getValue());
 						
 						//string is a numbar
 						if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(Float.parseFloat(it.getValue()));
@@ -2023,8 +2027,10 @@ public class Interpreter {
 				enteredCase = true;
 				
 			//execute instruction
-			} else
-				if(enteredCase) checkSyntaxAndSemantics();
+			} else if(enteredCase) {
+					checkSyntaxAndSemantics();
+					if(!validSemantics) return;
+				}
 		}
 		
 		lineCheck = originalLineCheck;
@@ -2080,7 +2086,10 @@ public class Interpreter {
 				ifQueue.clear();
 				executingIfStatement = false;
 				break;			
-			} else if(enteredCase) checkSyntaxAndSemantics();
+			} else if(enteredCase) {
+				checkSyntaxAndSemantics();
+				if(!validSemantics) return;
+			}
 		}
 		
 		lineCheck = originalLineCheck;
