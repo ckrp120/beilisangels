@@ -217,7 +217,7 @@ public class Interpreter {
 			if(checkingSwitchStatement && pQueue.size() == 1) {
 				if(tokensPerLine.get(0).getClassification().equals(Token.OMG_CLASSIFIER) && tokensPerLine.size() == 2) {
 					if(Token.LITERALS.contains(tokensPerLine.get(1).getClassification()))
-						storeTokensToQueue("switch");
+						storeTokensToQueue(Token.WTF);
 					else validSyntax = false;
 				}			
 				else validSyntax = false;
@@ -227,15 +227,15 @@ public class Interpreter {
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.OMG)) {
 				//check if the line next to OMG is a literal
 				if(Token.LITERALS.contains(tokensPerLine.get(1).getClassification()) && tokensPerLine.size() == 2)
-					storeTokensToQueue("switch");
+					storeTokensToQueue(Token.WTF);
 				else validSyntax = false;
 			}
 			
 			//PRINT = VISIBLE
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
 				if(printSyntax()) {
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					else printExecute();
 				}
 				else validSyntax = false;
@@ -244,8 +244,8 @@ public class Interpreter {
 			//ACCEPT = GIMMEH
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.GIMMEH)) {
 				if(acceptSyntax()) {
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					else acceptExecute();
 					
 				}
@@ -256,8 +256,8 @@ public class Interpreter {
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.I_HAS_A)) {
 				String literalClassification = varDeclarationSyntax();
 				if(literalClassification != null) {
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					else varDeclarationExecute(literalClassification);
 				}
 				else validSyntax = false;				
@@ -267,8 +267,8 @@ public class Interpreter {
 			else if(tokensPerLine.get(1).getLexeme().equals(Token.R)) {
 				String literalClassification = varAssignmentSyntax();
 				if(literalClassification != null) {
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					else varAssignmentExecute(literalClassification);
 				}
 				else validSyntax = false;
@@ -277,31 +277,31 @@ public class Interpreter {
 			//ARITHMETIC OPERATIONS
 			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
 				if(arithmeticSyntax(tokensPerLine)) {
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					else arithmeticExecute(Token.IT,tokensPerLine);
 				}
 				else validSyntax = false;
 			}	
+			
+			//COMPARISON OPERATORS
+			else if(Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification()) ) {
+				if(comparisonSyntax(tokensPerLine)) {
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+					else comparisonExecute(Token.IT,tokensPerLine);
+				}
+				else validSyntax = false;
+			}
 	
 			//BOOLEAN OPERATIONS
 			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || 
 					Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification())) {
 				if(combiSyntax(tokensPerLine)) {
 					//System.out.println("Passed!");
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					else combiExecute(Token.IT, tokensPerLine);
-				}
-				else validSyntax = false;
-			}
-			
-			//COMPARISON OPERATORS
-			else if(Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification()) ) {
-				if(comparisonSyntax(tokensPerLine)) {
-					if(checkingSwitchStatement) storeTokensToQueue("switch");
-					else if(checkingIfStatement) storeTokensToQueue("ifelse");
-					else comparisonExecute(Token.IT,tokensPerLine);
 				}
 				else validSyntax = false;
 			}
@@ -340,40 +340,40 @@ public class Interpreter {
 				case Token.WTF_CLASSIFIER:
 					checkingSwitchStatement = true;
 					switchStatement = true;
-					storeTokensToQueue("switch");
+					storeTokensToQueue(Token.WTF);
 					break;
 				case Token.OIC_CLASSIFIER:
 					//check if WTF and OMGs are already in the switch statement
-					if((inProcessQueue(Token.WTF, "switch") && inProcessQueue(Token.OMG, "switch") && checkingSwitchStatement) || executingSwitchStatement) {
-						storeTokensToQueue("switch");
+					if((inProcessQueue(Token.WTF, Token.WTF) && inProcessQueue(Token.OMG, Token.WTF) && checkingSwitchStatement) || executingSwitchStatement) {
+						storeTokensToQueue(Token.WTF);
 						switchCaseExecute();	
 					}
 					//check if ORLY, YA RLY and NO WAI are already in the if-then statement
-					else if((inProcessQueue(Token.O_RLY, "ifelse") && inProcessQueue(Token.YA_RLY, "ifelse") && inProcessQueue(Token.NO_WAI, "ifelse") && checkingIfStatement) || executingIfStatement) {
-						storeTokensToQueue("ifelse");
+					else if((inProcessQueue(Token.O_RLY, Token.O_RLY) && inProcessQueue(Token.YA_RLY, Token.O_RLY) && inProcessQueue(Token.NO_WAI, Token.O_RLY) && checkingIfStatement) || executingIfStatement) {
+						storeTokensToQueue(Token.O_RLY);
 						ifElseExecute();	
 					} else validSyntax = false;
 					break;
 				case Token.GTFO_CLASSIFIER:
-					storeTokensToQueue("switch");
+					storeTokensToQueue(Token.WTF);
 					break;
 				case Token.OMGWTF_CLASSIFIER:
-					storeTokensToQueue("switch");
+					storeTokensToQueue(Token.WTF);
 					break;
 				case Token.O_RLY_CLASSIFIER:
 					checkingIfStatement = true;
 					conditionalStatement = true;
-					storeTokensToQueue("ifelse");
+					storeTokensToQueue(Token.O_RLY);
 					break;
 				case Token.YA_RLY_CLASSIFIER:
-					if(checkingIfStatement && ifQueue.size() == 1) storeTokensToQueue("ifelse");
+					if(checkingIfStatement && ifQueue.size() == 1) storeTokensToQueue(Token.O_RLY);
 					else validSyntax=false;
 					break;
 				case Token.NO_WAI_CLASSIFIER:
 					if(checkingIfStatement && ifQueue.size() > 2) {
 						Iterator<ArrayList<Token>> iterator = ifQueue.iterator(); 
 						if(iterator.next().get(0).getLexeme().equals(Token.O_RLY)) {
-							if(iterator.next().get(0).getLexeme().equals(Token.YA_RLY)) storeTokensToQueue("ifelse");
+							if(iterator.next().get(0).getLexeme().equals(Token.YA_RLY)) storeTokensToQueue(Token.O_RLY);
 							else validSyntax=false;
 						} else validSyntax=false;
 					} else validSyntax=false;
@@ -455,8 +455,8 @@ public class Interpreter {
 				if(operation == 1) {
 					//check if the arithop has a valid syntax
 					if(arithmeticSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else {
 							arithmeticExecute(Token.IT,opTokens);
 							outputDisplayText += symbols.get(0).getValue();
@@ -469,8 +469,8 @@ public class Interpreter {
 				else if(operation == 2 || operation == 3) {	
 					//check if the boolop has a valid syntax
 					if(booleanSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else {
 							booleanExecute(Token.IT,opTokens);
 							outputDisplayText += symbols.get(0).getValue();
@@ -483,8 +483,8 @@ public class Interpreter {
 				else {	
 					//check if the compop has a valid syntax
 					if(comparisonSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else {
 							comparisonExecute(Token.IT,opTokens);
 							outputDisplayText += symbols.get(0).getValue();
@@ -626,8 +626,8 @@ public class Interpreter {
 				if(operation == 1) {
 					//check if the arithop has a valid syntax
 					if(arithmeticSyntax(opToken)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else arithmeticExecute(identifier,opToken);
 					}
 					else validSyntax = false;
@@ -637,8 +637,8 @@ public class Interpreter {
 				else if(operation == 2 || operation == 3) {	
 					//check if the boolop has a valid syntax
 					if(booleanSyntax(opToken)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else booleanExecute(identifier,opToken);
 					}
 					else validSyntax = false;
@@ -648,8 +648,8 @@ public class Interpreter {
 				else {	
 					//check if the compop has a valid syntax
 					if(comparisonSyntax(opToken)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else comparisonExecute(identifier,opToken);
 					}
 					else validSyntax = false;
@@ -705,8 +705,8 @@ public class Interpreter {
 				if(operation == 1) {
 					//check if the arithop has a valid syntax
 					if(arithmeticSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else arithmeticExecute(tokensPerLine.get(0).getLexeme(),opTokens);
 					}
 					else validSyntax = false;
@@ -716,8 +716,8 @@ public class Interpreter {
 				else if(operation == 2 || operation == 3) {	
 					//check if the boolop has a valid syntax
 					if(booleanSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else booleanExecute(tokensPerLine.get(0).getLexeme(),opTokens);
 					}
 					else validSyntax = false;
@@ -727,8 +727,8 @@ public class Interpreter {
 				else {	
 					//check if the compop has a valid syntax
 					if(comparisonSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue("switch");
-						else if(checkingIfStatement) storeTokensToQueue("ifelse");
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else comparisonExecute(tokensPerLine.get(0).getLexeme(),opTokens);
 					}
 					else validSyntax = false;
@@ -1168,7 +1168,7 @@ public class Interpreter {
 		Collections.reverse(compToken);
 		
 		for(Token tkn: compToken) {
-			System.out.println(tkn.getLexeme());
+			//System.out.println(tkn.getLexeme());
 			//case 1: numbar - floating points
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
 				operation.push(parseFloat(tkn));
@@ -1513,7 +1513,7 @@ public class Interpreter {
 		Stack<String> operation = new Stack<String>();
 		
 		for(Token tkn: combiTokens) {
-			
+			System.out.println("tkn: " + tkn.getLexeme());
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
 				operation.push(tkn.getLexeme());
 			}else if(isAVarident(tkn.getClassification())) {
@@ -1750,7 +1750,6 @@ public class Interpreter {
 						}else operation.push(Token.FAIL_TROOF_LITERAL);
 						break;
 					case Token.DIFFRINT_CLASSIFIER: //o1 != o2
-						System.out.println(op1+" vs "+op2);
 						if(classificationOp1.equals(classificationOp2)) {
 							if(!op1.equals(op2)) {
 								System.out.println("Result: WIN");
@@ -1975,17 +1974,17 @@ public class Interpreter {
 		ArrayList<Token> lineTokens = new ArrayList<Token>();
 		for(Token tkn: tokensPerLine) lineTokens.add(new Token(tkn.getLexeme(), tkn.getClassification()));
 		
-		if(statement == "switch") pQueue.add(lineTokens);
-		else if(statement == "ifelse") ifQueue.add(lineTokens);
+		if(statement == Token.WTF) pQueue.add(lineTokens);
+		else if(statement == Token.O_RLY) ifQueue.add(lineTokens);
 	}
 	
 	//check if instruction exists in pQueue
 	private boolean inProcessQueue(String lexeme, String statement) {
-		if(statement == "switch") {
+		if(statement == Token.WTF) {
 			for(ArrayList<Token> line: pQueue) {
 				if(line.get(0).getLexeme().equals(lexeme)) return true;
 			} 
-		} else if (statement == "ifelse") {
+		} else if (statement == Token.O_RLY) {
 			for(ArrayList<Token> line: ifQueue) {
 				if(line.get(0).getLexeme().equals(lexeme)) return true;
 			} 
