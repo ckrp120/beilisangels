@@ -562,12 +562,18 @@ public class Interpreter {
         if(input.isPresent()) {
             input.ifPresent(value -> {
             	s.setValue(value);
+            	
+            	//automatically typecast based on input
+            	s.setDataType(getDataType(value));
             });	
         //else, error
         } else {
         	validSemantics = false;
         }
+        
 	}
+	
+	
 	
 	//SYNTAX FOR VARIABLE DECLARATION = I HAS A
 	private String varDeclarationSyntax() {
@@ -694,8 +700,11 @@ public class Interpreter {
 		if((s = isASymbol(tokensPerLine.get(0).getLexeme())) != null) {							
 			//case 1: varident
 			if(isAVarident(litClass)) {							
-				if((sv = isASymbol(tokensPerLine.get(2).getLexeme())) != null)	
+				if((sv = isASymbol(tokensPerLine.get(2).getLexeme())) != null) {
 					s.setValue(sv.getValue());
+					s.setDataType(sv.getDataType());
+				}
+					
 				else validSemantics = false;
 			}
 			
@@ -743,9 +752,25 @@ public class Interpreter {
 							
 			//case 3: literals
 			//a yarn literal
-			else if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER)) s.setValue(tokensPerLine.get(3).getLexeme());
+			else if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER)) {
+				s.setValue(tokensPerLine.get(3).getLexeme());
+				s.setDataType(Symbol.STRING);
+			}
 			//or other type literals
-			else s.setValue(tokensPerLine.get(2).getLexeme());
+			else if(litClass.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
+				s.setValue(tokensPerLine.get(2).getLexeme());
+				s.setDataType(Symbol.FLOAT);
+			}
+			
+			else if(litClass.equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
+				s.setValue(tokensPerLine.get(2).getLexeme());
+				s.setDataType(Symbol.INTEGER);
+			}
+			
+			else if(litClass.equals(Token.TROOF_LITERAL_CLASSIFIER)) {
+				s.setValue(tokensPerLine.get(2).getLexeme());
+				s.setDataType(Symbol.BOOLEAN);
+			}
 		} else validSemantics = false;
 	}
 	
@@ -822,33 +847,81 @@ public class Interpreter {
 				operation.push(parseInt(tkn));
 			//case 3: varident
 			} else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+				boolean varExists = false;
 				for(Symbol s:symbols) {
-					if(s.getSymbol().equals(tkn.getLexeme())) {						
-						//check its value's data type
-						String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
+					if(s.getSymbol().equals(tkn.getLexeme())) {	
+						System.out.println(s.getSymbol()+" Data Type: "+s.getDataType());
 						
-						//varident is a numbar
-						if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
+						//variable is in symbol table
+						varExists = true;
 						
-						//varident is a numbr
-						else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
+						//integer detected
+						if(s.getDataType().equals(Symbol.INTEGER)) operation.push(parseInt(symbols.indexOf(s)));
+						
+						//float detected
+						else if(s.getDataType().equals(Symbol.FLOAT)) operation.push(parseFloat(symbols.indexOf(s)));
+						
+						//string detected
+						else if(s.getDataType().equals(Symbol.STRING)) {
+							//check its value's data type
+							String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
+							
+							//string is a numbar
+							if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
+							
+							//string is a numbr
+							else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
+							
+							else {
+								validSemantics = false;
+								return null;
+							}
+
+						}else {
+							
+							//invalid dataType
+							validSemantics = false;
+							return null;
+						}
 						break;
 					}
 				}
+				
+				//variable is not in symbol table
+				if(!varExists) {
+					validSemantics = false;
+					return null;
+				}
+				
 			
 			//case 4: IT
 			}else if(tkn.getLexeme().equals(Token.IT)) {
 				Symbol it = getIT();
-				String classification = isAValidLexeme(it.getValue());
+				//integer detected
+				if(it.getDataType().equals(Symbol.INTEGER)) operation.push(Integer.parseInt(it.getValue()));
 				
-				//IT is a numbar
-				if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(Float.parseFloat(it.getValue()));
+				//float detected
+				else if(it.getDataType().equals(Symbol.FLOAT)) operation.push(Float.parseFloat(it.getValue()));
 				
-				//IT is a numbr
-				else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(Integer.parseInt(it.getValue()));
-				
-				//invalid data type
-				else{
+				//string detected
+				else if(it.getDataType().equals(Symbol.STRING)) {
+					//check its value's data type
+					String classification = isAValidLexeme(it.getValue());
+					
+					//string is a numbar
+					if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(Float.parseFloat(it.getValue()));
+					
+					//string is a numbr
+					else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(Integer.parseInt(it.getValue()));
+					
+					else {
+						validSemantics = false;
+						return null;
+					}
+
+				}else {
+					
+					//invalid dataType
 					validSemantics = false;
 					return null;
 				}
@@ -934,10 +1007,11 @@ public class Interpreter {
 		//last item on the stack is the result
 		Number num = operation.pop();
 		
-		
+		boolean varExists = false;
 		//set the value of the varident to the result
 		for(Symbol s:symbols) {
 			if(dataHolder.equals(s.getSymbol())) {	
+				varExists = true;
 				s.setValue(num.toString());
 				
 				if(num instanceof Float) s.setDataType(Symbol.FLOAT);
@@ -946,7 +1020,10 @@ public class Interpreter {
 			}
 		}
 		
-		return num;
+		if(!varExists) {
+			validSemantics = false;
+			return null;
+		}else return num;
 	}
 	
 	//SYNTAX FOR BOOLEAN OPERATIONS
@@ -2243,6 +2320,23 @@ public class Interpreter {
 		}
 
 		return false;		
+	}
+	
+	private String getDataType(String value) {
+		String classification = isAValidLexeme(value);
+		
+		switch(classification) {
+			case Token.NUMBR_LITERAL_CLASSIFIER:
+				return Symbol.INTEGER;
+			case Token.NUMBAR_LITERAL_CLASSIFIER:
+				return Symbol.FLOAT;
+			case Token.TROOF_LITERAL_CLASSIFIER:
+				return Symbol.BOOLEAN;
+			case Token.YARN_LITERAL_CLASSIFIER:
+				return Symbol.STRING;
+			default:
+				return Symbol.UNINITIALIZED;
+		}
 	}
 	
 	
