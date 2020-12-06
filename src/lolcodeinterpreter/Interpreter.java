@@ -2549,7 +2549,7 @@ public class Interpreter {
 			if(file!=null) {
 				readFile();
 				analyzeFile();
-				if(validLexeme && validSyntax && validSemantics) showPass();
+				if(validLexeme && validSyntax && validSemantics && correctFormat()) showPass();
 				else showError();
 			} else {
 				//prompt error dialog
