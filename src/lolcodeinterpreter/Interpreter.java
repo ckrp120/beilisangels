@@ -408,9 +408,16 @@ public class Interpreter {
 				Symbol s;
 				//check if the varident is in the symbols
 				if((s = isASymbol(tkn.getLexeme())) != null) {
-					visibleValue += s.getValue();	
+					if(!s.getDataType().equals(Symbol.UNINITIALIZED)) {
+						visibleValue += s.getValue();	
+					} else {
+						validSemantics = false;
+						break;
+					}
+				} else {
+					validSemantics = false;
 					break;
-				} else validSemantics = false;
+				}
 			} 
 			
 			//case 2: expr
@@ -418,41 +425,29 @@ public class Interpreter {
 				opTokens.clear();
 				
 				//copy the tokens starting from the operation until the end of the expression
-				int an=0;
+				String currToken,nextToken;
+				int string=0;
+				boolean stop = false;
 				
 				do {
-					System.out.print("I: "+i);
+					System.out.print("i: "+i);
+					currToken = tokensPerLine.get(i).getClassification();
+					System.out.println(" "+tokensPerLine.get(i).getLexeme());
 					opTokens.add(tokensPerLine.get(i));
-					System.out.print(" "+tokensPerLine.get(i).getLexeme());
-					if(isAnExpr(tokensPerLine.get(i).getClassification())!=0) {
-						an++;
-						System.out.println(" expr AN num:" + an);
-					}
-					else if(tokensPerLine.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
-						an--;
-						System.out.println(" an AN num: "+ an);
-						
-						i++;
-						System.out.print("I: "+i);
-						opTokens.add(tokensPerLine.get(i));				
-						System.out.print(" "+tokensPerLine.get(i).getLexeme());
-
-						if(isAnExpr(tokensPerLine.get(i).getClassification())!=0) {
-							an++;
-							System.out.println(" expr AN num: "+an);							
-						}
-						else {
-							an--;
-							System.out.println(" an AN num: "+an);
-						}
-					} else {
-						System.out.println(" op AN num: "+an);
-					}
+					if(currToken.equals(Token.STRING_DELIMITER_CLASSIFIER)) string++;
 					
+					if(isAVarident(currToken) || Token.LITERALS.contains(currToken) || string==2) {
+						string = 0;
+						if(i+1 != tokensPerLine.size()) {
+							nextToken = tokensPerLine.get(i+1).getLexeme();
+							if(!nextToken.equals(Token.AN)) stop = true;							
+						}
+					}
+
 					i++;
-				} while(i<tokensPerLine.size() && an>=0);
+				} while(i<tokensPerLine.size() && !stop);
 				i--;
-				System.out.println("NEXT I: "+i);
+
 				//case 2.1: arith op
 				if(operation == 1) {
 					//check if the arithop has a valid syntax
@@ -465,7 +460,10 @@ public class Interpreter {
 							symbols.get(0).setValue(itValue);
 						}
 					}
-					else validSyntax = false;
+					else {
+						validSyntax = false;
+						break;
+					}
 				}
 				
 				//case 2.2: bool op
@@ -480,7 +478,10 @@ public class Interpreter {
 							symbols.get(0).setValue(itValue);
 						}
 					}
-					else validSyntax = false;
+					else {
+						validSyntax = false;
+						break;
+					}
 				}	
 				
 				//case 2.3: comp op
@@ -495,7 +496,10 @@ public class Interpreter {
 							symbols.get(0).setValue(itValue);
 						}
 					}
-					else validSyntax = false;
+					else {
+						validSyntax = false;
+						break;
+					}
 				}
 			}
 			
@@ -801,7 +805,7 @@ public class Interpreter {
 				
 				//if not starting arithmetic expression, increment exprCount (meaning it is a nested expression)
 				if(i > 0) exprCount++;
-			} else if(opTokens.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+			} else if(opTokens.get(i).getLexeme().equals(Token.AN)) {
 			//if an is encountered, add to an count
 				anCount++;
 			
@@ -1006,7 +1010,7 @@ public class Interpreter {
 						break;
 					}
 				}
-			} else if(!tkn.getLexeme().equals(Token.AN_TYPE_LITERAL)){
+			} else if(!tkn.getLexeme().equals(Token.AN)){
 				validSemantics = false;
 				return null;
 			}
@@ -1047,14 +1051,14 @@ public class Interpreter {
 			currentToken = booleanTokens.get(i);
 			
 			//if AN is detected, it must not be the last or starting token, and must not be followed by an AN
-			if(currentToken.getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+			if(currentToken.getLexeme().equals(Token.AN)) {
 				
 				//AN is starting/last token
 				if(i == 0 || i == (booleanTokens.size()-1)) 
 					return false;
 				
 				//followed by AN
-				else if(booleanTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+				else if(booleanTokens.get(i-1).getLexeme().equals(Token.AN))
 					return false;
 				
 				else anCount++;
@@ -1064,14 +1068,14 @@ public class Interpreter {
 				if(i == 0) return false;
 				
 				//followed by AN
-				else if(booleanTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+				else if(booleanTokens.get(i-1).getLexeme().equals(Token.AN))
 					return false;
 				
 				else continue;
 			}else if(currentToken.getLexeme().equals(Token.ALL_OF) || currentToken.getLexeme().equals(Token.ANY_OF)) {
 				
 				//if it starts with ANY OF/ALL OF then num of stack is ignored since these are infinite arity operations
-				if(i == booleanTokens.size()-1 && !booleanTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+				if(i == booleanTokens.size()-1 && !booleanTokens.get(i-1).getLexeme().equals(Token.AN))
 					return true; 
 				
 				//operation cannot be nested
@@ -1079,11 +1083,11 @@ public class Interpreter {
 			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) | isAVarident(currentToken.getClassification())) {
 				//if last token, it must be preceeded with an AN or NOT
 				if(i == 0) {
-					if(!(booleanTokens.get(i+1).getLexeme().equals(Token.AN_TYPE_LITERAL) || booleanTokens.get(i+1).getLexeme().equals(Token.NOT)))
+					if(!(booleanTokens.get(i+1).getLexeme().equals(Token.AN) || booleanTokens.get(i+1).getLexeme().equals(Token.NOT)))
 						return false;
 				} else {
 					//if not last token, it must be followed with an AN
-					if(!booleanTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+					if(!booleanTokens.get(i-1).getLexeme().equals(Token.AN))
 						return false;
 				}
 				
@@ -1091,7 +1095,7 @@ public class Interpreter {
 				checker.push(currentToken);
 			} else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(currentToken.getClassification())) {
 				//make sure it is not followed by an 'AN'
-				if(booleanTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+				if(booleanTokens.get(i-1).getLexeme().equals(Token.AN))
 					return false;
 				
 				//make sure it is not the last token
@@ -1222,7 +1226,7 @@ public class Interpreter {
 				checker.add(comparisonTokens.get(i));
 				//if not starting comparison operator, inc exprCount (meaning it is a nested expression)
 				if(i > 0) exprCount++;
-			} else if(comparisonTokens.get(i).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+			} else if(comparisonTokens.get(i).getLexeme().equals(Token.AN)) {
 				//if an is encountered, add to an count
 				anCount++;
 			} else if(comparisonTokens.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
@@ -1426,14 +1430,14 @@ public class Interpreter {
 			currentToken = combiTokens.get(i);
 			
 			//if AN is detected, it must not be the last or starting token, and must not be followed by an AN
-			if(currentToken.getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+			if(currentToken.getLexeme().equals(Token.AN)) {
 				
 				//AN is starting/last token
 				if(i == 0 || i == (combiTokens.size()-1)) 
 					return false;
 				
 				//followed by AN
-				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN))
 					return false;
 				
 				else anCount++;
@@ -1446,7 +1450,7 @@ public class Interpreter {
 				}
 				
 				//followed by AN
-				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
 					System.out.println("AN");
 					return false;
 				}
@@ -1466,7 +1470,7 @@ public class Interpreter {
 			}else if(currentToken.getLexeme().equals(Token.ALL_OF) || currentToken.getLexeme().equals(Token.ANY_OF)) {
 				
 				//if it starts with ANY OF/ALL OF then num of stack is ignored since these are infinite arity operations
-				if(i == combiTokens.size()-1 && !combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL)) {
+				if(i == combiTokens.size()-1 && !combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
 					int stackSize = checker.size();
 					String op1;
 					String op2;
@@ -1495,11 +1499,11 @@ public class Interpreter {
 			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
 				//if last token, it must be preceeded with an AN or NOT
 				if(i == 0) {
-					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN_TYPE_LITERAL) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
+					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
 						return false;
 				} else {
 					//if not last token, it must be followed with an AN
-					if(!combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+					if(!combiTokens.get(i-1).getLexeme().equals(Token.AN))
 						return false;
 				}
 				
@@ -1509,11 +1513,11 @@ public class Interpreter {
 			}else if(isAVarident(currentToken.getClassification())) {
 				
 				if(i == 0) {
-					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN_TYPE_LITERAL) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
+					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
 						return false;
 				} else {
 					//if not last token, it must be followed with an AN
-					if(!combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+					if(!combiTokens.get(i-1).getLexeme().equals(Token.AN))
 						return false;
 				}
 				
@@ -1521,18 +1525,18 @@ public class Interpreter {
 				
 			}else if(isADigit(currentToken.getClassification())) {
 				if(i == 0) {
-					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN_TYPE_LITERAL) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
+					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
 						return false;
 				} else {
 					//if not last token, it must be followed with an AN
-					if(!combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+					if(!combiTokens.get(i-1).getLexeme().equals(Token.AN))
 						return false;
 				}
 				
 				checker.push("DIGIT");
 			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(currentToken.getClassification())) {
 				//make sure it is not followed by an 'AN'
-				if(combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+				if(combiTokens.get(i-1).getLexeme().equals(Token.AN))
 					return false;
 				
 				//make sure it is not the last token
@@ -1558,7 +1562,7 @@ public class Interpreter {
 				else return false;
 			} else if(Token.ARITHMETIC_EXPRESSIONS.contains(currentToken.getClassification())){
 				//make sure it is not followed by an 'AN'
-				if(combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+				if(combiTokens.get(i-1).getLexeme().equals(Token.AN))
 					return false;
 				
 				//make sure it is not the last token
@@ -1579,7 +1583,7 @@ public class Interpreter {
 				}
 			}else if(Token.COMPARISON_OPERATORS.contains(currentToken.getClassification())){
 				//make sure it is not followed by an 'AN'
-				if(combiTokens.get(i-1).getLexeme().equals(Token.AN_TYPE_LITERAL))
+				if(combiTokens.get(i-1).getLexeme().equals(Token.AN))
 					return false;
 				
 				//make sure it is not the last token

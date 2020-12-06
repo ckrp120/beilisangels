@@ -26,7 +26,6 @@ public class Token {
 	public final static String YARN_TYPE_LITERAL = "YARN";
 	public final static String TROOF_TYPE_LITERAL = "TROOF";
 	public final static String NOOB_TYPE_LITERAL = "NOOB";
-	public final static String AN_TYPE_LITERAL = "AN";
 	
 	//KEYWORDS
 	public final static String HAI = "HAI";
@@ -55,6 +54,7 @@ public class Token {
 	public final static String SMOOSH = "SMOOSH";
 	public final static String MAEK = "MAEK";
 	public final static String A = "A";
+	public final static String AN = "AN";
 	public final static String IS_NOW_A = "IS NOW A";
 	public final static String VISIBLE = "VISIBLE";
 	public final static String GIMMEH = "GIMMEH";
@@ -120,6 +120,7 @@ public class Token {
 	public final static String DIFFRINT_CLASSIFIER = "Diffrint Operator";
 	public final static String SMOOSH_CLASSIFIER = "Concatenation Keyword";
 	public final static String A_CLASSIFIER = "A Keyword";
+	public final static String AN_CLASSIFIER = "AN Keyword";
 	public final static String IS_NOW_A_CLASSIFIER = "Is Now A Keyword";
 	public final static String VISIBLE_CLASSIFIER = "Output Keyword";
 	public final static String MAEK_CLASSIFIER = "Typecast Keyword";
@@ -159,7 +160,6 @@ public class Token {
 		put(Token.YARN_TYPE_LITERAL,Token.TYPE_LITERAL_CLASSIFIER); 
 		put(Token.TROOF_TYPE_LITERAL,Token.TYPE_LITERAL_CLASSIFIER); 
 		put(Token.NOOB_TYPE_LITERAL,Token.TYPE_LITERAL_CLASSIFIER);    
-		put(Token.AN_TYPE_LITERAL,Token.TYPE_LITERAL_CLASSIFIER);    
 		put(Token.HAI,    Token.HAI_CLASSIFIER);
 	    put(Token.KTHXBYE, Token.KTHXBYE_CLASSIFIER);
 	    put(Token.BTW,   Token.BTW_CLASSIFIER);
@@ -186,6 +186,7 @@ public class Token {
 	    put(Token.SMOOSH, Token.SMOOSH_CLASSIFIER);
 	    put(Token.MAEK, Token.MAEK_CLASSIFIER);
 	    put(Token.A, Token.A_CLASSIFIER);
+		put(Token.AN,Token.AN_CLASSIFIER);    
 	    put(Token.IS_NOW_A, Token.IS_NOW_A_CLASSIFIER);
 	    put(Token.VISIBLE, Token.VISIBLE_CLASSIFIER);
 	    put(Token.GIMMEH, Token.GIMMEH_CLASSIFIER);
