@@ -600,19 +600,19 @@ public class Interpreter {
 		if(isASymbol(identifier) != null) validSemantics = false;
 		//case 1: I HAS A var
 		else if(tokensPerLine.size() == 2) {
-			symbols.add(new Symbol(identifier,Token.NOOB_TYPE_LITERAL));	
+			symbols.add(new Symbol(identifier,Token.NOOB_TYPE_LITERAL, Symbol.UNINITIALIZED));	
 		//case 2: I HAS A var ITZ var/lit/expr
 		} else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
 			//case 2.1: varident
 			if(isAVarident(litClass)) {	
 				if((s = isASymbol(tokensPerLine.get(3).getLexeme())) != null)
-					symbols.add(new Symbol(identifier,s.getValue()));
+					symbols.add(new Symbol(identifier,s.getValue(), s.getDataType()));
 				else validSemantics = false;
 			}
 			
 			//case 2.2: expr
 			else if((operation = isAnExpr(litClass)) != 0) {
-				symbols.add(new Symbol(identifier,""));
+				symbols.add(new Symbol(identifier,"", Symbol.UNINITIALIZED));
 
 				ArrayList<Token> opToken = new ArrayList<Token>();
 				
@@ -631,6 +631,7 @@ public class Interpreter {
 						else arithmeticExecute(identifier,opToken);
 					}
 					else validSyntax = false;
+					
 				}
 
 				//case 2.2.2: bool op
@@ -659,9 +660,14 @@ public class Interpreter {
 			//case 2.3: literal
 			//a yarn literal
 			else if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER))
-				symbols.add(new Symbol(identifier, tokensPerLine.get(4).getLexeme()));
+				symbols.add(new Symbol(identifier, tokensPerLine.get(4).getLexeme(), Symbol.STRING));
 			//or other type literals
-			else symbols.add(new Symbol(identifier, tokensPerLine.get(3).getLexeme()));
+			else if(litClass.equals(Token.NUMBAR_LITERAL_CLASSIFIER))
+				symbols.add(new Symbol(identifier, tokensPerLine.get(3).getLexeme(), Symbol.FLOAT));
+			else if(litClass.equals(Token.NUMBR_LITERAL_CLASSIFIER))
+				symbols.add(new Symbol(identifier, tokensPerLine.get(3).getLexeme(), Symbol.INTEGER));
+			else if(litClass.equals(Token.TROOF_LITERAL_CLASSIFIER))
+				symbols.add(new Symbol(identifier, tokensPerLine.get(3).getLexeme(), Symbol.BOOLEAN));
 		}
 	}
 		
@@ -928,10 +934,14 @@ public class Interpreter {
 		//last item on the stack is the result
 		Number num = operation.pop();
 		
+		
 		//set the value of the varident to the result
 		for(Symbol s:symbols) {
 			if(dataHolder.equals(s.getSymbol())) {	
 				s.setValue(num.toString());
+				
+				if(num instanceof Float) s.setDataType(Symbol.FLOAT);
+				else if(num instanceof Integer) s.setDataType(Symbol.INTEGER);
 				break;
 			}
 		}
@@ -1100,6 +1110,7 @@ public class Interpreter {
 				if(result == true) s.setValue(Token.WIN_TROOF_LITERAL);
 				else s.setValue(Token.FAIL_TROOF_LITERAL);
 				
+				s.setDataType(Symbol.BOOLEAN);
 				System.out.println(s.getSymbol() + s.getValue());
 				break;
 			}
@@ -1309,6 +1320,7 @@ public class Interpreter {
 		for(Symbol s:symbols) {
 			if(dataHolder.equals(s.getSymbol())) {	
 				s.setValue(answer);
+				s.setDataType(Symbol.BOOLEAN);
 				break;
 			}
 		}
@@ -1776,6 +1788,7 @@ public class Interpreter {
 		for(Symbol s:symbols) {
 			if(dataHolder.equals(s.getSymbol())) {	
 				s.setValue(result);
+				s.setDataType(Symbol.BOOLEAN);
 				break;
 			}
 		}
@@ -2369,7 +2382,7 @@ public class Interpreter {
 		lexicalIndicator.setImage(null);
 		syntaxIndicator.setImage(null);
 		semanticIndicator.setImage(null);
-		symbols.add(new Symbol(Token.IT,Token.NOOB_TYPE_LITERAL));
+		symbols.add(new Symbol(Token.IT,Token.NOOB_TYPE_LITERAL, Symbol.UNINITIALIZED));
 	}
 	
 	
