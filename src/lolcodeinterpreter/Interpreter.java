@@ -306,6 +306,16 @@ public class Interpreter {
 				else validSyntax = false;
 			}
 			
+			else if(Token.SMOOSH_CLASSIFIER.equals(tokensPerLine.get(0).getClassification())) {
+				if(smooshSyntax(tokensPerLine)) {
+					//System.out.println("Passed!");
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+					else smooshExecute(Token.IT, tokensPerLine);
+				}
+				else validSyntax = false;
+			}
+			
 		} else {
 			switch(tokensPerLine.get(0).getClassification()) {
 				case Token.HAI_CLASSIFIER:
@@ -443,14 +453,16 @@ public class Interpreter {
 							if(currToken.equals(Token.YARN_LITERAL_CLASSIFIER)) {
 								if(i+2 < tokensPerLine.size()) {
 									nextToken = tokensPerLine.get(i+2).getLexeme();
-									if(!nextToken.equals(Token.AN)) stop = true;	
+									if(!(nextToken.equals(Token.AN) || nextToken.equals(Token.MKAY))) stop = true;	
 								}
 							}else {
 								nextToken = tokensPerLine.get(i+1).getLexeme();
-								if(!nextToken.equals(Token.AN)) stop = true;
+								if(!(nextToken.equals(Token.AN) | nextToken.equals(Token.MKAY))) stop = true;
 							}
 														
 						}
+					}else if(currToken.equals(Token.MKAY_CLASSIFIER)) {
+						stop = true;
 					}
 
 					i++;
@@ -478,11 +490,11 @@ public class Interpreter {
 				//case 2.2: bool op
 				else if(operation == 2 || operation == 3) {	
 					//check if the boolop has a valid syntax
-					if(booleanSyntax(opTokens)) {
+					if(combiSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else {
-							booleanExecute(Token.IT,opTokens);
+							combiExecute(Token.IT,opTokens);
 							visibleValue += symbols.get(0).getValue();
 							symbols.get(0).setValue(itValue);
 						}
@@ -491,9 +503,27 @@ public class Interpreter {
 						validSyntax = false;
 						break;
 					}
-				}	
+				}
 				
-				//case 2.3: comp op
+				//case 2.3: concat op
+				else if(operation == 4) {
+					//check if the boolop has a valid syntax
+					if(smooshSyntax(opTokens)) {
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+						else {
+							smooshExecute(Token.IT,opTokens);
+							visibleValue += symbols.get(0).getValue();
+							symbols.get(0).setValue(itValue);
+						}
+					}
+					else {
+						validSyntax = false;
+						break;
+					}
+				}
+				
+				//case 2.4: comp op
 				else {	
 					//check if the compop has a valid syntax
 					if(comparisonSyntax(opTokens)) {
@@ -590,9 +620,9 @@ public class Interpreter {
             	
             	//automatically typecast based on input
             	s.setDataType(getDataType(value));
+            	outputDisplayText += value;
             	outputDisplayText += value + "\n";
     			outputDisplay.setText(outputDisplayText);
-
             });	
         //else, error
         } else {
@@ -672,15 +702,26 @@ public class Interpreter {
 				//case 2.2.2: bool op
 				else if(operation == 2 || operation == 3) {	
 					//check if the boolop has a valid syntax
-					if(booleanSyntax(opToken)) {
+					if(combiSyntax(opToken)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else booleanExecute(identifier,opToken);
+						else combiExecute(identifier,opToken);
 					}
 					else validSyntax = false;
-				}	
+				}
+				
+				//case 2.2.3
+				else if(operation == 4) {
+					//check if the concat op has a valid syntax
+					if(smooshSyntax(opToken)) {
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+						else smooshExecute(identifier,opToken);
+					}
+					else validSyntax = false;
+				}
 
-				//case 2.2.3: comp op
+				//case 2.2.4: comp op
 				else {	
 					//check if the compop has a valid syntax
 					if(comparisonSyntax(opToken)) {
@@ -758,13 +799,24 @@ public class Interpreter {
 				//case 2.2.2: bool op
 				else if(operation == 2 || operation == 3) {	
 					//check if the boolop has a valid syntax
-					if(booleanSyntax(opTokens)) {
+					if(combiSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else booleanExecute(tokensPerLine.get(0).getLexeme(),opTokens);
+						else combiExecute(tokensPerLine.get(0).getLexeme(),opTokens);
 					}
 					else validSyntax = false;
-				}	
+				}
+				
+				//case 2.2.3: concat op
+				else if(operation == 4) {	
+					//check if the boolop has a valid syntax
+					if(smooshSyntax(opTokens)) {
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+						else smooshExecute(tokensPerLine.get(0).getLexeme(),opTokens);
+					}
+					else validSyntax = false;
+				}
 				
 				//case 2.2.3: comp op
 				else {	
@@ -1556,8 +1608,8 @@ public class Interpreter {
 				if(i == 0 || i == (combiTokens.size()-1)) 
 					return false;
 				
-				//followed by AN
-				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN))
+				//followed by AN/MKAY
+				else if((combiTokens.get(i-1).getLexeme().equals(Token.AN) || combiTokens.get(i-1).getLexeme().equals(Token.MKAY)))
 					return false;
 				
 				else anCount++;
@@ -1569,8 +1621,8 @@ public class Interpreter {
 					return false;
 				}
 				
-				//followed by AN
-				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
+				//followed by AN/MKAY
+				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN) || combiTokens.get(i-1).getLexeme().equals(Token.MKAY)) {
 					System.out.println("AN");
 					return false;
 				}
@@ -1619,11 +1671,11 @@ public class Interpreter {
 			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
 				//if last token, it must be preceeded with an AN or NOT
 				if(i == 0) {
-					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
+					if(i+1 < combiTokens.size() && !(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
 						return false;
 				} else {
-					//if not last token, it must be followed with an AN
-					if(!combiTokens.get(i-1).getLexeme().equals(Token.AN))
+					//if not last token, it must be followed with an AN/MKAY
+					if(!(combiTokens.get(i-1).getLexeme().equals(Token.AN) || combiTokens.get(i-1).getLexeme().equals(Token.MKAY)))
 						return false;
 				}
 				
@@ -1634,13 +1686,14 @@ public class Interpreter {
 				continue;
 			}else if(currentToken.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)){
 				if(i == 0) {
-					if(!(combiTokens.get(i+2).getLexeme().equals(Token.AN) || combiTokens.get(i+2).getLexeme().equals(Token.NOT)))
-						System.out.println("here");
+					
+					if(i+2 < combiTokens.size() && !(combiTokens.get(i+2).getLexeme().equals(Token.AN) || combiTokens.get(i+2).getLexeme().equals(Token.NOT))) {
 						return false;
+					}
+						
 				} else {
-					//if not last token, it must be followed with an AN
-					if(!combiTokens.get(i-2).getLexeme().equals(Token.AN)) {
-						System.out.println("what");
+					//if not last token, it must be followed with an AN/MKAY
+					if(i-2 > 0 && !(combiTokens.get(i-2).getLexeme().equals(Token.AN) || combiTokens.get(i-2).getLexeme().equals(Token.MKAY))) {
 						return false;
 					}
 						
@@ -1651,11 +1704,11 @@ public class Interpreter {
 			}else if(isAVarident(currentToken.getClassification())) {
 				
 				if(i == 0) {
-					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
+					if(i+1 < combiTokens.size() && !(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
 						return false;
 				} else {
-					//if not last token, it must be followed with an AN
-					if(!combiTokens.get(i-1).getLexeme().equals(Token.AN))
+					//if not last token, it must be followed with an AN/MKAY
+					if(i-1 > 0 && !(combiTokens.get(i-1).getLexeme().equals(Token.AN) || !combiTokens.get(i-1).getLexeme().equals(Token.MKAY)))
 						return false;
 				}
 				
@@ -1667,7 +1720,7 @@ public class Interpreter {
 						return false;
 				} else {
 					//if not last token, it must be followed with an AN
-					if(!combiTokens.get(i-1).getLexeme().equals(Token.AN))
+					if(!(combiTokens.get(i-1).getLexeme().equals(Token.AN) | combiTokens.get(i-1).getLexeme().equals(Token.MKAY)))
 						return false;
 				}
 				
@@ -1739,6 +1792,13 @@ public class Interpreter {
 						popCount++;
 						checker.push("TROOF");
 					}
+				}
+			}else if(Token.MKAY_CLASSIFIER.equals(currentToken.getClassification())) {
+				System.out.println("what is this"+combiTokens.get(combiTokens.size()-1).getLexeme());
+				System.out.println(i);
+				System.out.println(combiTokens.get(combiTokens.size()-1).getLexeme().equals(Token.ALL_OF));
+				if(i != 0 && !(combiTokens.get(combiTokens.size()-1).getLexeme().equals(Token.ALL_OF) || combiTokens.get(combiTokens.size()-1).getLexeme().equals(Token.ANY_OF))) {
+					return false;
 				}
 			}else return false; //lexeme does not belong in the expression			
 		}
@@ -2254,6 +2314,92 @@ public class Interpreter {
 		lineCheck = originalLineCheck;
 	}
 	
+	//SYNTAX FOR CONCATENATION
+		private boolean smooshSyntax(ArrayList<Token> smooshTokens) {
+			Token currentToken;
+			currentToken = smooshTokens.get(1);
+
+			//token after SMOOSH must be a literal or a varident
+			if(!(Token.LITERALS.contains(currentToken.getClassification()) || isAVarident(currentToken.getClassification()) || Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification()))) {
+				return false;
+			}
+			
+			for(int i = 2; i < smooshTokens.size(); i++) {
+				currentToken = smooshTokens.get(i);
+				System.out.println(currentToken.getLexeme());
+				
+				//if literal/varident
+				if(Token.LITERALS.contains(currentToken.getClassification()) || isAVarident(currentToken.getClassification())) {
+					
+					
+					//if not last token
+					if(i < smooshTokens.size()-1) {
+						
+						
+						
+						//if yarn, skip delimiter and must be followed by AN/MKAY keyword
+						if(currentToken.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
+							if(i+2 < smooshTokens.size() && !(smooshTokens.get(i+2).getLexeme().equals(Token.AN) || smooshTokens.get(i+2).getLexeme().equals(Token.MKAY))) {
+								return false;
+							}
+						}
+						
+						//next token must AN/MKAY
+						else if(!(smooshTokens.get(i+1).getLexeme().equals(Token.AN) || smooshTokens.get(i+1).getLexeme().equals(Token.MKAY))) {
+							return false;
+						}
+					}
+				}else if(Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification())) {
+					//skip if delimiter
+					continue;
+				}else if(currentToken.getClassification().equals(Token.AN_CLASSIFIER)){
+					
+					//must not be the last token
+					if(i == smooshTokens.size()-1) return false;
+					
+					//must not be followed by MKAY/AN
+					else if(smooshTokens.get(i+1).getClassification().equals(Token.AN_CLASSIFIER) || smooshTokens.get(i+1).getClassification().equals(Token.MKAY_CLASSIFIER)) return false;
+				}else if(Token.MKAY_CLASSIFIER.equals(currentToken.getClassification())) {
+					//must be last token
+					if(i != smooshTokens.size()-1) return false;
+				}else{
+					System.out.println("here!?!");
+					return false;
+				}
+			}
+			
+			return true;
+		}
+		
+		//SEMANTICS FOR SMOOSH
+		private String smooshExecute(String dataHolder, ArrayList<Token> smooshTokens) {
+			String concat = "";
+			
+			Symbol varHolder = isASymbol(dataHolder);
+			if(varHolder == null) return null;
+			
+			for(Token tkn: smooshTokens) {
+				if(Token.LITERALS.contains(tkn.getClassification())) {
+					concat += tkn.getLexeme();
+				}else if(isAVarident(tkn.getClassification())) {
+					Symbol var = isASymbol(tkn.getLexeme());
+					if(var != null || var.getDataType().equals(Symbol.UNINITIALIZED)) {
+						concat += var.getValue();
+					}else {
+						validSemantics = false;
+						return null;
+					}
+				}
+			}
+			
+			
+			
+			varHolder.setValue(concat);
+			varHolder.setDataType(Symbol.STRING);
+			
+			return concat;
+		}
+	
 	//function to make deep copy of tokens per line
 	private void storeTokensToQueue(String statement) {
 		ArrayList<Token> lineTokens = new ArrayList<Token>();
@@ -2304,7 +2450,8 @@ public class Interpreter {
 		if(Token.ARITHMETIC_EXPRESSIONS.contains(classification)) return 1;
 		else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(classification)) return 2;
 		else if(Token.OTHER_BOOLEAN_EXPRESSIONS.contains(classification)) return 3;
-		else if(Token.COMPARISON_OPERATORS.contains(classification)) return 4;
+		else if(Token.SMOOSH_CLASSIFIER.equals(classification)) return 4;
+		else if(Token.COMPARISON_OPERATORS.contains(classification)) return 5;
 		return 0;
 	}	
 	

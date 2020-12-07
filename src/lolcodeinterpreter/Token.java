@@ -52,6 +52,7 @@ public class Token {
 	public final static String BOTH_SAEM = "BOTH SAEM";
 	public final static String DIFFRINT = "DIFFRINT";
 	public final static String SMOOSH = "SMOOSH";
+	public final static String MKAY = "MKAY";
 	public final static String MAEK = "MAEK";
 	public final static String A = "A";
 	public final static String AN = "AN";
@@ -119,6 +120,7 @@ public class Token {
 	public final static String BOTH_SAEM_CLASSIFIER = "Both Same Operator";
 	public final static String DIFFRINT_CLASSIFIER = "Diffrint Operator";
 	public final static String SMOOSH_CLASSIFIER = "Concatenation Keyword";
+	public final static String MKAY_CLASSIFIER = "MKAY Keyword";
 	public final static String A_CLASSIFIER = "A Keyword";
 	public final static String AN_CLASSIFIER = "AN Keyword";
 	public final static String IS_NOW_A_CLASSIFIER = "Is Now A Keyword";
@@ -184,6 +186,7 @@ public class Token {
 	    put(Token.BOTH_SAEM, Token.BOTH_SAEM_CLASSIFIER);
 	    put(Token.DIFFRINT, Token.DIFFRINT_CLASSIFIER);
 	    put(Token.SMOOSH, Token.SMOOSH_CLASSIFIER);
+	    put(Token.MKAY, Token.MKAY_CLASSIFIER);
 	    put(Token.MAEK, Token.MAEK_CLASSIFIER);
 	    put(Token.A, Token.A_CLASSIFIER);
 		put(Token.AN,Token.AN_CLASSIFIER);    
