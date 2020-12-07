@@ -431,13 +431,25 @@ public class Interpreter {
 					currToken = tokensPerLine.get(i).getClassification();
 					System.out.println(" "+tokensPerLine.get(i).getLexeme());
 					opTokens.add(tokensPerLine.get(i));
-					if(currToken.equals(Token.STRING_DELIMITER_CLASSIFIER)) string++;
+					if(currToken.equals(Token.STRING_DELIMITER_CLASSIFIER)) {
+						i++;
+						continue;
+					}
 					
 					if(isAVarident(currToken) || Token.LITERALS.contains(currToken) || string==2) {
 						string = 0;
 						if(i+1 != tokensPerLine.size()) {
-							nextToken = tokensPerLine.get(i+1).getLexeme();
-							if(!nextToken.equals(Token.AN)) stop = true;							
+							
+							if(currToken.equals(Token.YARN_LITERAL_CLASSIFIER)) {
+								if(i+2 < tokensPerLine.size()) {
+									nextToken = tokensPerLine.get(i+2).getLexeme();
+									if(!nextToken.equals(Token.AN)) stop = true;	
+								}
+							}else {
+								nextToken = tokensPerLine.get(i+1).getLexeme();
+								if(!nextToken.equals(Token.AN)) stop = true;
+							}
+														
 						}
 					}
 
@@ -826,11 +838,12 @@ public class Interpreter {
 				//if a varident or literal is detected, add to an operand count
 				} else if(opTokens.get(i).getClassification().equals(Token.YARN_LITERAL_CLASSIFIER) || isADigit(opTokens.get(i).getClassification()) || isAVarident(opTokens.get(i).getClassification()) ||
 							Token.LITERALS.contains(opTokens.get(i).getClassification())) {
-					
 					if(i < opTokens.size()-1) {
-						if(opTokens.get(i).getClassification().equals(Token.YARN_LITERAL_CLASSIFIER) 
-								&& !opTokens.get(i+2).getClassification().equals(Token.AN_CLASSIFIER)) {
-							return false;
+						if(opTokens.get(i).getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
+							if(i+2 < opTokens.size() && !opTokens.get(i+2).getClassification().equals(Token.AN_CLASSIFIER)){
+								return false;
+							}
+							
 						}else if(!opTokens.get(i+1).getClassification().equals(Token.AN_CLASSIFIER)){
 							return false;
 						}
