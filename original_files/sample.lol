@@ -108,8 +108,8 @@ TLDR
       to NUMBR or NUMBAR if possible.
     you may comment the line below if you will use this program
       for your project
-  TLDR
   choice R MAEK choice A NUMBR
+  TLDR
 
   I HAS A year
 
