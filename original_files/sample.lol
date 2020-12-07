@@ -51,22 +51,26 @@ BTW BOOL.LOL-----------------------------------------------
 
 
 BTW COMP.LOL-----------------------------------------------
-  I HAS A x
-  I HAS A y
+OBTW 
+  comp.lol originally has x and y varidents, but I changed them so 
+  as to avoid conflicts with arith.lol that uses the same varidents 
+TLDR
+  I HAS A x1
+  I HAS A y1
 
-  VISIBLE "Gimmeh x "
-  GIMMEH x
-  VISIBLE "Gimmeh y "
-  GIMMEH y
+  VISIBLE "Gimmeh x1 "
+  GIMMEH x1
+  VISIBLE "Gimmeh y1 "
+  GIMMEH y1
   
-  BOTH SAEM x AN y
+  BOTH SAEM x1 AN y1
 OBTW
   output will be given to the implicit IT variable
   since it was not given to any variable
 TLDR
 
-  VISIBLE x "==" y " is " IT  BTW uses the implicit variable
-  VISIBLE x "!=" y " is " DIFFRINT x AN y
+  VISIBLE x1 "==" y1 " is " IT  BTW uses the implicit variable
+  VISIBLE x1 "!=" y1 " is " DIFFRINT x1 AN y1
 
 
 BTW IO.LOL-----------------------------------------------
