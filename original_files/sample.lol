@@ -1,36 +1,36 @@
 BTW SAMPLE.ZIP-----------------------------------------------
 HAI 1.2
 BTW ARITH.LOL-----------------------------------------------
-  I HAS A x
-  I HAS A y
-  I HAS A answer
+	I HAS A x
+	I HAS A y
+	I HAS A answer
 
-  VISIBLE "x: "
-  GIMMEH x
+	VISIBLE "x: "
+	GIMMEH x
 
-  VISIBLE "y: "
-  GIMMEH y
+	VISIBLE "y: "
+	GIMMEH y
 
-  answer R SUM OF x AN y
-  VISIBLE x "+" y " is " answer
+	answer R SUM OF x AN y
+	VISIBLE x "+" y " is " answer
 
-  answer R DIFF OF x AN y
-  VISIBLE x "-" y " is " answer
+	answer R DIFF OF x AN y
+	VISIBLE x "-" y " is " answer
 
-  answer R PRODUKT OF x AN y
-  VISIBLE x "*" y " is " answer
+	answer R PRODUKT OF x AN y
+	VISIBLE x "*" y " is " answer
 
-  answer R QUOSHUNT OF x AN y
-  VISIBLE x "/" y " is " answer
+	answer R QUOSHUNT OF x AN y
+	VISIBLE x "/" y " is " answer
 
-  answer R MOD OF x AN y
-  VISIBLE x "%" y " is " answer
+	answer R MOD OF x AN y
+	VISIBLE x "%" y " is " answer
 
-  answer R BIGGR OF x AN y
-  VISIBLE "max(" x "," y ") is " answer
+	answer R BIGGR OF x AN y
+	VISIBLE "max(" x "," y ") is " answer
 
-  answer R SMALLR OF x AN y
-  VISIBLE "min(" x "," y ") is " answer
+	answer R SMALLR OF x AN y
+	VISIBLE "min(" x "," y ") is " answer
 
 
 BTW BOOL.LOL-----------------------------------------------
@@ -51,41 +51,36 @@ BTW BOOL.LOL-----------------------------------------------
 
 
 BTW COMP.LOL-----------------------------------------------
-OBTW 
-  comp.lol originally has x and y varidents, but I changed them so 
-  as to avoid conflicts with arith.lol that uses the same varidents 
-TLDR
+  I HAS A x
+  I HAS A y
 
-  I HAS A x1
-  I HAS A y1
-
-  VISIBLE "Gimmeh x1 "
-  GIMMEH x1
-  VISIBLE "Gimmeh y1 "
-  GIMMEH y1
+  VISIBLE "Gimmeh x "
+  GIMMEH x
+  VISIBLE "Gimmeh y "
+  GIMMEH y
   
-  BOTH SAEM x1 AN y1
+  BOTH SAEM x AN y
 OBTW
   output will be given to the implicit IT variable
   since it was not given to any variable
 TLDR
 
-  VISIBLE x1 "==" y1 " is " IT  BTW uses the implicit variable
-  VISIBLE x1 "!=" y1 " is " DIFFRINT x1 AN y1
+  VISIBLE x "==" y " is " IT  BTW uses the implicit variable
+  VISIBLE x "!=" y " is " DIFFRINT x AN y
 
 
 BTW IO.LOL-----------------------------------------------
-  I HAS A num1
-  I HAS A num2
+ 	I HAS A num1
+	I HAS A num2
 
-  num1 R 15
+	num1 R 15
 
-  VISIBLE "Enter value for num2: "
+	VISIBLE "Enter value for num2: "
 
-  GIMMEH num2   BTW getting input from user
+	GIMMEH num2		BTW getting input from user
 
-  VISIBLE num1 " is num1"
-  VISIBLE num2 " is num2"
+	VISIBLE num1 " is num1"
+	VISIBLE num2 " is num2" 
 
 
 BTW SAMPLE.LOL-----------------------------------------------
@@ -142,23 +137,22 @@ TLDR
       VISIBLE "invalid input!" BTW if choice is not 1,2,3 then invalid input
     NO WAI
       VISIBLE "goodbye!"
-  OIC
-
+  OIC	
 
 
 BTW VARIABLES.LOL-----------------------------------------------
-  I HAS A NUM ITZ 2   BTW NUM = 2
-  I HAS A FLOT ITZ 2.5  BTW FLOT = 2.5
-  I HAS A NAME ITZ "erika"  BTW NAME = "erika"
+	I HAS A NUM ITZ 2		BTW NUM = 2
+	I HAS A FLOT ITZ 2.5	BTW FLOT = 2.5
+	I HAS A NAME ITZ "erika"	BTW NAME = "erika"
 
 BTW printing values
-  VISIBLE NUM
-  VISIBLE FLOT
-  VISIBLE NAME
+	VISIBLE NUM
+	VISIBLE FLOT
+	VISIBLE NAME
 
 BTW assignment statement:
-  NUM R 17
-  
-  VISIBLE "NUM is now " NUM
+	NUM R 17
+	
+	VISIBLE "NUM is now " NUM
 
 KTHXBYE
