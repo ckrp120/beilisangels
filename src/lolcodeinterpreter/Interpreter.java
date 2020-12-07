@@ -590,7 +590,7 @@ public class Interpreter {
             	
             	//automatically typecast based on input
             	s.setDataType(getDataType(value));
-            	outputDisplayText += value;
+            	outputDisplayText += value + "\n";
     			outputDisplay.setText(outputDisplayText);
 
             });	
