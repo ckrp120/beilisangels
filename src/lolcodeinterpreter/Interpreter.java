@@ -190,12 +190,12 @@ public class Interpreter {
 			if(!tokensPerLine.isEmpty() && tokensPerLine.get(tokensPerLine.size()-1).getLexeme().equals(Token.BTW))
 				tokensPerLine.remove(tokensPerLine.size()-1);
 			
-			//if(validLexeme) System.out.println("Line "+lineCheck+": passed lexical");
+			if(validLexeme) System.out.println("Line "+lineCheck+": passed lexical");
 			if(!tokensPerLine.isEmpty()) {
 				checkSyntaxAndSemantics();
 
-				//if(validSyntax) System.out.println("Line "+lineCheck+": passed syntax");
-				//if(validSemantics) System.out.println("Line "+lineCheck+": passed semantics");
+				if(validSyntax) System.out.println("Line "+lineCheck+": passed syntax");
+				if(validSemantics) System.out.println("Line "+lineCheck+": passed semantics");
 
 				if(!validSyntax || !validSemantics) {
 		    		if(!validSyntax) validSemantics = false; //SYNTAX ERROR
@@ -2254,7 +2254,8 @@ public class Interpreter {
 
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
-					
+			
+			System.out.println(currentLexeme);
 			
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isASpace(line.charAt(currPos)) || line.charAt(currPos-1) == '\"') {
@@ -2375,13 +2376,19 @@ public class Interpreter {
 	//check if the lexeme is a possible keyword used as a variable identifier
 	public boolean isAVariable() {
 		String tkn;
-		
-		if(tokens.size()!=0) {
-			for(int i=tokens.size()-1;i!=0;i--) {
-				tkn = tokens.get(i).getLexeme();
-				if(tkn.equals(Token.I_HAS_A) || tkn.equals(Token.VISIBLE)) return true;
-				else if(!tkn.equals(Token.BTW) || !tkn.equals(Token.TLDR)) return false;
-			}			
+
+		if(currentLexeme.contains(" R ")) return true;
+
+		if(tokensPerLine.size()>0) {
+			tkn = tokensPerLine.get(0).getLexeme();
+			if(tkn.equals(Token.I_HAS_A) || tkn.equals(Token.VISIBLE)) return true;
+			else return false;		
+		} 
+				
+		if(tokens.size()>0) {
+			tkn = tokens.get(tokens.size()-1).getLexeme();
+			if(tkn.equals(Token.BTW) || tkn.equals(Token.TLDR)) return false;
+			else return true;		
 		}
 
 		return false;		
