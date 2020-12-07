@@ -529,9 +529,9 @@ public class Interpreter {
 		
 		
 		outputDisplayText += visibleValue;
-		symbols.get(0).setValue(visibleValue);
-		symbols.get(0).setDataType(Symbol.STRING);
-		System.out.println("Symbol: "+symbols.get(0).getSymbol() + " Data Type: " + symbols.get(0).getDataType());
+		//symbols.get(0).setValue(visibleValue);
+		//symbols.get(0).setDataType(Symbol.STRING);
+		//System.out.println("Symbol: "+symbols.get(0).getSymbol() + " Data Type: " + symbols.get(0).getDataType());
 		
 
 		if(appendNewLine) outputDisplayText += "\n";						
@@ -1238,11 +1238,12 @@ public class Interpreter {
 	//SYNTAX FOR COMPARISON OPERATIONS
 	private boolean comparisonSyntax(ArrayList<Token> comparisonTokens) {
 		Stack<Token> checker = new Stack<Token>();
-		int exprCount = 0, opCount = 0, anCount = 0;
+		int exprCount = 0, opCount = 0, anCount = 0, yarnCount=0, delimiterCount = 0;
 		boolean startingPopped = false;
 		
 		
 		for(int i=0; i<comparisonTokens.size(); i++) {
+			System.out.println("compToken: " + comparisonTokens.get(i).getLexeme());
 			//implies that another operation has started in the same line
 			if(startingPopped) return false; 
 		
@@ -1254,9 +1255,15 @@ public class Interpreter {
 			} else if(comparisonTokens.get(i).getLexeme().equals(Token.AN)) {
 				//if an is encountered, add to an count
 				anCount++;
-			} else if(comparisonTokens.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+			} else if(comparisonTokens.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
 				//if num/var is encountered, add to an operand count
 				opCount++;
+			} else if(comparisonTokens.get(i).getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER)) {
+				//if an is encountered, add to an count
+				delimiterCount++;
+			}  else if(comparisonTokens.get(i).getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
+				//if an is encountered, add to an count
+				yarnCount++;
 			} else {
 				//lexeme does not belong in this expression
 				return false;
@@ -1264,7 +1271,7 @@ public class Interpreter {
 			
 			//pop stack after detecting two operands
 			if(anCount >= 2) return false;
-			if((opCount == 2 && anCount == 1) || (exprCount >= 1 && opCount >= 1 && anCount == 1)) {
+			if((opCount == 2 && anCount == 1) || (exprCount >= 1 && opCount >= 1 && anCount == 1) || (exprCount >= 1 && yarnCount >= 1 && (delimiterCount == yarnCount*2) && anCount == 1) || (yarnCount == 2 && (delimiterCount == yarnCount*2) && anCount == 1) || (opCount == 1 && yarnCount == 1 && (delimiterCount == yarnCount*2) && anCount == 1)) {
 				if(!checker.isEmpty()) {
 					if(checker.size() == 1) startingPopped = true;
 					checker.pop();
@@ -1274,6 +1281,23 @@ public class Interpreter {
 					if(((exprCount >= 1 && opCount >= 1 && anCount == 1))) {
 						opCount--;
 						exprCount--;
+					}
+					
+					if((exprCount >= 1 && yarnCount >= 1 && (delimiterCount == yarnCount*2) && anCount == 1)) {
+						yarnCount--;
+						exprCount--;
+						delimiterCount-=2;
+					}
+					
+					if(yarnCount == 2 && (delimiterCount == yarnCount*2) && anCount == 1) {
+						yarnCount =0;
+						delimiterCount =0;
+					}
+					
+					if((opCount == 1 && yarnCount == 1 && (delimiterCount == yarnCount*2) && anCount == 1)) {
+						opCount = 0;
+						yarnCount =0;
+						delimiterCount =0;
 					}
 					
 					anCount--;
@@ -1287,151 +1311,151 @@ public class Interpreter {
 	
 	//SEMANTICS FOR COMPARISON OPERATIONS
 	private String comparisonExecute(String dataHolder,ArrayList<Token> compToken) {
-		Stack<Number> operation = new Stack<Number>();
-		Boolean isNumber = true;
-		//since operations are in prefix, reverse the tokens 
+		Stack<String> operation = new Stack<String>();
 		Collections.reverse(compToken);
 		
 		for(Token tkn: compToken) {
-			//System.out.println(tkn.getLexeme());
-			//case 1: numbar - floating points
-			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
-				operation.push(parseFloat(tkn));
-			//case 2: numbr - integer
-			}else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
-				operation.push(parseInt(tkn));
-			//case 3: varident
-			}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
+			if(tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
+				operation.push(tkn.getLexeme());
+			}else if(isAVarident(tkn.getClassification())) {
+				Symbol var = isASymbol(tkn.getLexeme());
 				
-				Symbol s = isASymbol(tkn.getLexeme());
-				if(s != null && !s.getDataType().equals(Symbol.UNINITIALIZED)) {	
-						//check its value's data type
-						String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
-						//varident is a numbar
-						if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
-						
-						//varident is a numbr
-						else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
-						
-						//varident is a WIN (true)
-						else if(s.getValue().equals(Token.WIN_TROOF_LITERAL)) operation.push(1); 
-						
-						//varident is a FAIL (false)
-						else if(s.getValue().equals(Token.FAIL_TROOF_LITERAL)) operation.push(0); 
-						
-						//varident is a yarn, pero nababasa ni valid lexeme as variable ident?
-						else if(classification.equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) isNumber = false;
-						else isNumber = false;
-					}
+				if(var != null && !var.getDataType().equals(Symbol.UNINITIALIZED)) {
+					operation.push(var.getValue());
+				}
 				else {
 					validSemantics = false;
-					break;
+					return null;
 				}
+			} else if(tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER)){
+				continue;
+			} else if(Token.COMPARISON_OPERATORS.contains(tkn.getClassification())) {
+				viewStack(operation);
+				String op1 = operation.pop();
+				String op2 = operation.pop();
 				
-			//if operation is detected, pop 2 operands and perform the operation
-			}else if(Token.COMPARISON_OPERATORS.contains(tkn.getClassification()) || Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
+				String classificationOp1 = isAValidLexeme(op1);
+				String classificationOp2 = isAValidLexeme(op2);
 				
+				switch(tkn.getClassification()) {
+					case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
+						if(classificationOp1.equals(classificationOp2)) {
+							if(op1.equals(op2)) operation.push(Token.WIN_TROOF_LITERAL);
+							else operation.push(Token.FAIL_TROOF_LITERAL);
+						}else operation.push(Token.FAIL_TROOF_LITERAL);
+						break;
+					case Token.DIFFRINT_CLASSIFIER: //o1 != o2
+						if(classificationOp1.equals(classificationOp2)) {
+							if(!op1.equals(op2)) {
+								operation.push(Token.WIN_TROOF_LITERAL);
+							}
+							else{
+								operation.push(Token.FAIL_TROOF_LITERAL);
+							}
+						}else{
+							operation.push(Token.WIN_TROOF_LITERAL);
+						}
+						
+						break;
+				}
+			} else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
 				boolean resultIsNumbar = false;
-				boolean resultIsNumbr = false;
-				if(isNumber) {
-					Number op1 = operation.pop();
-					Number op2 = operation.pop();
-					//check if one of the operands is numbar
-					if(op1 instanceof Float && op2 instanceof Float) resultIsNumbar = true;
-					if(op1 instanceof Integer && op2 instanceof Integer) resultIsNumbr = true;
-					
-					//if numbar, result must be float
-					if(resultIsNumbar) {
-						Float o1 = op1.floatValue();
-						Float o2 = op2.floatValue();
-						//perform the operation then push to stack
-						switch(tkn.getClassification()) {
-						case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
-							if(o1.equals(o2)) operation.push(1); //WIN
-							else operation.push(0); //FAIL
-							break;
-						case Token.DIFFRINT_CLASSIFIER: //o1 != o2
-							if(!o1.equals(o2)) operation.push(1); //WIN
-							else operation.push(0); //FAIL
-							break;
-						case Token.SUM_OF_CLASSIFIER:
-							operation.push(o1 + o2);
-							break;
-						case Token.DIFF_OF_CLASSIFIER:
-							operation.push(o1 - o2);
-							break;
-						case Token.PRODUKT_OF_CLASSIFIER:
-							operation.push(o1 * o2);
-							break;
-						case Token.QUOSHUNT_OF_CLASSIFIER:
-							operation.push(o1 / o2);
-							break;
-						case Token.MOD_OF_CLASSIFIER:
-							operation.push(o1 % o2);
-							break;
-						case Token.BIGGR_OF_CLASSIFIER:
-							if(o1 > o2) operation.push(o1);
-							else operation.push(o2);
-							break;
-						case Token.SMALLR_OF_CLASSIFIER:
-							if(o1 < o2) operation.push(o1);
-							else operation.push(o2);
-							break;
-						}
-					} else if(resultIsNumbr) {
-						//since no numbar val is detected, operands are assumed to be both numbr
-						int o1 = op1.intValue();
-						int o2 = op2.intValue();
-						//perform the operation then push to stack
-						switch(tkn.getClassification()) {
-						case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
-							if(o1 == o2) operation.push(1); //WIN
-							else operation.push(0); //FAIL
-							break;
-						case Token.DIFFRINT_CLASSIFIER: //o1 != o2
-							if(o1 != o2) operation.push(1); //WIN
-							else operation.push(0); //FAIL
-							break;
-						case Token.SUM_OF_CLASSIFIER:
-							operation.push(o1 + o2);
-							break;
-						case Token.DIFF_OF_CLASSIFIER:
-							operation.push(o1 - o2);
-							break;
-						case Token.PRODUKT_OF_CLASSIFIER:
-							operation.push(o1 * o2);
-							break;
-						case Token.QUOSHUNT_OF_CLASSIFIER:
-							operation.push(o1 / o2);
-							break;
-						case Token.MOD_OF_CLASSIFIER:
-							operation.push(o1 % o2);
-							break;
-						case Token.BIGGR_OF_CLASSIFIER:
-							if(o1 > o2) operation.push(o1);
-							else operation.push(o2);
-							break;
-						case Token.SMALLR_OF_CLASSIFIER:
-							if(o1 < o2) operation.push(o1);
-							else operation.push(o2);
-							break;
-						}
-					} else {
-						operation.push(0); //FAIL
-					}
+				String op1 = operation.pop();
+				String op2 = operation.pop();
+				
+				String classificationOp1 = isAValidLexeme(op1);
+				String classificationOp2 = isAValidLexeme(op2);
+
+				if(!(isADigit(classificationOp1) || isADigit(classificationOp2))) {
+					validSemantics = false;
+					return null;
 				}
+				
+				//check if one of the operands is numbar
+				if(classificationOp1.equals(Token.NUMBAR_LITERAL_CLASSIFIER) || classificationOp2.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) resultIsNumbar = true;
+				
+				//if numbar, result must be float
+				if(resultIsNumbar) {
+					Float o1 = Float.parseFloat(op1);
+					Float o2 = Float.parseFloat(op2);
+					
+					Float answer;
+					//perform the operation then push to stack
+					switch(tkn.getClassification()) {
+					case Token.SUM_OF_CLASSIFIER:
+						answer = o1 + o2;
+						operation.push(String.valueOf(answer));
+						break;
+					case Token.DIFF_OF_CLASSIFIER:
+						answer = o1 - o2;
+						operation.push(String.valueOf(answer));
+						break;
+					case Token.PRODUKT_OF_CLASSIFIER:
+						answer = o1 * o2;
+						operation.push(String.valueOf(answer));
+						break;
+					case Token.QUOSHUNT_OF_CLASSIFIER:
+						answer = o1 / o2;
+						operation.push(String.valueOf(answer));
+						break;
+					case Token.MOD_OF_CLASSIFIER:
+						answer = o1 % o2;
+						operation.push(String.valueOf(answer));
+						break;
+					case Token.BIGGR_OF_CLASSIFIER:
+						if(o1 > o2) operation.push(String.valueOf(o1));
+						else operation.push(String.valueOf(o2));
+						break;
+					case Token.SMALLR_OF_CLASSIFIER:
+						if(o1 < o2) operation.push(String.valueOf(o1));
+						else operation.push(String.valueOf(o2));
+						break;
+					}
+				} else {
+					//since no numbar val is detected, operands are assumed to be both numbr
+					int o1 = Integer.parseInt(op1);
+					int o2 = Integer.parseInt(op2);
+					
+					
+					int answer;
+					//perform the operation then push to stack
+					switch(tkn.getClassification()) {
+					case Token.SUM_OF_CLASSIFIER:
+						answer = o1 + o2;
+						operation.push(String.valueOf(answer));
+						break;
+					case Token.DIFF_OF_CLASSIFIER:
+						answer = o1 - o2;
+						operation.push(String.valueOf(answer));
+						break;
+					case Token.PRODUKT_OF_CLASSIFIER:
+						answer = o1 * o2;
+						operation.push(String.valueOf(answer));
+						break;
+					case Token.QUOSHUNT_OF_CLASSIFIER:
+						answer = o1 / o2;
+						operation.push(String.valueOf(answer));
+						break;
+					case Token.MOD_OF_CLASSIFIER:
+						answer = o1 % o2;
+						operation.push(String.valueOf(answer));
+						break;
+					case Token.BIGGR_OF_CLASSIFIER:
+						if(o1 > o2) operation.push(String.valueOf(o1));
+						else operation.push(String.valueOf(o2));
+						break;
+					case Token.SMALLR_OF_CLASSIFIER:
+						if(o1 < o2) operation.push(String.valueOf(o1));
+						else operation.push(String.valueOf(o2));
+						break;
+					}
+				} 
 			}
 		}
-
+		
 		//last item on the stack is the result
-		String answer = "";
-		if(isNumber) {
-			Number num = operation.pop();
-			if(num.equals(1)) answer = "WIN";
-			else if(num.equals(0)) answer = "FAIL";
-		} else answer = "FAIL";
+		String answer = operation.pop();
 
-		//if(isNumber == false) answer = "FAIL";
 		//set the value of the varident to the result
 		Symbol s = isASymbol(dataHolder);
 		if(s != null) {	
@@ -1639,8 +1663,7 @@ public class Interpreter {
 		Stack<String> operation = new Stack<String>();
 		
 		for(Token tkn: combiTokens) {
-			System.out.println("tkn: " + tkn.getLexeme());
-			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
+			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER) ) {
 				operation.push(tkn.getLexeme());
 			}else if(isAVarident(tkn.getClassification())) {
 				Symbol var = isASymbol(tkn.getLexeme());
@@ -1652,7 +1675,9 @@ public class Interpreter {
 					validSemantics = false;
 					return null;
 				}
-			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
+			}  else if(tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER)){
+				continue;
+			} else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
 				String op1 = operation.pop();
 				String op2 = operation.pop();
 				
