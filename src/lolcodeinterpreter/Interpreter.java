@@ -794,6 +794,8 @@ public class Interpreter {
 			boolean startingPopped = false;
 			
 			for(int i=0; i<opTokens.size(); i++) {
+				System.out.println(opTokens.get(i).getLexeme());
+				
 				//implies that another operation has started in the same line
 				if(startingPopped) {
 					if(i+1==opTokens.size() && opTokens.get(i).getLexeme().equals(Token.STRING_DELIMITER)) return true;
@@ -806,13 +808,34 @@ public class Interpreter {
 					
 					//if not starting arithmetic expression, increment exprCount (meaning it is a nested expression)
 					if(i > 0) exprCount++;
+					
+					if(opTokens.get(i+1).getClassification().equals(Token.AN_CLASSIFIER)) return false;
 				} else if(opTokens.get(i).getLexeme().equals(Token.AN)) {
 				//if an is encountered, add to an count
 					anCount++;
+					
+					if(i == opTokens.size()-1) {
+						return false;
+					}else if(!(opTokens.get(i+1).getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER) 
+							|| Token.LITERALS.contains(opTokens.get(i+1).getClassification()) 
+							|| Token.ARITHMETIC_EXPRESSIONS.contains(opTokens.get(i+1).getClassification())
+							|| isAVarident(opTokens.get(i+1).getClassification()))) {
+						return false;
+					}
 				
 				//if a varident or literal is detected, add to an operand count
 				} else if(opTokens.get(i).getClassification().equals(Token.YARN_LITERAL_CLASSIFIER) || isADigit(opTokens.get(i).getClassification()) || isAVarident(opTokens.get(i).getClassification()) ||
 							Token.LITERALS.contains(opTokens.get(i).getClassification())) {
+					
+					if(i < opTokens.size()-1) {
+						if(opTokens.get(i).getClassification().equals(Token.YARN_LITERAL_CLASSIFIER) 
+								&& !opTokens.get(i+2).getClassification().equals(Token.AN_CLASSIFIER)) {
+							return false;
+						}else if(!opTokens.get(i+1).getClassification().equals(Token.AN_CLASSIFIER)){
+							return false;
+						}
+					}
+					
 					opCount++;
 				}
 				
@@ -877,7 +900,7 @@ public class Interpreter {
 							//string detected
 							else if(s.getDataType().equals(Symbol.STRING)) {
 								//check its value's data type
-								String classification = isAValidLexeme(symbols.get(symbols.indexOf(s)).getValue());
+								String classification = getClass(symbols.get(symbols.indexOf(s)).getValue());
 								
 								//string is a numbar
 								if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
@@ -951,7 +974,7 @@ public class Interpreter {
 				}else if(tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
 					System.out.println("here");
 					//check its value's data type
-					String classification = isAValidLexeme(tkn.getLexeme());
+					String classification = getClass(tkn.getLexeme());
 					
 					//string is a numbar
 					if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(Float.parseFloat(tkn.getLexeme()));
@@ -990,9 +1013,17 @@ public class Interpreter {
 							operation.push(o1 * o2);
 							break;
 						case Token.QUOSHUNT_OF_CLASSIFIER:
+							if(o2 == 0) {
+								validSemantics = false;
+								return null;
+							}
 							operation.push(o1 / o2);
 							break;
 						case Token.MOD_OF_CLASSIFIER:
+							if(o2 == 0) {
+								validSemantics = false;
+								return null;
+							}
 							operation.push(o1 % o2);
 							break;
 						case Token.BIGGR_OF_CLASSIFIER:
@@ -1021,10 +1052,18 @@ public class Interpreter {
 							operation.push(o1 * o2);
 							break;	
 						case Token.QUOSHUNT_OF_CLASSIFIER:
+							if(o2 == 0) {
+								validSemantics = false;
+								return null;
+							}
 							operation.push(o1 / o2);
 							break;
 						case Token.MOD_OF_CLASSIFIER:
 							operation.push(o1 % o2);
+							if(o2 == 0) {
+								validSemantics = false;
+								return null;
+							}
 							break;
 						case Token.BIGGR_OF_CLASSIFIER:
 							if(o1 > o2) operation.push(o1);
@@ -1058,11 +1097,11 @@ public class Interpreter {
 				}
 			}
 			
-			if(!varExists) {
-				validSemantics = false;
-				return null;
-			}else return num;
-		}
+		if(!varExists) {
+			validSemantics = false;
+			return null;
+		}else return num;
+	}
 
 
 	//SYNTAX FOR BOOLEAN OPERATIONS
@@ -1395,10 +1434,18 @@ public class Interpreter {
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.QUOSHUNT_OF_CLASSIFIER:
+						if(o2 == 0) {
+							validSemantics = false;
+							return null;
+						}
 						answer = o1 / o2;
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.MOD_OF_CLASSIFIER:
+						if(o2 == 0) {
+							validSemantics = false;
+							return null;
+						}
 						answer = o1 % o2;
 						operation.push(String.valueOf(answer));
 						break;
@@ -1433,10 +1480,18 @@ public class Interpreter {
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.QUOSHUNT_OF_CLASSIFIER:
+						if(o2 == 0) {
+							validSemantics = false;
+							return null;
+						}
 						answer = o1 / o2;
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.MOD_OF_CLASSIFIER:
+						if(o2 == 0) {
+							validSemantics = false;
+							return null;
+						}
 						answer = o1 % o2;
 						operation.push(String.valueOf(answer));
 						break;
@@ -1559,6 +1614,24 @@ public class Interpreter {
 				//push to stack
 				 checker.push("TROOF");
 				
+			}else if(Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification())) {
+				continue;
+			}else if(currentToken.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)){
+				if(i == 0) {
+					if(!(combiTokens.get(i+2).getLexeme().equals(Token.AN) || combiTokens.get(i+2).getLexeme().equals(Token.NOT)))
+						System.out.println("here");
+						return false;
+				} else {
+					//if not last token, it must be followed with an AN
+					if(!combiTokens.get(i-2).getLexeme().equals(Token.AN)) {
+						System.out.println("what");
+						return false;
+					}
+						
+				}
+				
+				//push to stack
+				 checker.push("YARN");
 			}else if(isAVarident(currentToken.getClassification())) {
 				
 				if(i == 0) {
@@ -1624,7 +1697,7 @@ public class Interpreter {
 					
 					//if popped is not troof, then operand is not valid
 					
-					if(!(op1.equals("DIGIT") || op1.equals("VARIDENT")) || !(op2.equals("DIGIT") || op2.equals("VARIDENT"))) return false;
+					if(!(op1.equals("DIGIT") || op1.equals("VARIDENT") || op1.equals("YARN")) || !(op2.equals("DIGIT") || op2.equals("VARIDENT") || op2.equals("YARN"))) return false;
 					else{
 						popCount++;
 						checker.push("DIGIT");
@@ -1645,7 +1718,7 @@ public class Interpreter {
 					
 					//if popped is not troof, then operand is not valid
 					
-					if(!(op1.equals("DIGIT") || op1.equals("VARIDENT") || op1.equals("TROOF")) || !(op2.equals("DIGIT") || op2.equals("VARIDENT") || op2.equals("TROOF"))) return false;
+					if(!(op1.equals("DIGIT") || op1.equals("VARIDENT") || op1.equals("TROOF") || op1.equals("YARN")) || !(op2.equals("DIGIT") || op2.equals("VARIDENT") || op2.equals("TROOF") || op2.equals("YARN"))) return false;
 					else{
 						popCount++;
 						checker.push("TROOF");
@@ -1663,13 +1736,17 @@ public class Interpreter {
 		Stack<String> operation = new Stack<String>();
 		
 		for(Token tkn: combiTokens) {
-			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER) ) {
+			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
 				operation.push(tkn.getLexeme());
 			}else if(isAVarident(tkn.getClassification())) {
 				Symbol var = isASymbol(tkn.getLexeme());
 				
 				if(var != null && !var.getDataType().equals(Symbol.UNINITIALIZED)) {
-					operation.push(var.getValue());
+					if(var.getDataType().equals(Symbol.STRING)) {
+						operation.push("\""+var.getValue()+"\"");
+					}
+					
+					else operation.push(var.getValue());
 				}
 				else {
 					validSemantics = false;
@@ -1677,7 +1754,9 @@ public class Interpreter {
 				}
 			}  else if(tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER)){
 				continue;
-			} else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
+			}else if(tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
+				operation.push("\""+tkn.getLexeme()+"\"");
+			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
 				String op1 = operation.pop();
 				String op2 = operation.pop();
 				
@@ -1747,10 +1826,33 @@ public class Interpreter {
 				viewStack(operation);
 				boolean resultIsNumbar = false;
 				String op1 = operation.pop();
-				String op2 = operation.pop();
+				String classificationOp1 = getClass(op1);
 				
-				String classificationOp1 = isAValidLexeme(op1);
-				String classificationOp2 = isAValidLexeme(op2);
+				if(classificationOp1.equals(Token.YARN_LITERAL_CLASSIFIER)) {
+					op1 = op1.replace("\"", "");
+					
+					classificationOp1 = getClass(op1);
+					if(!isADigit(classificationOp1)) {
+						System.out.println("string not a digit");
+						validSemantics = false;
+						return null;
+					}
+				}
+				
+				String op2 = operation.pop();
+				String classificationOp2 = getClass(op2);
+				
+				if(classificationOp2.equals(Token.YARN_LITERAL_CLASSIFIER)) {
+					op2 = op2.replace("\"", "");
+					
+					classificationOp2 = getClass(op2);
+					if(!isADigit(classificationOp2)) {
+						System.out.println("string not a digit");
+						validSemantics = false;
+						return null;
+					}
+				}
+				
 				
 				System.out.println("class op1: "+classificationOp1+" vs class op2: "+classificationOp2);
 				
@@ -1784,10 +1886,18 @@ public class Interpreter {
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.QUOSHUNT_OF_CLASSIFIER:
+						if(o2 == 0) {
+							validSemantics = false;
+							return null;
+						}
 						answer = o1 / o2;
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.MOD_OF_CLASSIFIER:
+						if(o2 == 0) {
+							validSemantics = false;
+							return null;
+						}
 						answer = o1 % o2;
 						operation.push(String.valueOf(answer));
 						break;
@@ -1841,10 +1951,18 @@ public class Interpreter {
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.QUOSHUNT_OF_CLASSIFIER:
+						if(o2 == 0) {
+							validSemantics = false;
+							return null;
+						}
 						answer = o1 / o2;
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.MOD_OF_CLASSIFIER:
+						if(o2 == 0) {
+							validSemantics = false;
+							return null;
+						}
 						answer = o1 % o2;
 						operation.push(String.valueOf(answer));
 						break;
@@ -2355,7 +2473,7 @@ public class Interpreter {
 		if(Token.NUMBR_LITERAL.matcher(currentLexeme).matches()) return Token.NUMBR_LITERAL_CLASSIFIER;
 		if(Token.NUMBAR_LITERAL.matcher(currentLexeme).matches()) return Token.NUMBAR_LITERAL_CLASSIFIER;
 		if(Token.YARN_LITERAL.matcher(currentLexeme).matches()) return Token.YARN_LITERAL_CLASSIFIER;
-		if(isEmpty(currentLexeme)) return Symbol.UNINITIALIZED;
+		if(currentLexeme.equals(Token.WIN_TROOF_LITERAL) || currentLexeme.equals(Token.FAIL_TROOF_LITERAL)) return Token.TROOF_LITERAL_CLASSIFIER;
 		return Token.YARN_LITERAL_CLASSIFIER;
 	} 
 	
