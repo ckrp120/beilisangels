@@ -73,7 +73,7 @@ public class Interpreter {
     //FOR LEXICAL/SYNTAX/SEMANTIC ANALYSIS
     private String[] lines;
     private String currentLexeme,dialogText;
-    private int wordCheck,lineCheck,status;
+    private int wordCheck,lineCheck,status,orlyCount;
     private boolean validLexeme,validSyntax,validSemantics,readBack,conditionalStatement,switchStatement;
     private ArrayList<ArrayList<Token>> tokens = new ArrayList<ArrayList<Token>>();
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
@@ -234,6 +234,16 @@ public class Interpreter {
 				else validSyntax = false;
 			}
 			
+			//MEBBE
+			else if(tokensPerLine.get(0).getLexeme().equals(Token.MEBBE)) {
+				if(checkingIfStatement) {
+					if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(1).getClassification()) || 
+							Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(1).getClassification()) || Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(1).getClassification())) {
+						storeTokensToQueue(Token.O_RLY);
+					} else validSyntax = false;
+				} else validSyntax = false;
+			}
+			
 			//PRINT = VISIBLE
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
 				if(printSyntax()) {
@@ -301,7 +311,6 @@ public class Interpreter {
 			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || 
 					Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification())) {
 				if(combiSyntax(tokensPerLine)) {
-					//System.out.println("Passed!");
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					else combiExecute(Token.IT, tokensPerLine);
@@ -311,7 +320,6 @@ public class Interpreter {
 			
 			else if(Token.SMOOSH_CLASSIFIER.equals(tokensPerLine.get(0).getClassification())) {
 				if(smooshSyntax(tokensPerLine)) {
-					//System.out.println("Passed!");
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					else smooshExecute(Token.IT, tokensPerLine);
@@ -357,10 +365,11 @@ public class Interpreter {
 						storeTokensToQueue(Token.WTF);
 						switchCaseExecute();	
 					}
-					//check if ORLY, YA RLY and NO WAI are already in the if-then statement
-					else if((inProcessQueue(Token.O_RLY, Token.O_RLY) && inProcessQueue(Token.YA_RLY, Token.O_RLY) && inProcessQueue(Token.NO_WAI, Token.O_RLY) && checkingIfStatement) || executingIfStatement) {
+					//check if ORLY, YA RLY are already in the if-then statement
+					else if((inProcessQueue(Token.O_RLY, Token.O_RLY) && inProcessQueue(Token.YA_RLY, Token.O_RLY) && checkingIfStatement) || executingIfStatement) {
 						storeTokensToQueue(Token.O_RLY);
-						ifElseExecute();	
+						orlyCount--;
+						if(orlyCount==0) ifElseExecute();	
 					} else validSyntax = false;
 					break;
 				case Token.GTFO_CLASSIFIER:
@@ -372,20 +381,15 @@ public class Interpreter {
 				case Token.O_RLY_CLASSIFIER:
 					checkingIfStatement = true;
 					conditionalStatement = true;
+					orlyCount++;
 					storeTokensToQueue(Token.O_RLY);
 					break;
 				case Token.YA_RLY_CLASSIFIER:
-					if(checkingIfStatement && ifQueue.size() == 1) storeTokensToQueue(Token.O_RLY);
+					if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					else validSyntax=false;
 					break;
 				case Token.NO_WAI_CLASSIFIER:
-					if(checkingIfStatement && ifQueue.size() > 2) {
-						Iterator<ArrayList<Token>> iterator = ifQueue.iterator(); 
-						if(iterator.next().get(0).getLexeme().equals(Token.O_RLY)) {
-							if(iterator.next().get(0).getLexeme().equals(Token.YA_RLY)) storeTokensToQueue(Token.O_RLY);
-							else validSyntax=false;
-						} else validSyntax=false;
-					} else validSyntax=false;
+					if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					break;
 				default:
 					validSyntax=false;
@@ -2232,6 +2236,8 @@ public class Interpreter {
 		executingIfStatement = true;
 		//checks if it has entered case
 		boolean enteredCase = false;
+		//checks if it entered mebbe
+		boolean enteredMebbe = false;
 		
 		//set checking if then statement to false so that it would execute instructions
 		checkingIfStatement = false;
@@ -2241,6 +2247,9 @@ public class Interpreter {
 		
 		//store original value of LineCheck
 		int originalLineCheck = lineCheck;
+		
+		//store old IT value
+		Symbol oldIT = getIT();
 				
 		//change linecheck back to start of switch case
 		lineCheck -= queueSize;
@@ -2251,7 +2260,10 @@ public class Interpreter {
 			tokensPerLine = ifQueue.remove();
 			lineCheck++;
 			//skip O RLY?
-			if(i == 0) continue;
+			if(tokensPerLine.get(0).getLexeme().equals(Token.O_RLY)) {
+				enteredCase = false;
+				continue;
+			}
 			
 			//detects YA RLY (if-statement)
 			else if(tokensPerLine.get(0).getLexeme().equals(Token.YA_RLY)) {
@@ -2260,6 +2272,33 @@ public class Interpreter {
 					//compare IT and troof: if same, activate flag
 					if(getIT().getValue() == Token.WIN_TROOF_LITERAL) enteredCase = true;
 				} else continue; //skip if else
+			}
+			
+			//detects MEBBE
+			else if(tokensPerLine.get(0).getLexeme().equals(Token.MEBBE)) {	
+				System.out.println("case? " +enteredCase);
+				if(!enteredCase) {
+					combiExecute(Token.IT, tokensPerLine);
+					
+					Symbol it = getIT();
+					System.out.println("IT: " + it.getValue());
+
+					//if classification is the same, check if value is the same
+					if(it.getValue().equals(Token.WIN_TROOF_LITERAL)) {
+						//if same, activate flag
+						enteredCase = true;
+					} else {
+						Symbol s = isASymbol(Token.IT);
+						
+						if(s != null) {	
+							s.setValue(oldIT.getValue());
+							s.setDataType(oldIT.getDataType());
+						} else validSemantics = false;
+					}
+				} else enteredMebbe = true;
+				
+				Symbol it = getIT();
+				System.out.println("it.getValue(): " + it.getValue());
 			}
 			
 			//detects NO WAI (else-statement)
@@ -2277,7 +2316,7 @@ public class Interpreter {
 				ifQueue.clear();
 				executingIfStatement = false;
 				break;			
-			} else if(enteredCase) {
+			} else if(enteredCase && !enteredMebbe) {
 				checkSyntaxAndSemantics();
 				if(!validSemantics) return;
 			}
@@ -2858,6 +2897,7 @@ public class Interpreter {
 		fileString = "";
 		outputDisplayText = "";
 		lineCheck = 0;		
+		orlyCount =0;
 		validLexeme = true;
 		validSyntax = true;
 		validSemantics = true;
