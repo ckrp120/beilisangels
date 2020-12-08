@@ -5,10 +5,10 @@ BTW ARITH.LOL-----------------------------------------------
 	I HAS A y
 	I HAS A answer
 
-	VISIBLE "x: "
+	VISIBLE "x:: "
 	GIMMEH x
 
-	VISIBLE "y: "
+	VISIBLE "y:: "
 	GIMMEH y
 
 	answer R SUM OF x AN y
@@ -46,7 +46,7 @@ BTW BOOL.LOL-----------------------------------------------
   I HAS A flag4 ITZ WIN
   
   I HAS A flag5
-  flag5 R ALL OF flag AN anotherflag AN flag3 AN flag4
+  flag5 R ALL OF flag AN anotherflag AN flag3 AN flag4 MKAY
   VISIBLE flag5
 
 
@@ -79,7 +79,7 @@ BTW IO.LOL-----------------------------------------------
 
 	num1 R 15
 
-	VISIBLE "Enter value for num2: "
+	VISIBLE "Enter value for num2:: "
 
 	GIMMEH num2		BTW getting input from user
 
@@ -134,7 +134,7 @@ TLDR
   OIC
 
   BTW choice!=1 && choice!=2 && choice!=3
-  ALL OF DIFFRINT choice AN 1 AN DIFFRINT choice AN 2 AN DIFFRINT choice AN 3
+  ALL OF DIFFRINT choice AN 1 AN DIFFRINT choice AN 2 AN DIFFRINT choice AN 3 MKAY
 
   O RLY?
     YA RLY
