@@ -2537,6 +2537,12 @@ public class Interpreter {
 						
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isASpace(line.charAt(currPos)) || line.charAt(currPos-1) == '\"') {
+				boolean endsWithExclamation=false;
+				if(!currentLexeme.equals(Token.EXCLAMATION_POINT) && currentLexeme.endsWith("!")) {
+					endsWithExclamation=true;
+					currentLexeme = currentLexeme.substring(0, currentLexeme.length()-1);
+					System.out.println(currentLexeme+"----");
+				}
 				classification = isAValidLexeme(currentLexeme);
 				//if it is, then add it to the list of tokens
 				if(classification != null) {
@@ -2560,6 +2566,11 @@ public class Interpreter {
 									tokensPerLine.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
 									tokensPerLine.add(new Token(finalString, classification));
 									tokensPerLine.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
+									
+									if(endsWithExclamation) {
+										tokens.add(new Token(Token.EXCLAMATION_POINT, Token.EXCLAMATION_POINT_CLASSIFIER));
+										tokensPerLine.add(new Token(Token.EXCLAMATION_POINT, Token.EXCLAMATION_POINT_CLASSIFIER));
+									}
 									currentLexeme ="";
 								} else {
 									validLexeme = false;
@@ -2605,6 +2616,11 @@ public class Interpreter {
 					} else{
 						tokens.add(new Token(currentLexeme,classification));
 						tokensPerLine.add(new Token(currentLexeme,classification));
+						
+						if(endsWithExclamation) {
+							tokens.add(new Token(Token.EXCLAMATION_POINT, Token.EXCLAMATION_POINT_CLASSIFIER));
+							tokensPerLine.add(new Token(Token.EXCLAMATION_POINT, Token.EXCLAMATION_POINT_CLASSIFIER));
+						}
 						currentLexeme ="";
 					}						
 					wordCheck++;
