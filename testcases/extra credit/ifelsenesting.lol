@@ -1,46 +1,27 @@
-BTW for if-then nesting
+BTW for if-else nesting
 HAI
-  I HAS A a ITZ 12
-  I HAS A b ITZ 5
-
-  BOTH SAEM 18 AN SUM OF 12 AN b
-  O RLY?
-    YA RLY
-      VISIBLE IT
-      VISIBLE "it is the same"
-      b R 17
-      BOTH SAEM b AN DIFF OF a AN 5
-      VISIBLE IT
-      	YA RLY
-	      VISIBLE IT
-	      VISIBLE "it is the same"
-	      b R 17
-	      SUM OF b AN DIFF OF a AN 5
-	      VISIBLE IT
+	BOTH SAEM 1 AN 1
+	O RLY?
+	    YA RLY
+	    	BOTH SAEM 1 AN 2
+	    	O RLY?
+				YA RLY
+			    	VISIBLE "WIN WIN"
+			    NO WAI
+			    	VISIBLE "WIN FAIL"
+			OIC	
+		    VISIBLE "AFTER WIN"
 	    NO WAI
-	      VISIBLE IT
-	      VISIBLE "it is not!"
-	      b R 18
-	      DIFFRINT b AN SUM OF 12 AN b
-	      VISIBLE IT
-    NO WAI
-      VISIBLE IT
-      VISIBLE "it is not!"
-      b R 18
-      DIFFRINT b AN SUM OF 12 AN b
-      VISIBLE IT
-		YA RLY
-	      VISIBLE IT
-	      VISIBLE "it is the same"
-	      b R 17
-	      SUM OF b AN DIFF OF a AN 5
-	      VISIBLE IT
-	    NO WAI
-	      VISIBLE IT
-	      VISIBLE "it is not!"
-	      b R 18
-	      DIFFRINT b AN SUM OF 12 AN b
-	      VISIBLE IT
-  OIC
-
+		    BOTH SAEM 1 AN 2
+	    	O RLY?
+				YA RLY
+			    	VISIBLE "FAIL WIN"
+			    NO WAI
+			    	VISIBLE "FAIL FAIL"
+			OIC
+			VISIBLE "AFTER FAIL"
+	OIC
+	VISIBLE "ALWAYS PRINTS"
+	
+	BTW to changes values of lines 3, 6, 15
 KTHXBYE
