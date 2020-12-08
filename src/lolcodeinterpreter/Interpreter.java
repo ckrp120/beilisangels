@@ -275,20 +275,20 @@ public class Interpreter {
 			
 			//ARITHMETIC OPERATIONS
 			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
-				if(arithmeticSyntax(tokensPerLine)) {
+				if(combiSyntax(tokensPerLine)) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-					else arithmeticExecute(Token.IT,tokensPerLine);
+					else combiExecute(Token.IT,tokensPerLine);
 				}
 				else validSyntax = false;
 			}	
 			
 			//COMPARISON OPERATORS
 			else if(Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification()) ) {
-				if(comparisonSyntax(tokensPerLine)) {
+				if(combiSyntax(tokensPerLine)) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-					else comparisonExecute(Token.IT,tokensPerLine);
+					else combiExecute(Token.IT,tokensPerLine);
 				}
 				else validSyntax = false;
 			}
@@ -471,11 +471,11 @@ public class Interpreter {
 				//case 2.1: arith op
 				if(operation == 1) {
 					//check if the arithop has a valid syntax
-					if(arithmeticSyntax(opTokens)) {
+					if(combiSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else {
-							arithmeticExecute(Token.IT,opTokens);
+							combiExecute(Token.IT,opTokens);
 							visibleValue += symbols.get(0).getValue();
 							symbols.get(0).setValue(itValue);
 						}
@@ -525,11 +525,11 @@ public class Interpreter {
 				//case 2.4: comp op
 				else {	
 					//check if the compop has a valid syntax
-					if(comparisonSyntax(opTokens)) {
+					if(combiSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else {
-							comparisonExecute(Token.IT,opTokens);
+							combiExecute(Token.IT,opTokens);
 							visibleValue += symbols.get(0).getValue();
 							symbols.get(0).setValue(itValue);
 						}
@@ -689,10 +689,10 @@ public class Interpreter {
 				//case 2.2.1: arith op
 				if(operation == 1) {
 					//check if the arithop has a valid syntax
-					if(arithmeticSyntax(opToken)) {
+					if(combiSyntax(opToken)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else arithmeticExecute(identifier,opToken);
+						else combiExecute(identifier,opToken);
 					}
 					else validSyntax = false;
 					
@@ -723,10 +723,10 @@ public class Interpreter {
 				//case 2.2.4: comp op
 				else {	
 					//check if the compop has a valid syntax
-					if(comparisonSyntax(opToken)) {
+					if(combiSyntax(opToken)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else comparisonExecute(identifier,opToken);
+						else combiExecute(identifier,opToken);
 					}
 					else validSyntax = false;
 				}
@@ -787,10 +787,10 @@ public class Interpreter {
 				//case 2.2.1: arith op
 				if(operation == 1) {
 					//check if the arithop has a valid syntax
-					if(arithmeticSyntax(opTokens)) {
+					if(combiSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else arithmeticExecute(tokensPerLine.get(0).getLexeme(),opTokens);
+						else combiExecute(tokensPerLine.get(0).getLexeme(),opTokens);
 					}
 					else validSyntax = false;
 				}
@@ -820,10 +820,10 @@ public class Interpreter {
 				//case 2.2.3: comp op
 				else {	
 					//check if the compop has a valid syntax
-					if(comparisonSyntax(opTokens)) {
+					if(combiSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else comparisonExecute(tokensPerLine.get(0).getLexeme(),opTokens);
+						else combiExecute(tokensPerLine.get(0).getLexeme(),opTokens);
 					}
 					else validSyntax = false;
 				}
@@ -1593,7 +1593,7 @@ public class Interpreter {
 		Stack<String> checker = new Stack<String>();
 		Token currentToken;
 		int anCount = 0, popCount = 0;
-		
+		boolean mkayIsPresent = false;
 		//since prefix, read the line in reverse
 		Collections.reverse(combiTokens);
 		
@@ -1636,9 +1636,10 @@ public class Interpreter {
 						}
 						
 						checker.push("TROOF");
-					}
+					} else return false;
 				}
 			}else if(currentToken.getLexeme().equals(Token.ALL_OF) || currentToken.getLexeme().equals(Token.ANY_OF)) {
+				if(!mkayIsPresent) return false;
 				
 				//if it starts with ANY OF/ALL OF then num of stack is ignored since these are infinite arity operations
 				if(i == combiTokens.size()-1 && !combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
@@ -1770,7 +1771,7 @@ public class Interpreter {
 						popCount++;
 						checker.push("DIGIT");
 					}
-				}
+				}else return false;
 			}else if(Token.COMPARISON_OPERATORS.contains(currentToken.getClassification())){
 				//make sure it is not followed by an 'AN'
 				if(combiTokens.get(i-1).getLexeme().equals(Token.AN))
@@ -1791,24 +1792,30 @@ public class Interpreter {
 						popCount++;
 						checker.push("TROOF");
 					}
-				}
+				}else return false;
 			}else if(Token.MKAY_CLASSIFIER.equals(currentToken.getClassification())) {
-				System.out.println("what is this"+combiTokens.get(combiTokens.size()-1).getLexeme());
-				System.out.println(i);
-				System.out.println(combiTokens.get(combiTokens.size()-1).getLexeme().equals(Token.ALL_OF));
-				if(i != 0 && !(combiTokens.get(combiTokens.size()-1).getLexeme().equals(Token.ALL_OF) || combiTokens.get(combiTokens.size()-1).getLexeme().equals(Token.ANY_OF))) {
+				if(i != 0 || !(combiTokens.get(combiTokens.size()-1).getLexeme().equals(Token.ALL_OF) || combiTokens.get(combiTokens.size()-1).getLexeme().equals(Token.ANY_OF))) {
 					return false;
 				}
+				
+				mkayIsPresent = true;
 			}else return false; //lexeme does not belong in the expression			
 		}
 		
 		//there should only be 1 operand left and the number of ANs must match the number of operands
-		if((checker.size() == 1) && (anCount == popCount) && (checker.peek().equals("TROOF"))) return true;
+		if((checker.size() == 1) && (anCount == popCount)) {
+			//back to original state
+			Collections.reverse(combiTokens);
+			return true;
+		}
 		else return false;
 	}
 	
 	private String combiExecute(String dataHolder, ArrayList<Token> combiTokens) {
 		Stack<String> operation = new Stack<String>();
+
+		//since prefix, read the line in reverse
+		Collections.reverse(combiTokens);
 		
 		for(Token tkn: combiTokens) {
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
@@ -2078,31 +2085,21 @@ public class Interpreter {
 				String op1 = operation.pop();
 				String op2 = operation.pop();
 				
-				String classificationOp1 = isAValidLexeme(op1);
-				String classificationOp2 = isAValidLexeme(op2);
 				
 				switch(tkn.getClassification()) {
 					case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
-						if(classificationOp1.equals(classificationOp2)) {
-							if(op1.equals(op2)) operation.push(Token.WIN_TROOF_LITERAL);
-							else operation.push(Token.FAIL_TROOF_LITERAL);
-						}else operation.push(Token.FAIL_TROOF_LITERAL);
+						if(op1.equals(op2)) operation.push(Token.WIN_TROOF_LITERAL);
+						else operation.push(Token.FAIL_TROOF_LITERAL);
 						break;
 					case Token.DIFFRINT_CLASSIFIER: //o1 != o2
-						if(classificationOp1.equals(classificationOp2)) {
-							if(!op1.equals(op2)) {
-								System.out.println("Result: WIN");
-								operation.push(Token.WIN_TROOF_LITERAL);
-							}
-							else{
-								System.out.println("Result: FAIL");
-								operation.push(Token.FAIL_TROOF_LITERAL);
-							}
-						}else{
+						if(!op1.equals(op2)) {
 							System.out.println("Result: WIN");
 							operation.push(Token.WIN_TROOF_LITERAL);
 						}
-						
+						else{
+							System.out.println("Result: FAIL");
+							operation.push(Token.FAIL_TROOF_LITERAL);
+						}						
 						viewStack(operation);
 						break;
 				}
