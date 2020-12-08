@@ -445,7 +445,7 @@ public class Interpreter {
 						continue;
 					}
 					
-					if(isAVarident(currToken) || Token.LITERALS.contains(currToken) || string==2) {
+					if(isAVarident(currToken) || Token.LITERALS.contains(currToken) || string==2 || Token.MKAY_CLASSIFIER.equals(currToken)) {
 						string = 0;
 						if(i+1 != tokensPerLine.size()) {
 							
@@ -1593,13 +1593,17 @@ public class Interpreter {
 	private boolean combiSyntax(ArrayList<Token> combiTokens) {
 		Stack<String> checker = new Stack<String>();
 		Token currentToken;
-		int anCount = 0, popCount = 0;
+		int infArityOpCount = 0;
 		boolean mkayIsPresent = false;
 		//since prefix, read the line in reverse
 		Collections.reverse(combiTokens);
 		
 		for(int i=0; i < combiTokens.size(); i++) {
 			currentToken = combiTokens.get(i);
+			
+
+			System.out.println(currentToken.getLexeme() + " inf arity cnt: "+ infArityOpCount);
+			viewStack(checker);
 			
 			//if AN is detected, it must not be the last or starting token, and must not be followed by an AN
 			if(currentToken.getLexeme().equals(Token.AN)) {
@@ -1611,8 +1615,6 @@ public class Interpreter {
 				//followed by AN/MKAY
 				else if((combiTokens.get(i-1).getLexeme().equals(Token.AN) || combiTokens.get(i-1).getLexeme().equals(Token.MKAY)))
 					return false;
-				
-				else anCount++;
 			}else if(currentToken.getClassification().equals(Token.NOT_CLASSIFIER)) {
 			
 				//NOT is last token
@@ -1629,41 +1631,41 @@ public class Interpreter {
 					
 				
 				else {
-					if(checker.size() > 0) {
-						String op1 = checker.pop();
-						if(!(op1.equals("TROOF") || op1.equals("VARIDENT"))) {
-							System.out.println("here");
-							return false;
-						}
+					
+					//insufficient amount of operands
+					if(checker.size() == 0) return false;
 						
-						checker.push("TROOF");
-					} else return false;
+					
 				}
 			}else if(currentToken.getLexeme().equals(Token.ALL_OF) || currentToken.getLexeme().equals(Token.ANY_OF)) {
 				if(!mkayIsPresent) return false;
 				
 				//if it starts with ANY OF/ALL OF then num of stack is ignored since these are infinite arity operations
-				if(i == combiTokens.size()-1 && !combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
-					int stackSize = checker.size();
-					String op1;
-					String op2;
+				if(infArityOpCount > 1 && !combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
+					System.out.println("here");
 					
-					for(int k = 0; k < stackSize; k++) {
+					System.out.println("inf ar entered op count: "+infArityOpCount);
+					int popCnt = 0;	
+					while(popCnt < infArityOpCount-1) {
+						System.out.println(popCnt);
 						if(checker.size() > 1) {
-							op1 = checker.pop();
-							op2 = checker.pop();
+							checker.pop();
+							checker.pop();
+							checker.push("TROOF");
+							popCnt++;
+						}else {
 							
-							System.out.println("op1: "+op1);
-							System.out.println("op2: "+op2);
-							if(!(op1.equals("TROOF") || op1.equals("VARIDENT")) || !(op2.equals("TROOF") || op2.equals("VARIDENT"))) {
-								return false;
-							}
-							else{
-								popCount++;
-								checker.push("TROOF");
-							}
+							viewStack(checker);
+							System.out.println("here?? ");
+							validSemantics = false;
+							return false;
 						}
 					}
+					
+					viewStack(checker);
+					
+					infArityOpCount = 0;
+					mkayIsPresent = false;
 				}
 					 
 				
@@ -1682,7 +1684,7 @@ public class Interpreter {
 				
 				//push to stack
 				 checker.push("TROOF");
-				
+				if(mkayIsPresent) infArityOpCount++;
 			}else if(Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification())) {
 				continue;
 			}else if(currentToken.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)){
@@ -1702,6 +1704,7 @@ public class Interpreter {
 				
 				//push to stack
 				 checker.push("YARN");
+				 if(mkayIsPresent) infArityOpCount++;
 			}else if(isAVarident(currentToken.getClassification())) {
 				
 				if(i == 0) {
@@ -1714,7 +1717,7 @@ public class Interpreter {
 				}
 				
 				checker.push("VARIDENT");
-				
+				if(mkayIsPresent) infArityOpCount++;
 			}else if(isADigit(currentToken.getClassification())) {
 				if(i == 0) {
 					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
@@ -1726,6 +1729,7 @@ public class Interpreter {
 				}
 				
 				checker.push("DIGIT");
+				if(mkayIsPresent) infArityOpCount++;
 			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(currentToken.getClassification())) {
 				//make sure it is not followed by an 'AN'
 				if(combiTokens.get(i-1).getLexeme().equals(Token.AN))
@@ -1738,16 +1742,10 @@ public class Interpreter {
 				
 				//pop one operand
 				if(checker.size() > 1) {
-					String op1 = checker.pop();
-					String op2 = checker.pop();
-					
-					//if popped is not troof, then operand is not valid
-					
-					if(!(op1.equals("TROOF") || op1.equals("VARIDENT")) || !(op2.equals("TROOF") || op2.equals("VARIDENT"))) return false;
-					else{
-						popCount++;
-						checker.push("TROOF");
-					}
+					checker.pop();
+					checker.pop();
+					checker.push("TROOF");
+					if(mkayIsPresent) infArityOpCount--;
 				}
 				
 				//insufficient amount of operands
@@ -1762,16 +1760,10 @@ public class Interpreter {
 				
 				//pop one operand
 				if(checker.size() > 1) {
-					String op1 = checker.pop();
-					String op2 = checker.pop();
-					
-					//if popped is not troof, then operand is not valid
-					
-					if(!(op1.equals("DIGIT") || op1.equals("VARIDENT") || op1.equals("YARN")) || !(op2.equals("DIGIT") || op2.equals("VARIDENT") || op2.equals("YARN"))) return false;
-					else{
-						popCount++;
-						checker.push("DIGIT");
-					}
+					checker.pop();
+					checker.pop();
+					checker.push("DIGIT");
+					if(mkayIsPresent) infArityOpCount--;
 				}else return false;
 			}else if(Token.COMPARISON_OPERATORS.contains(currentToken.getClassification())){
 				//make sure it is not followed by an 'AN'
@@ -1783,33 +1775,49 @@ public class Interpreter {
 				
 				//pop one operand
 				if(checker.size() > 1) {
-					String op1 = checker.pop();
-					String op2 = checker.pop();
-					
-					//if popped is not troof, then operand is not valid
-					
-					if(!(op1.equals("DIGIT") || op1.equals("VARIDENT") || op1.equals("TROOF") || op1.equals("YARN")) || !(op2.equals("DIGIT") || op2.equals("VARIDENT") || op2.equals("TROOF") || op2.equals("YARN"))) return false;
-					else{
-						popCount++;
-						checker.push("TROOF");
-					}
+					checker.pop();
+					checker.pop();
+					checker.push("TROOF");
+					if(mkayIsPresent) infArityOpCount--;
 				}else return false;
 			}else if(Token.MKAY_CLASSIFIER.equals(currentToken.getClassification())) {
-				if(i != 0 || !(combiTokens.get(combiTokens.size()-1).getLexeme().equals(Token.ALL_OF) || combiTokens.get(combiTokens.size()-1).getLexeme().equals(Token.ANY_OF))) {
-					return false;
+				if(mkayIsPresent) return false;
+				
+				if(i == 0) {
+					String nextToken = combiTokens.get(i+1).getClassification();
+					if(!(Token.LITERALS.contains(nextToken) || isAVarident(nextToken) || Token.STRING_DELIMITER_CLASSIFIER.equals(nextToken))) {
+						System.out.println("how did we get here");
+						return false;
+					}
+						
+				} else {
+					//if not last token, it must be followed with an AN/MKAY
+					if(!(combiTokens.get(i-1).getLexeme().equals(Token.AN))) {
+						System.out.println("when i used to know you so well");
+						return false;
+					}
+						
 				}
 				
 				mkayIsPresent = true;
 			}else return false; //lexeme does not belong in the expression			
+		
 		}
 		
-		//there should only be 1 operand left and the number of ANs must match the number of operands
-		if((checker.size() == 1) && (anCount == popCount)) {
+		//there should only be 1 operand left
+		if((checker.size() == 1) && infArityOpCount == 0) {
 			//back to original state
 			Collections.reverse(combiTokens);
 			return true;
 		}
-		else return false;
+		else {
+			viewStack(checker);
+			System.out.println("inf arity op count: "+infArityOpCount);
+			System.out.println(checker.size());
+			System.out.println("here");
+			return false;
+		
+		}
 	}
 	
 	private String combiExecute(String dataHolder, ArrayList<Token> combiTokens) {
@@ -1817,10 +1825,17 @@ public class Interpreter {
 
 		//since prefix, read the line in reverse
 		Collections.reverse(combiTokens);
+		int infArityOpCount = 0;
+		boolean mkayIsPresent = false;
+		
 		
 		for(Token tkn: combiTokens) {
+			System.out.println("Welcome to the Black Parade" + tkn.getLexeme());
+			viewStack(operation);
+			
 			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
 				operation.push(tkn.getLexeme());
+				if(mkayIsPresent) infArityOpCount++;
 			}else if(isAVarident(tkn.getClassification())) {
 				Symbol var = isASymbol(tkn.getLexeme());
 				
@@ -1830,6 +1845,8 @@ public class Interpreter {
 					}
 					
 					else operation.push(var.getValue());
+					
+					if(mkayIsPresent) infArityOpCount++;
 				}
 				else {
 					validSemantics = false;
@@ -1839,15 +1856,17 @@ public class Interpreter {
 				continue;
 			}else if(tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
 				operation.push("\""+tkn.getLexeme()+"\"");
+				if(mkayIsPresent) infArityOpCount++;
+			}else if(tkn.getClassification().equals(Token.MKAY_CLASSIFIER)) {
+				mkayIsPresent = true;
 			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
 				String op1 = operation.pop();
-				String op2 = operation.pop();
+				String classificationOp1 = getClass(op1);
+				if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = Token.WIN_TROOF_LITERAL;
 				
-				if(!((op1.equals(Token.WIN_TROOF_LITERAL) || op1.equals(Token.FAIL_TROOF_LITERAL))
-						&& (op2.equals(Token.WIN_TROOF_LITERAL) || op2.equals(Token.FAIL_TROOF_LITERAL)))) {
-					validSemantics = false;
-					return null;
-				}
+				String op2 = operation.pop();
+				String classificationOp2 = getClass(op2);
+				if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = Token.WIN_TROOF_LITERAL;
 				
 				switch(tkn.getClassification()) {
 					case Token.BOTH_OF_CLASSIFIER:
@@ -1861,47 +1880,62 @@ public class Interpreter {
 						break;
 				}
 				
+				if(mkayIsPresent) infArityOpCount--;
+				
 			}else if(Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
 				String op1;
-			
 				
 				if(tkn.getLexeme().equals(Token.NOT)) {
 					op1 = operation.pop();
-					if(!(op1.equals(Token.WIN_TROOF_LITERAL) || op1.equals(Token.FAIL_TROOF_LITERAL))) {
-						validSemantics = false;
-						break;
-					}
+					String classificationOp1 = getClass(op1);
+					if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = Token.WIN_TROOF_LITERAL;
 					
 					operation.push(notOperator(op1));
 				}else {
 					String op2;
 					
-					int currentStackSize = operation.size();
 					if(tkn.getLexeme().equals(Token.ANY_OF)) {
-						for(int j = 0; j < currentStackSize-1; j++) {
+						
+						int popCnt = 0;
+						while(popCnt < infArityOpCount-1) {
 							op1 = operation.pop();
+							String classificationOp1 = getClass(op1);
+							if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = Token.WIN_TROOF_LITERAL;
+							
+							
 							op2 = operation.pop();
-							if(!((op1.equals(Token.WIN_TROOF_LITERAL) || op1.equals(Token.FAIL_TROOF_LITERAL))
-									&& (op2.equals(Token.WIN_TROOF_LITERAL) || op2.equals(Token.FAIL_TROOF_LITERAL)))) {
-								validSemantics = false;
-								return null;
-							}
+							String classificationOp2 = getClass(op2);
+							if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = Token.WIN_TROOF_LITERAL;
+							
 							
 							operation.push(orOperator(op1, op2));
+							popCnt++;
+							System.out.println("popCnt: "+ popCnt+" infArityOpcount-1 "+(infArityOpCount-1));
+							viewStack(operation);
 						}
+						infArityOpCount = 0;
+						mkayIsPresent = false;
 					}else {
-						for(int j = 0; j < currentStackSize-1; j++) {
+						int popCnt = 0;
+						while(popCnt < infArityOpCount-1) {
 							op1 = operation.pop();
+							
+							String classificationOp1 = getClass(op1);
+							if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = "WIN";
+							
+							
 							op2 = operation.pop();
-							if(!((op1.equals(Token.WIN_TROOF_LITERAL) || op1.equals(Token.FAIL_TROOF_LITERAL))
-									&& (op2.equals(Token.WIN_TROOF_LITERAL) || op2.equals(Token.FAIL_TROOF_LITERAL)))) {
-								validSemantics = false;
-								return null;
-							}
+							String classificationOp2 = getClass(op2);
+							if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = "WIN";
 							
 							operation.push(andOperator(op1, op2));
+							popCnt++;
+							System.out.println("popCnt: "+ popCnt+" infArityOpcount-1 "+(infArityOpCount-1));
+							viewStack(operation);
 						}
 						
+						infArityOpCount = 0;
+						mkayIsPresent = false;
 					}
 				}
 			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
@@ -1920,6 +1954,11 @@ public class Interpreter {
 						validSemantics = false;
 						return null;
 					}
+				}else if(classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) {
+					System.out.println("op1 troof detected");
+					
+					if(op1.equals(Token.WIN_TROOF_LITERAL)) op1 = "1";
+					else op1 = "0";
 				}
 				
 				String op2 = operation.pop();
@@ -1934,20 +1973,19 @@ public class Interpreter {
 						validSemantics = false;
 						return null;
 					}
+				}else if(classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) {
+					if(op2.equals(Token.WIN_TROOF_LITERAL)) op2 = "1";
+					else op2 = "0";
 				}
 				
-				
+				classificationOp1 = getClass(op1);
+				classificationOp2 = getClass(op2);
 				System.out.println("class op1: "+classificationOp1+" vs class op2: "+classificationOp2);
-				
-				if(!(isADigit(classificationOp1) || isADigit(classificationOp2))) {
-					validSemantics = false;
-					return null;
-				}
 				
 				//check if one of the operands is numbar
 				if(classificationOp1.equals(Token.NUMBAR_LITERAL_CLASSIFIER) || classificationOp2.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) resultIsNumbar = true;
 				
-				
+				if(mkayIsPresent) infArityOpCount--;
 				//if numbar, result must be float
 				if(resultIsNumbar) {
 					Float o1 = Float.parseFloat(op1);
@@ -2008,7 +2046,6 @@ public class Interpreter {
 							System.out.println("SMALLR: "+o2);
 							operation.push(String.valueOf(o2));
 						}
-						
 						viewStack(operation);
 						break;
 					}
@@ -2086,7 +2123,7 @@ public class Interpreter {
 				String op1 = operation.pop();
 				String op2 = operation.pop();
 				
-				
+				if(mkayIsPresent) infArityOpCount--;
 				switch(tkn.getClassification()) {
 					case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
 						if(op1.equals(op2)) operation.push(Token.WIN_TROOF_LITERAL);
@@ -2380,7 +2417,7 @@ public class Interpreter {
 					concat += tkn.getLexeme();
 				}else if(isAVarident(tkn.getClassification())) {
 					Symbol var = isASymbol(tkn.getLexeme());
-					if(var != null || var.getDataType().equals(Symbol.UNINITIALIZED)) {
+					if(var != null && var.getDataType().equals(Symbol.UNINITIALIZED)) {
 						concat += var.getValue();
 					}else {
 						validSemantics = false;
