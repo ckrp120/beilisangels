@@ -18,7 +18,7 @@ public class Token {
 	//LITERALS
 	public final static Pattern NUMBR_LITERAL = Pattern.compile("-?[0-9]+");
 	public final static Pattern NUMBAR_LITERAL = Pattern.compile("-?[0-9]+\\.[0-9]+");
-	public final static Pattern YARN_LITERAL = Pattern.compile("(\")([^\"]*)(\")");
+	public final static Pattern YARN_LITERAL = Pattern.compile("(\")(.*)(\")");
 	public final static String WIN_TROOF_LITERAL = "WIN";
 	public final static String FAIL_TROOF_LITERAL = "FAIL";
 	public final static String NUMBR_TYPE_LITERAL = "NUMBR";
@@ -79,7 +79,11 @@ public class Token {
 	//DELIMITERS
 	public final static String STRING_DELIMITER = "\"";
 	public final static String EXCLAMATION_POINT = "!";
-	
+	public final static Pattern NEWLINE = Pattern.compile(":[)]");	
+	public final static Pattern TAB = Pattern.compile(":>");	
+	public final static Pattern BELL = Pattern.compile(":o");	
+	public final static Pattern DOUBLE_QUOTE = Pattern.compile(":\"");	
+	public final static Pattern COLON = Pattern.compile("::");		
 	
 	//CLASSIFICATION OF TOKENS
 	

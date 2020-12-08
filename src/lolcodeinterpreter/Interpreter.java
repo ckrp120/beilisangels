@@ -12,6 +12,7 @@ import java.util.Queue;
 import java.util.Scanner;
 import java.util.Stack;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -2536,7 +2537,7 @@ public class Interpreter {
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
 			
-			System.out.println(currentLexeme);
+			System.out.println(currentLexeme+"-");
 			
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isASpace(line.charAt(currPos)) || line.charAt(currPos-1) == '\"') {
@@ -2546,18 +2547,34 @@ public class Interpreter {
 					acceptedLexeme = true;
 					
 					//if a string is detected, add the start quote, string literal, and end quote individually
-					if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {						
-						//matcher to capture group
-						Matcher m = Token.YARN_LITERAL.matcher(currentLexeme);
-	
-						if(m.find()) {
-							tokens.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
-							tokens.add(new Token(m.group(2), classification));
-							tokens.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
+					if(classification.equals(Token.YARN_LITERAL_CLASSIFIER)) {
+						System.out.println("curr lexm: "+currentLexeme + "-");
+						System.out.println("secd char: "+currentLexeme.charAt(currentLexeme.length()-2) + "-");
+						System.out.println("last char: "+currentLexeme.charAt(currentLexeme.length()-1) + "-");
+						System.out.println("ends with :\"? "+currentLexeme.endsWith(":\""));
+						
+						if(!currentLexeme.endsWith(":\"") ||
+							(currentLexeme.endsWith(":\"") && currentLexeme.charAt(currentLexeme.length()-3)==':')) {
+							System.out.println("accepted");
+							//matcher to capture group
+							Matcher m = Token.YARN_LITERAL.matcher(currentLexeme);
 							
-							tokensPerLine.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
-							tokensPerLine.add(new Token(m.group(2), classification));
-							tokensPerLine.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
+							if(m.find()) {
+								String finalString = finalString(m.group(2));
+								if(finalString!=null) {
+									tokens.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
+									tokens.add(new Token(finalString, classification));
+									tokens.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
+									
+									tokensPerLine.add(new Token(m.group(1), Token.STRING_DELIMITER_CLASSIFIER));
+									tokensPerLine.add(new Token(finalString, classification));
+									tokensPerLine.add(new Token(m.group(3), Token.STRING_DELIMITER_CLASSIFIER));
+									currentLexeme ="";
+								}
+							} 
+						} else {
+							System.out.println("not accepted");
+							acceptedLexeme = false;
 						}
 					
 					//if a comment is detected, ignore whatever comes after it
@@ -2594,9 +2611,8 @@ public class Interpreter {
 					} else{
 						tokens.add(new Token(currentLexeme,classification));
 						tokensPerLine.add(new Token(currentLexeme,classification));
-					}
-						
-					currentLexeme ="";
+						currentLexeme ="";
+					}						
 					wordCheck++;
 				}
 			}	
@@ -2692,6 +2708,56 @@ public class Interpreter {
 		}
 	}
 	
+	public String finalString(String currLexeme) {
+		String finalString="";
+		char currChar;
+		int i=0;
+		
+		while(i<currentLexeme.length()-1) {
+			currChar = currentLexeme.charAt(i);
+			finalString += currChar;
+			i++;
+			System.out.println(finalString+"-");
+			if(currChar==':') {
+				currChar = currentLexeme.charAt(i);
+				System.out.println(": detected");
+				System.out.println("length: "+i);
+				
+				if(i<currentLexeme.length()-1 && correctEscapeCharacter(currChar)) {
+					finalString += currChar;
+					i++;				
+				} else return null;
+			}
+		}
+		
+		if(finalString.contains(":)")) {
+			Matcher newline = Token.NEWLINE.matcher(finalString);       
+			if(newline.find()) finalString = finalString.replace(newline.group(),"\n");
+		}
+		
+		if(finalString.contains(":>")) {
+			Matcher tab = Token.TAB.matcher(finalString);       
+			if(tab.find()) finalString = finalString.replace(tab.group(),"\t");
+		}
+		if(finalString.contains(":o")) {
+			Matcher bell = Token.BELL.matcher(finalString);       
+			if(bell.find()) finalString = finalString.replace(bell.group(),"g");
+		}
+		if(finalString.contains(":\"")) {
+			Matcher double_quote = Token.DOUBLE_QUOTE.matcher(finalString);       
+			if(double_quote.find()) finalString = finalString.replace(double_quote.group(),"\"");
+		}
+		if(finalString.contains("::")) {
+			Matcher colon = Token.COLON.matcher(finalString);       
+			if(colon.find()) finalString = finalString.replace(colon.group(),":");
+		}
+     
+		return finalString;
+	}
+	
+	public boolean correctEscapeCharacter(char c) {
+		return c==')' || c=='>' ||  c=='o' || c=='\"' || c==':';                                 
+	}
 	
 	//check if the character is a space
 	public boolean isASpace(char c) {

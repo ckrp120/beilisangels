@@ -36,5 +36,6 @@ HAI
   VISIBLE var9
   VISIBLE var10
   VISIBLE var11
+  VISIBLE "hi:>:o,:)- I'm pi. My :"value:" is ::" 3.14 !
 
 KTHXBYE
