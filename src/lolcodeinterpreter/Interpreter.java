@@ -598,6 +598,8 @@ public class Interpreter {
 		if((s = isASymbol(tokensPerLine.get(1).getLexeme())) != null) {
 			outputDisplay.setText(outputDisplayText);
 			//get user input
+			clearTable();
+			populateTable();
 	        getInput(s,dialogText);
 		} else validSemantics = false;
 	}
@@ -619,7 +621,6 @@ public class Interpreter {
             	
             	//automatically typecast based on input
             	s.setDataType(getDataType(value));
-            	outputDisplayText += value;
             	outputDisplayText += value + "\n";
     			outputDisplay.setText(outputDisplayText);
             });	
@@ -2955,6 +2956,12 @@ public class Interpreter {
     	for(Symbol symbol: symbols) symbolTableView.getItems().add(symbol);
     }
     
+    private void clearTable() {
+    	//clear table
+		for(int i=0; i<lexemeTableView.getItems().size(); i++) lexemeTableView.getItems().clear();
+		for(int i=0; i<symbolTableView.getItems().size(); i++) symbolTableView.getItems().clear();
+    }
+    
     private void showError() {  	
     	//update GUI to show fail
     	passIndicator.setImage(cryingImg);
@@ -2985,7 +2992,8 @@ public class Interpreter {
     }
     
     private void showPass() {
-    	populateTable();
+		clearTable();
+		populateTable();		
 		outputDisplay.setText(outputDisplayText);
 		passIndicator.setImage(happyImg);
 		lexicalIndicator.setImage(lexicalPassImg);
