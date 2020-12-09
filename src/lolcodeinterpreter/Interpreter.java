@@ -4,7 +4,6 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -624,7 +623,6 @@ public class Interpreter {
             	//automatically typecast based on input
             	s.setDataType(getDataType(value));
             	outputDisplayText += value + "\n";
-    			outputDisplay.setText(outputDisplayText);
             });	
         //else, error
         } else {
@@ -667,7 +665,7 @@ public class Interpreter {
 		else if(tokensPerLine.size() == 2) {
 			symbols.add(new Symbol(identifier,Token.NOOB_TYPE_LITERAL, Symbol.UNINITIALIZED));	
 		//case 2: I HAS A var ITZ var/lit/expr
-		} else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
+		} else {
 			//case 2.1: varident
 			if(isAVarident(litClass)) {	
 				Symbol s = isASymbol(tokensPerLine.get(3).getLexeme());
@@ -688,32 +686,9 @@ public class Interpreter {
 				//copy the tokens starting from the operation
 				for(int i=3;i<tokensPerLine.size();i++)
 					opToken.add(tokensPerLine.get(i));
-
-				//case 2.2.1: arith op
-				if(operation == 1) {
-					//check if the arithop has a valid syntax
-					if(combiSyntax(opToken)) {
-						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else combiExecute(identifier,opToken);
-					}
-					else validSyntax = false;
-					
-				}
-
-				//case 2.2.2: bool op
-				else if(operation == 2 || operation == 3) {	
-					//check if the boolop has a valid syntax
-					if(combiSyntax(opToken)) {
-						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else combiExecute(identifier,opToken);
-					}
-					else validSyntax = false;
-				}
 				
-				//case 2.2.3
-				else if(operation == 4) {
+				//case: smoosh
+				if(operation == 4) {
 					//check if the concat op has a valid syntax
 					if(smooshSyntax(opToken)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
@@ -723,9 +698,8 @@ public class Interpreter {
 					else validSyntax = false;
 				}
 
-				//case 2.2.4: comp op
+				//case: other op
 				else {	
-					//check if the compop has a valid syntax
 					if(combiSyntax(opToken)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
@@ -787,31 +761,8 @@ public class Interpreter {
 				for(int i=2;i<tokensPerLine.size();i++)
 					opTokens.add(tokensPerLine.get(i));
 				
-				//case 2.2.1: arith op
-				if(operation == 1) {
-					//check if the arithop has a valid syntax
-					if(combiSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else combiExecute(tokensPerLine.get(0).getLexeme(),opTokens);
-					}
-					else validSyntax = false;
-				}
-				
-				//case 2.2.2: bool op
-				else if(operation == 2 || operation == 3) {	
-					//check if the boolop has a valid syntax
-					if(combiSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else combiExecute(tokensPerLine.get(0).getLexeme(),opTokens);
-					}
-					else validSyntax = false;
-				}
-				
-				//case 2.2.3: concat op
-				else if(operation == 4) {	
-					//check if the boolop has a valid syntax
+				//case: concat op
+				if(operation == 4) {	
 					if(smooshSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
@@ -820,9 +771,8 @@ public class Interpreter {
 					else validSyntax = false;
 				}
 				
-				//case 2.2.3: comp op
+				//case: other op
 				else {	
-					//check if the compop has a valid syntax
 					if(combiSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
@@ -855,737 +805,7 @@ public class Interpreter {
 			}
 		} else validSemantics = false;
 	}
-	
-	//SYNTAX FOR ARITHMETIC OPERATIONS
-		private boolean arithmeticSyntax(ArrayList<Token> opTokens) {
-			Stack<Token> checker = new Stack<Token>();
-			int exprCount = 0, opCount = 0, anCount = 0;
-			boolean startingPopped = false;
 			
-			for(int i=0; i<opTokens.size(); i++) {				
-				//implies that another operation has started in the same line
-				if(startingPopped) {
-					if(i+1==opTokens.size() && opTokens.get(i).getLexeme().equals(Token.STRING_DELIMITER)) return true;
-					else return false; 
-				}
-				
-				//add keywords to stack
-				if(Token.ARITHMETIC_EXPRESSIONS.contains(opTokens.get(i).getClassification())) {
-					checker.add(opTokens.get(i));
-					
-					//if not starting arithmetic expression, increment exprCount (meaning it is a nested expression)
-					if(i > 0) exprCount++;
-					
-					if(opTokens.get(i+1).getClassification().equals(Token.AN_CLASSIFIER)) return false;
-				} else if(opTokens.get(i).getLexeme().equals(Token.AN)) {
-				//if an is encountered, add to an count
-					anCount++;
-					
-					if(i == opTokens.size()-1) {
-						return false;
-					}else if(!(opTokens.get(i+1).getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER) 
-							|| Token.LITERALS.contains(opTokens.get(i+1).getClassification()) 
-							|| Token.ARITHMETIC_EXPRESSIONS.contains(opTokens.get(i+1).getClassification())
-							|| isAVarident(opTokens.get(i+1).getClassification()))) {
-						return false;
-					}
-				
-				//if a varident or literal is detected, add to an operand count
-				} else if(opTokens.get(i).getClassification().equals(Token.YARN_LITERAL_CLASSIFIER) || isADigit(opTokens.get(i).getClassification()) || isAVarident(opTokens.get(i).getClassification()) ||
-							Token.LITERALS.contains(opTokens.get(i).getClassification())) {
-					if(i < opTokens.size()-1) {
-						if(opTokens.get(i).getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
-							if(i+2 < opTokens.size() && !opTokens.get(i+2).getClassification().equals(Token.AN_CLASSIFIER)){
-								return false;
-							}
-							
-						}else if(!opTokens.get(i+1).getClassification().equals(Token.AN_CLASSIFIER)){
-							return false;
-						}
-					}
-					
-					opCount++;
-				}
-				
-				//return false after detecting more than two operands
-				if(anCount >= 2) return false;
-				
-				//if operands are varident/literal or operands have atleast one expr 
-				if((opCount == 2 && anCount == 1) || (exprCount >= 1 && opCount >= 1 && anCount == 1)) {
-					if(!checker.isEmpty()) {
-						
-						if(checker.size() == 1) startingPopped = true;
-						
-						checker.pop();
-						
-						if(opCount == 2 && anCount == 1) opCount = 0;
-					
-						if(exprCount >= 1 && opCount >= 1 && anCount == 1) {
-							opCount--;
-							exprCount--;
-						}
-						
-						anCount--;
-					}
-					else return false;
-				}
-			}
-			
-			if(checker.isEmpty() && opCount == 0 && anCount == 0 && exprCount == 0) return true;
-			else return false;
-		}
-		
-		//SEMANTICS FOR ARITHMETIC OPERATIONS
-		private Number arithmeticExecute(String dataHolder,ArrayList<Token> opTokens) {
-			Stack<Number> operation = new Stack<Number>();
-			
-			//since operations are in prefix, reverse the tokens 
-			Collections.reverse(opTokens);
-			for(Token tkn: opTokens) {
-				System.out.println(tkn.getLexeme() + " " + tkn.getClassification());
-				//case 1: numbar
-				if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
-					operation.push(parseFloat(tkn));
-				//case 2: numbr
-				} else if(tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
-					operation.push(parseInt(tkn));
-				//case 3: varident
-				} else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
-					boolean varExists = false;
-					for(Symbol s:symbols) {
-						if(s.getSymbol().equals(tkn.getLexeme())) {	
-							System.out.println(s.getSymbol()+" Data Type: "+s.getDataType());
-							
-							//variable is in symbol table
-							varExists = true;
-							
-							//integer detected
-							if(s.getDataType().equals(Symbol.INTEGER)) operation.push(parseInt(symbols.indexOf(s)));
-							
-							//float detected
-							else if(s.getDataType().equals(Symbol.FLOAT)) operation.push(parseFloat(symbols.indexOf(s)));
-							
-							//string detected
-							else if(s.getDataType().equals(Symbol.STRING)) {
-								//check its value's data type
-								String classification = getClass(symbols.get(symbols.indexOf(s)).getValue());
-								
-								//string is a numbar
-								if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(parseFloat(symbols.indexOf(s)));
-								
-								//string is a numbr
-								else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(parseInt(symbols.indexOf(s)));
-								
-								else {
-									
-									System.out.println("here");
-									validSemantics = false;
-									return null;
-								}
-
-							}else {
-								
-								System.out.println("yeah");
-								//invalid dataType
-								validSemantics = false;
-								return null;
-							}
-							break;
-						}
-					}
-					
-					//variable is not in symbol table
-					if(!varExists) {
-						validSemantics = false;
-						return null;
-					}
-					
-				
-				//case 4: IT
-				}else if(tkn.getLexeme().equals(Token.IT)) {
-					Symbol it = getIT();
-					//integer detected
-					
-					System.out.println("IT: "+it.getValue() + "Data Type: " + it.getDataType());
-					if(it.getDataType().equals(Symbol.INTEGER)) operation.push(Integer.parseInt(it.getValue()));
-					
-					//float detected
-					else if(it.getDataType().equals(Symbol.FLOAT)) operation.push(Float.parseFloat(it.getValue()));
-					
-					//string detected
-					else if(it.getDataType().equals(Symbol.STRING)) {
-						//check its value's data type
-						String classification = getClass(it.getValue());
-						
-						//string is a numbar
-						if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(Float.parseFloat(it.getValue()));
-						
-						//string is a numbr
-						else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(Integer.parseInt(it.getValue()));
-						
-						else {
-							validSemantics = false;
-							return null;
-						}
-
-					}else {
-						
-						//invalid dataType
-						validSemantics = false;
-						return null;
-					}
-				
-				
-				
-				}else if(tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER)) {
-					continue;
-				}else if(tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
-					System.out.println("here");
-					//check its value's data type
-					String classification = getClass(tkn.getLexeme());
-					
-					//string is a numbar
-					if(classification.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) operation.push(Float.parseFloat(tkn.getLexeme()));
-					
-					//string is a numbr
-					else if(classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) operation.push(Integer.parseInt(tkn.getLexeme()));
-					
-					else {
-						System.out.println(classification);
-						validSemantics = false;
-						return null;
-					}
-				//if operation is detected, pop 2 operands and perform the operation
-				}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())){
-					boolean resultIsNumbar = false;
-					Number op1 = operation.pop();
-					Number op2 = operation.pop();
-					
-					//check if one of the operands is numbar
-					if(op1 instanceof Float || op2 instanceof Float) resultIsNumbar = true;
-					
-					//if numbar, result must be float
-					if(resultIsNumbar) {
-						Float o1 = op1.floatValue();
-						Float o2 = op2.floatValue();
-						
-						//perform the operation then push to stack
-						switch(tkn.getClassification()) {
-						case Token.SUM_OF_CLASSIFIER:
-							operation.push(o1 + o2);
-							break;
-						case Token.DIFF_OF_CLASSIFIER:
-							operation.push(o1 - o2);
-							break;
-						case Token.PRODUKT_OF_CLASSIFIER:
-							operation.push(o1 * o2);
-							break;
-						case Token.QUOSHUNT_OF_CLASSIFIER:
-							if(o2 == 0) {
-								validSemantics = false;
-								return null;
-							}
-							operation.push(o1 / o2);
-							break;
-						case Token.MOD_OF_CLASSIFIER:
-							if(o2 == 0) {
-								validSemantics = false;
-								return null;
-							}
-							operation.push(o1 % o2);
-							break;
-						case Token.BIGGR_OF_CLASSIFIER:
-							if(o1 > o2) operation.push(o1);
-							else operation.push(o2);
-							break;
-						case Token.SMALLR_OF_CLASSIFIER:
-							if(o1 < o2) operation.push(o1);
-							else operation.push(o2);
-							break;
-						}
-					} else {
-						//since no numbar val is detected, operands are assumed to be both numbr
-						int o1 = op1.intValue();
-						int o2 = op2.intValue();
-						
-						//perform the operation then push to stack
-						switch(tkn.getClassification()) {
-						case Token.SUM_OF_CLASSIFIER:
-							operation.push(o1 + o2);
-							break;
-						case Token.DIFF_OF_CLASSIFIER:
-							operation.push(o1 - o2);
-							break;
-						case Token.PRODUKT_OF_CLASSIFIER:
-							operation.push(o1 * o2);
-							break;	
-						case Token.QUOSHUNT_OF_CLASSIFIER:
-							if(o2 == 0) {
-								validSemantics = false;
-								return null;
-							}
-							operation.push(o1 / o2);
-							break;
-						case Token.MOD_OF_CLASSIFIER:
-							operation.push(o1 % o2);
-							if(o2 == 0) {
-								validSemantics = false;
-								return null;
-							}
-							break;
-						case Token.BIGGR_OF_CLASSIFIER:
-							if(o1 > o2) operation.push(o1);
-							else operation.push(o2);
-							break;
-						case Token.SMALLR_OF_CLASSIFIER:
-							if(o1 < o2) operation.push(o1);
-							else operation.push(o2);
-							break;
-						}
-					}
-				} else if(!tkn.getLexeme().equals(Token.AN)){
-					validSemantics = false;
-					return null;
-				}
-			}
-
-			//last item on the stack is the result
-			Number num = operation.pop();
-			
-			boolean varExists = false;
-			//set the value of the varident to the result
-			for(Symbol s:symbols) {
-				if(dataHolder.equals(s.getSymbol())) {	
-					varExists = true;
-					s.setValue(num.toString());
-					
-					if(num instanceof Float) s.setDataType(Symbol.FLOAT);
-					else if(num instanceof Integer) s.setDataType(Symbol.INTEGER);
-					break;
-				}
-			}
-			
-		if(!varExists) {
-			validSemantics = false;
-			return null;
-		}else return num;
-	}
-
-
-	//SYNTAX FOR BOOLEAN OPERATIONS
-	private boolean booleanSyntax(ArrayList<Token> booleanTokens) {
-		Stack<Token> checker = new Stack<Token>();
-		Token currentToken;
-		int anCount = 0, popCount = 0;
-		
-		//since prefix, read the line in reverse
-		Collections.reverse(booleanTokens);
-		
-		for(int i=0; i <booleanTokens.size(); i++) {
-			currentToken = booleanTokens.get(i);
-			
-			//if AN is detected, it must not be the last or starting token, and must not be followed by an AN
-			if(currentToken.getLexeme().equals(Token.AN)) {
-				
-				//AN is starting/last token
-				if(i == 0 || i == (booleanTokens.size()-1)) 
-					return false;
-				
-				//followed by AN
-				else if(booleanTokens.get(i-1).getLexeme().equals(Token.AN))
-					return false;
-				
-				else anCount++;
-			}else if(currentToken.getLexeme().equals(Token.NOT)) {
-							
-				//NOT is last token
-				if(i == 0) return false;
-				
-				//followed by AN
-				else if(booleanTokens.get(i-1).getLexeme().equals(Token.AN))
-					return false;
-				
-				else continue;
-			}else if(currentToken.getLexeme().equals(Token.ALL_OF) || currentToken.getLexeme().equals(Token.ANY_OF)) {
-				
-				//if it starts with ANY OF/ALL OF then num of stack is ignored since these are infinite arity operations
-				if(i == booleanTokens.size()-1 && !booleanTokens.get(i-1).getLexeme().equals(Token.AN))
-					return true; 
-				
-				//operation cannot be nested
-				else return false;
-			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) | isAVarident(currentToken.getClassification())) {
-				//if last token, it must be preceeded with an AN or NOT
-				if(i == 0) {
-					if(!(booleanTokens.get(i+1).getLexeme().equals(Token.AN) || booleanTokens.get(i+1).getLexeme().equals(Token.NOT)))
-						return false;
-				} else {
-					//if not last token, it must be followed with an AN
-					if(!booleanTokens.get(i-1).getLexeme().equals(Token.AN))
-						return false;
-				}
-				
-				//push to stack
-				checker.push(currentToken);
-			} else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(currentToken.getClassification())) {
-				//make sure it is not followed by an 'AN'
-				if(booleanTokens.get(i-1).getLexeme().equals(Token.AN))
-					return false;
-				
-				//make sure it is not the last token
-				if(i == 0) return false;
-				
-				//pop one operand
-				if(checker.size() > 1) {
-					checker.pop();
-					popCount++;
-				}
-				
-				//insufficient amount of operands
-				else return false;
-			} else return false; //lexeme does not belong in the expression			
-		}
-		
-		//there should only be 1 operand left and the number of ANs must match the number of operands
-		if((checker.size() == 1) && (anCount == popCount)) return true;
-		else return false;
-	}
-	
-	//SEMANTICS FOR BOOLEAN OPERATIONS
-	private boolean booleanExecute(String dataHolder, ArrayList<Token> booleanTokens) {
-		Stack<Boolean> operation = new Stack<Boolean>();
-		
-		for(Token tkn: booleanTokens) {	
-			//System.out.print("TOS: ");
-			if(!operation.empty()) {
-				//System.out.println(operation.peek());
-			}
-			
-			//case 1: troof literal
-			if(tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)){
-				operation.push(convertTroofToBoolean(tkn.getLexeme()));
-			//case 2: varident
-			}else if(tkn.getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
-				for(Symbol s:symbols) {
-					if(s.getSymbol().equals(tkn.getLexeme())) {						
-						operation.push(convertTroofToBoolean(s.getValue())); 
-						break;
-					}
-				}
-			//pop two operands for binary boolean expressions
-			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
-				boolean op1 = operation.pop();
-				boolean op2 = operation.pop();
-				
-				//perform the operation then push to stack
-				switch(tkn.getClassification()) {
-					case Token.BOTH_OF_CLASSIFIER:
-						operation.push((op1 && op2));
-						break;
-					case Token.EITHER_OF_CLASSIFIER:
-						operation.push((op1 || op2));
-						break;
-					case Token.WON_OF_CLASSIFIER:
-						operation.push((op1 ^ op2));
-						break;
-				}		
-			}else if(Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
-				boolean op1;
-				
-				//since NOT is an unary operation, pop only 1 operand
-				if(tkn.getLexeme().equals(Token.NOT)) {
-					
-					op1 = operation.pop();
-					operation.push(!op1);
-				} else {
-					boolean op2;
-					
-					//since ANY OF/ALL OF are infinite arity operations, pop all operands and perform the operation
-					int currentStackSize = operation.size();
-					
-					if(tkn.getLexeme().equals(Token.ALL_OF)) {
-						//perform AND operation one at a time
-						for(int i = 0; i < currentStackSize-1; i++) {
-							op1 = operation.pop();
-							op2 = operation.pop();
-							operation.push((op1 && op2));
-						}
-					} else {
-						//perform OR operation one at a time
-						for(int i = 0; i < currentStackSize-1; i++) {
-							op1 = operation.pop();
-							op2 = operation.pop();
-							operation.push((op1 || op2));
-						}
-					}
-				}
-			}
-		}
-		
-		//last item on the stack is the result
-		boolean result = operation.pop();
-		
-		//set the value of the varident to the result
-		Symbol s = isASymbol(dataHolder);
-		if(s != null) {				
-			if(result == true) s.setValue(Token.WIN_TROOF_LITERAL);
-			else s.setValue(Token.FAIL_TROOF_LITERAL);
-			
-			s.setDataType(Symbol.BOOLEAN);
-			return result;
-
-		}
-		
-		validSemantics = false;
-		return false;
-	}
-	
-	//SYNTAX FOR COMPARISON OPERATIONS
-	private boolean comparisonSyntax(ArrayList<Token> comparisonTokens) {
-		Stack<Token> checker = new Stack<Token>();
-		int exprCount = 0, opCount = 0, anCount = 0, yarnCount=0, delimiterCount = 0;
-		boolean startingPopped = false;
-		
-		
-		for(int i=0; i<comparisonTokens.size(); i++) {
-			//implies that another operation has started in the same line
-			if(startingPopped) return false; 
-		
-			//add keywords to stack
-			if(Token.COMPARISON_OPERATORS.contains(comparisonTokens.get(i).getClassification()) || Token.ARITHMETIC_EXPRESSIONS.contains(comparisonTokens.get(i).getClassification())) {
-				checker.add(comparisonTokens.get(i));
-				//if not starting comparison operator, inc exprCount (meaning it is a nested expression)
-				if(i > 0) exprCount++;
-			} else if(comparisonTokens.get(i).getLexeme().equals(Token.AN)) {
-				//if an is encountered, add to an count
-				anCount++;
-			} else if(comparisonTokens.get(i).getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER) || comparisonTokens.get(i).getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
-				//if num/var is encountered, add to an operand count
-				opCount++;
-			} else if(comparisonTokens.get(i).getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER)) {
-				//if an is encountered, add to an count
-				delimiterCount++;
-			}  else if(comparisonTokens.get(i).getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
-				//if an is encountered, add to an count
-				yarnCount++;
-			} else {
-				//lexeme does not belong in this expression
-				return false;
-			}
-			
-			//pop stack after detecting two operands
-			if(anCount >= 2) return false;
-			if((opCount == 2 && anCount == 1) || (exprCount >= 1 && opCount >= 1 && anCount == 1) || (exprCount >= 1 && yarnCount >= 1 && (delimiterCount == yarnCount*2) && anCount == 1) || (yarnCount == 2 && (delimiterCount == yarnCount*2) && anCount == 1) || (opCount == 1 && yarnCount == 1 && (delimiterCount == yarnCount*2) && anCount == 1)) {
-				if(!checker.isEmpty()) {
-					if(checker.size() == 1) startingPopped = true;
-					checker.pop();
-					
-					if((opCount == 2 && anCount == 1)) opCount = 0;
-					
-					if(((exprCount >= 1 && opCount >= 1 && anCount == 1))) {
-						opCount--;
-						exprCount--;
-					}
-					
-					if((exprCount >= 1 && yarnCount >= 1 && (delimiterCount == yarnCount*2) && anCount == 1)) {
-						yarnCount--;
-						exprCount--;
-						delimiterCount-=2;
-					}
-					
-					if(yarnCount == 2 && (delimiterCount == yarnCount*2) && anCount == 1) {
-						yarnCount =0;
-						delimiterCount =0;
-					}
-					
-					if((opCount == 1 && yarnCount == 1 && (delimiterCount == yarnCount*2) && anCount == 1)) {
-						opCount = 0;
-						yarnCount =0;
-						delimiterCount =0;
-					}
-					
-					anCount--;
-				}else return false;
-			}	
-		}
-		
-		if(checker.isEmpty() && opCount == 0 && anCount == 0 && exprCount == 0) return true;
-		else return false;
-	}
-	
-	//SEMANTICS FOR COMPARISON OPERATIONS
-	private String comparisonExecute(String dataHolder,ArrayList<Token> compToken) {
-		Stack<String> operation = new Stack<String>();
-		Collections.reverse(compToken);
-		
-		for(Token tkn: compToken) {
-			if(tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
-				operation.push(tkn.getLexeme());
-			}else if(isAVarident(tkn.getClassification())) {
-				Symbol var = isASymbol(tkn.getLexeme());
-				
-				if(var != null && !var.getDataType().equals(Symbol.UNINITIALIZED)) {
-					operation.push(var.getValue());
-				}
-				else {
-					validSemantics = false;
-					return null;
-				}
-			} else if(tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER)){
-				continue;
-			} else if(Token.COMPARISON_OPERATORS.contains(tkn.getClassification())) {
-				String op1 = operation.pop();
-				String op2 = operation.pop();
-				
-				String classificationOp1 = isAValidLexeme(op1);
-				String classificationOp2 = isAValidLexeme(op2);
-				
-				switch(tkn.getClassification()) {
-					case Token.BOTH_SAEM_CLASSIFIER: // o1 == o2
-						if(classificationOp1.equals(classificationOp2)) {
-							if(op1.equals(op2)) operation.push(Token.WIN_TROOF_LITERAL);
-							else operation.push(Token.FAIL_TROOF_LITERAL);
-						}else operation.push(Token.FAIL_TROOF_LITERAL);
-						break;
-					case Token.DIFFRINT_CLASSIFIER: //o1 != o2
-						if(classificationOp1.equals(classificationOp2)) {
-							if(!op1.equals(op2)) {
-								operation.push(Token.WIN_TROOF_LITERAL);
-							}
-							else{
-								operation.push(Token.FAIL_TROOF_LITERAL);
-							}
-						}else{
-							operation.push(Token.WIN_TROOF_LITERAL);
-						}
-						
-						break;
-				}
-			} else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
-				boolean resultIsNumbar = false;
-				String op1 = operation.pop();
-				String op2 = operation.pop();
-				
-				String classificationOp1 = isAValidLexeme(op1);
-				String classificationOp2 = isAValidLexeme(op2);
-
-				if(!(isADigit(classificationOp1) || isADigit(classificationOp2))) {
-					validSemantics = false;
-					return null;
-				}
-				
-				//check if one of the operands is numbar
-				if(classificationOp1.equals(Token.NUMBAR_LITERAL_CLASSIFIER) || classificationOp2.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) resultIsNumbar = true;
-				
-				//if numbar, result must be float
-				if(resultIsNumbar) {
-					Float o1 = Float.parseFloat(op1);
-					Float o2 = Float.parseFloat(op2);
-					
-					Float answer;
-					//perform the operation then push to stack
-					switch(tkn.getClassification()) {
-					case Token.SUM_OF_CLASSIFIER:
-						answer = o1 + o2;
-						operation.push(String.valueOf(answer));
-						break;
-					case Token.DIFF_OF_CLASSIFIER:
-						answer = o1 - o2;
-						operation.push(String.valueOf(answer));
-						break;
-					case Token.PRODUKT_OF_CLASSIFIER:
-						answer = o1 * o2;
-						operation.push(String.valueOf(answer));
-						break;
-					case Token.QUOSHUNT_OF_CLASSIFIER:
-						if(o2 == 0) {
-							validSemantics = false;
-							return null;
-						}
-						answer = o1 / o2;
-						operation.push(String.valueOf(answer));
-						break;
-					case Token.MOD_OF_CLASSIFIER:
-						if(o2 == 0) {
-							validSemantics = false;
-							return null;
-						}
-						answer = o1 % o2;
-						operation.push(String.valueOf(answer));
-						break;
-					case Token.BIGGR_OF_CLASSIFIER:
-						if(o1 > o2) operation.push(String.valueOf(o1));
-						else operation.push(String.valueOf(o2));
-						break;
-					case Token.SMALLR_OF_CLASSIFIER:
-						if(o1 < o2) operation.push(String.valueOf(o1));
-						else operation.push(String.valueOf(o2));
-						break;
-					}
-				} else {
-					//since no numbar val is detected, operands are assumed to be both numbr
-					int o1 = Integer.parseInt(op1);
-					int o2 = Integer.parseInt(op2);
-					
-					
-					int answer;
-					//perform the operation then push to stack
-					switch(tkn.getClassification()) {
-					case Token.SUM_OF_CLASSIFIER:
-						answer = o1 + o2;
-						operation.push(String.valueOf(answer));
-						break;
-					case Token.DIFF_OF_CLASSIFIER:
-						answer = o1 - o2;
-						operation.push(String.valueOf(answer));
-						break;
-					case Token.PRODUKT_OF_CLASSIFIER:
-						answer = o1 * o2;
-						operation.push(String.valueOf(answer));
-						break;
-					case Token.QUOSHUNT_OF_CLASSIFIER:
-						if(o2 == 0) {
-							validSemantics = false;
-							return null;
-						}
-						answer = o1 / o2;
-						operation.push(String.valueOf(answer));
-						break;
-					case Token.MOD_OF_CLASSIFIER:
-						if(o2 == 0) {
-							validSemantics = false;
-							return null;
-						}
-						answer = o1 % o2;
-						operation.push(String.valueOf(answer));
-						break;
-					case Token.BIGGR_OF_CLASSIFIER:
-						if(o1 > o2) operation.push(String.valueOf(o1));
-						else operation.push(String.valueOf(o2));
-						break;
-					case Token.SMALLR_OF_CLASSIFIER:
-						if(o1 < o2) operation.push(String.valueOf(o1));
-						else operation.push(String.valueOf(o2));
-						break;
-					}
-				} 
-			}
-		}
-		
-		//last item on the stack is the result
-		String answer = operation.pop();
-
-		//set the value of the varident to the result
-		Symbol s = isASymbol(dataHolder);
-		if(s != null) {	
-			s.setValue(answer);
-			s.setDataType(Symbol.BOOLEAN);
-		} else validSemantics = false;
-		
-		return answer;
-	}
-	
-	
 	private boolean combiSyntax(ArrayList<Token> combiTokens) {
 		Stack<String> checker = new Stack<String>();
 		Token currentToken;
@@ -1596,8 +816,6 @@ public class Interpreter {
 		
 		for(int i=0; i < combiTokens.size(); i++) {
 			currentToken = combiTokens.get(i);
-			
-
 			
 			//if AN is detected, it must not be the last or starting token, and must not be followed by an AN
 			if(currentToken.getLexeme().equals(Token.AN)) {
@@ -1644,7 +862,7 @@ public class Interpreter {
 							checker.push("TROOF");
 							popCnt++;
 						}else {
-							validSemantics = false;
+							validSyntax = false;
 							return false;
 						}
 					}
@@ -2140,16 +1358,7 @@ public class Interpreter {
 		
 		return op1;
 	}
-	
-	private void viewStack(Stack<String> op) {
-		System.out.println("----------------------");
-		System.out.println("STACK: ");
-		for(String o: op) {
-			System.out.println(o);
-		}
-		System.out.println("----------------------");
-	}
-	
+		
 	private String notOperator(String op1) {
 		if(op1.equals(Token.WIN_TROOF_LITERAL)) return Token.FAIL_TROOF_LITERAL;
 		else if(op1.equals(Token.FAIL_TROOF_LITERAL)) return Token.WIN_TROOF_LITERAL;
@@ -2223,22 +1432,10 @@ public class Interpreter {
 					
 					Symbol it = getIT();
 					//check if same datatype
-					String classificationIT = isAValidLexeme(it.getValue());
+					String classificationIT = getClass(it.getValue());
+
+					String classificationCase = getClass(tokensPerLine.get(1).getLexeme());
 					
-					if(classificationIT.equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER)) {
-						it = isASymbol(it.getValue());
-						
-						if(it != null) {
-							classificationIT = isAValidLexeme(it.getValue());
-						}else {
-							validSemantics = false;
-							return;
-						}
-						
-					}
-					String classificationCase = isAValidLexeme(tokensPerLine.get(1).getLexeme());
-					
-					if(classificationIT == null) classificationIT = Token.YARN_LITERAL_CLASSIFIER;
 					//if classification is the same, check if value is the same
 					if(classificationIT.equals(classificationCase)) {
 						//if same, activate flag
@@ -2435,7 +1632,7 @@ public class Interpreter {
 					concat += tkn.getLexeme();
 				}else if(isAVarident(tkn.getClassification())) {
 					Symbol var = isASymbol(tkn.getLexeme());
-					if(var != null && var.getDataType().equals(Symbol.UNINITIALIZED)) {
+					if(var != null && !var.getDataType().equals(Symbol.UNINITIALIZED)) {
 						concat += var.getValue();
 					}else {
 						validSemantics = false;
@@ -2537,26 +1734,7 @@ public class Interpreter {
 			classification.equals(Token.NUMBR_LITERAL_CLASSIFIER)) return true;
 		return false;
 	}
-	
-	//parses a string and returns a float
-	private float parseFloat(Token tkn) {
-		return Float.parseFloat(tkn.getLexeme());
-	}
-
-	private float parseFloat(int idx) {		
-		return Float.parseFloat(symbols.get(idx).getValue());
-	}
-	
-	//parses a string and returns an integer	
-	private int parseInt(Token tkn) {
-		return Integer.parseInt(tkn.getLexeme());
-	}
 		
-	private int parseInt(int idx) {		
-		return Integer.parseInt(symbols.get(idx).getValue());
-	}
-	
-	
 	//FUNCTIONS FOR THE LEXICAL ANALYSIS
 	
 	private int checkLexeme(String line) {		
@@ -2592,7 +1770,7 @@ public class Interpreter {
 					currPos++;
 				}
 			}
-
+			 
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
 			System.out.println(currentLexeme+"-");
@@ -2679,7 +1857,6 @@ public class Interpreter {
 		}
 		
 		//ERROR DETECTION
-		
 		//there's an invalid lexeme, but process again because a variable identifier is detected as a possible keyword
 		if(!isEmpty(currentLexeme) && isAVariable() && status!=2) {
 			readBack=true;
@@ -2862,9 +2039,7 @@ public class Interpreter {
 				}
 			}
 		}
-		else return false;
 		
-		if(validLexeme && validSyntax && validSemantics) return true;
 		return false;
 	}
 	
@@ -3079,7 +2254,7 @@ public class Interpreter {
 			if(file!=null) {
 				readFile();
 				analyzeFile();
-				if(execute()) showPass();
+				if(execute() && validLexeme && validSyntax && validSemantics) showPass();
 				else showError();
 			} else {
 				//prompt error dialog
