@@ -399,9 +399,22 @@ public class Interpreter {
 	
 	//SYNTAX FOR PRINT = VISIBLE
 	private boolean printSyntax() {
-		if(tokensPerLine.size() > 1) return true; 
-		//return false if VISIBLE does not have anything to print
-		return false;
+		Token tkn;
+		int i=1;
+		
+		if(tokensPerLine.size() == 1) return true;
+		else {
+			while(i<tokensPerLine.size()) {
+				tkn = tokensPerLine.get(i);
+				
+				if(isAVarident(tkn.getClassification()) ||
+					isALitOrExpr(tkn.getClassification()) ||
+					tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER))
+					continue;
+				else return false;
+			}
+		}
+		return true;
 	}
 	
 	//SEMANTICS FOR PRINT = VISIBLE
@@ -411,6 +424,8 @@ public class Interpreter {
 		boolean appendNewLine=true;
 		String itValue = symbols.get(0).getValue();
 		String visibleValue = "";
+		
+		if(tokensPerLine.size()==1) visibleValue = "\n";
 		
 		while(i<tokensPerLine.size()) {
 			tkn = tokensPerLine.get(i);
@@ -469,44 +484,9 @@ public class Interpreter {
 				} while(i<tokensPerLine.size() && !stop);
 				i--;
 
-				//case 2.1: arith op
-				if(operation == 1) {
-					//check if the arithop has a valid syntax
-					if(combiSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else {
-							combiExecute(Token.IT,opTokens);
-							visibleValue += symbols.get(0).getValue();
-							symbols.get(0).setValue(itValue);
-						}
-					}
-					else {
-						validSyntax = false;
-						break;
-					}
-				}
-				
-				//case 2.2: bool op
-				else if(operation == 2 || operation == 3) {	
-					//check if the boolop has a valid syntax
-					if(combiSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else {
-							combiExecute(Token.IT,opTokens);
-							visibleValue += symbols.get(0).getValue();
-							symbols.get(0).setValue(itValue);
-						}
-					}
-					else {
-						validSyntax = false;
-						break;
-					}
-				}
 				
 				//case 2.3: concat op
-				else if(operation == 4) {
+				if(operation == 4) {
 					//check if the boolop has a valid syntax
 					if(smooshSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
@@ -634,19 +614,26 @@ public class Interpreter {
 	
 	
 	//SYNTAX FOR VARIABLE DECLARATION = I HAS A
+	
+	
 	private String varDeclarationSyntax() {
 		if(tokensPerLine.size() > 1) {
 			if(isAVarident(tokensPerLine.get(1).getClassification())) {	
 				//case 1: I HAS A var
 				if(tokensPerLine.size() == 2) return "";
 				//case 2: I HAS A var ITZ var/lit/expr
-				else if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
-					if(isAVarident(tokensPerLine.get(3).getClassification()) ||
-						isALitOrExpr(tokensPerLine.get(3).getClassification()))
+				if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
+					if(tokensPerLine.size() == 4 && 
+							(isAVarident(tokensPerLine.get(3).getClassification()) || Token.LITERALS.contains(tokensPerLine.get(3).getClassification())))
 						return tokensPerLine.get(3).getClassification();	
-					if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(4).getClassification())) 
-						return tokensPerLine.get(4).getClassification();
+					if(tokensPerLine.size() == 6 && Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(4).getClassification()))
+						return tokensPerLine.get(4).getClassification();	
+					if(isAnExpr(tokensPerLine.get(3).getClassification()) != 0)
+						return tokensPerLine.get(3).getClassification();	
+					return null;
 				}
+				
+				return null;
 			}
 		}
 		//return null if what's declared is not a varident/it
@@ -722,19 +709,21 @@ public class Interpreter {
 				symbols.add(new Symbol(identifier, tokensPerLine.get(3).getLexeme(), Symbol.BOOLEAN));
 		}
 	}
-		
+			
 	//SYNTAX FOR ASSIGNMENT STATEMENT = R
 	private String varAssignmentSyntax() {
 		//check if it assigns to a varident
 		if(isAVarident(tokensPerLine.get(0).getClassification())) {
 			//return value if it is a varident/it, literal, or expr
-			if(isAVarident(tokensPerLine.get(2).getClassification()) ||
-				isALitOrExpr(tokensPerLine.get(2).getClassification()))
+			if(tokensPerLine.size() == 3 &&
+					(isAVarident(tokensPerLine.get(2).getClassification()) || Token.LITERALS.contains(tokensPerLine.get(2).getClassification())))
 				return tokensPerLine.get(2).getClassification();	
-			if(Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) 
+			if(tokensPerLine.size() == 5 && Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) 
 				return tokensPerLine.get(3).getClassification();
-		}
-		return null;
+			if(isALitOrExpr(tokensPerLine.get(2).getClassification()))
+				return tokensPerLine.get(2).getClassification();
+			return null;
+		} return null;
 	}
 	
 	//SEMANTICS FOR ASSIGNMENT STATEMENT = R
