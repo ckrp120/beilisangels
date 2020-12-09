@@ -1656,7 +1656,7 @@ public class Interpreter {
 				
 				//operation cannot be nested
 				else return false;
-			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
+			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) || currentToken.getLexeme().equals(Token.NOOB_TYPE_LITERAL)) {
 				//if last token, it must be preceeded with an AN or NOT
 				if(i == 0) {
 					if(i+1 < combiTokens.size() && !(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
@@ -1668,7 +1668,7 @@ public class Interpreter {
 				}
 				
 				//push to stack
-				 checker.push("TROOF");
+				 checker.push("TROOFNOOB");
 				if(mkayIsPresent) infArityOpCount++;
 			}else if(Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification())) {
 				continue;
@@ -1809,13 +1809,13 @@ public class Interpreter {
 		
 		
 		for(Token tkn: combiTokens) {			
-			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER)) {
+			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) || tkn.getLexeme().equals(Token.NOOB_TYPE_LITERAL)) {
 				operation.push(tkn.getLexeme());
 				if(mkayIsPresent) infArityOpCount++;
 			}else if(isAVarident(tkn.getClassification())) {
 				Symbol var = isASymbol(tkn.getLexeme());
 				
-				if(var != null && !var.getDataType().equals(Symbol.UNINITIALIZED)) {
+				if(var != null) {
 					if(var.getDataType().equals(Symbol.STRING)) {
 						operation.push("\""+var.getValue()+"\"");
 					}
@@ -1838,12 +1838,15 @@ public class Interpreter {
 			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
 				String op1 = operation.pop();
 				String classificationOp1 = getClass(op1);
-				if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = Token.WIN_TROOF_LITERAL;
+				if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = boolTypeCast(op1);
+				System.out.println("here"+op1);
+				
 				
 				String op2 = operation.pop();
 				String classificationOp2 = getClass(op2);
-				if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = Token.WIN_TROOF_LITERAL;
+				if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = boolTypeCast(op2);
 				
+				System.out.println("op2"+op2);
 				switch(tkn.getClassification()) {
 					case Token.BOTH_OF_CLASSIFIER:
 						operation.push(andOperator(op1, op2));
@@ -1864,7 +1867,7 @@ public class Interpreter {
 				if(tkn.getLexeme().equals(Token.NOT)) {
 					op1 = operation.pop();
 					String classificationOp1 = getClass(op1);
-					if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = Token.WIN_TROOF_LITERAL;
+					if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = boolTypeCast(op1);
 					
 					operation.push(notOperator(op1));
 				}else {
@@ -1876,12 +1879,12 @@ public class Interpreter {
 						while(popCnt < infArityOpCount-1) {
 							op1 = operation.pop();
 							String classificationOp1 = getClass(op1);
-							if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = Token.WIN_TROOF_LITERAL;
+							if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = boolTypeCast(op1);
 							
 							
 							op2 = operation.pop();
 							String classificationOp2 = getClass(op2);
-							if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = Token.WIN_TROOF_LITERAL;
+							if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = boolTypeCast(op2);
 							
 							
 							operation.push(orOperator(op1, op2));
@@ -1895,12 +1898,12 @@ public class Interpreter {
 							op1 = operation.pop();
 							
 							String classificationOp1 = getClass(op1);
-							if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = "WIN";
+							if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = boolTypeCast(op1);
 							
 							
 							op2 = operation.pop();
 							String classificationOp2 = getClass(op2);
-							if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = "WIN";
+							if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = boolTypeCast(op2);
 							
 							operation.push(andOperator(op1, op2));
 							popCnt++;
@@ -1916,34 +1919,23 @@ public class Interpreter {
 				String op1 = operation.pop();
 				String classificationOp1 = getClass(op1);
 				
-				if(classificationOp1.equals(Token.YARN_LITERAL_CLASSIFIER)) {
-					op1 = op1.replace("\"", "");
-					
-					classificationOp1 = getClass(op1);
-					if(!isADigit(classificationOp1)) {
-						validSemantics = false;
-						return null;
-					}
-				}else if(classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) {					
-					if(op1.equals(Token.WIN_TROOF_LITERAL)) op1 = "1";
-					else op1 = "0";
+				if(!isADigit(classificationOp1)) op1 = arithTypeCast(op1);
+				
+				if(op1 == null) {
+					validSemantics = false;
+					return null;
 				}
 				
 				String op2 = operation.pop();
 				String classificationOp2 = getClass(op2);
 				
-				if(classificationOp2.equals(Token.YARN_LITERAL_CLASSIFIER)) {
-					op2 = op2.replace("\"", "");
-					
-					classificationOp2 = getClass(op2);
-					if(!isADigit(classificationOp2)) {
-						validSemantics = false;
-						return null;
-					}
-				}else if(classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) {
-					if(op2.equals(Token.WIN_TROOF_LITERAL)) op2 = "1";
-					else op2 = "0";
+				if(!isADigit(classificationOp2)) op2 = arithTypeCast(op2);
+				
+				if(op2 == null) {
+					validSemantics = false;
+					return null;
 				}
+				
 				
 				classificationOp1 = getClass(op1);
 				classificationOp2 = getClass(op2);
@@ -2096,6 +2088,57 @@ public class Interpreter {
 			s.setDataType(Symbol.BOOLEAN);
 		} else validSemantics = false;
 		return result;
+	}
+	
+	//TYPECASTS NON TROOF OPERANDS TO TROOF
+	private String boolTypeCast(String op1) {
+		String classificationOp1 = getClass(op1);
+		System.out.println("orig"+op1);
+		
+		//if string
+		if(classificationOp1.equals(Token.YARN_LITERAL_CLASSIFIER)) {
+			
+			//if empty string, return fail
+			if(op1.equals("\"\"")) return Token.FAIL_TROOF_LITERAL;
+			
+			//else return true
+			else return Token.WIN_TROOF_LITERAL;
+			
+		//if digit
+		}else if(isADigit(classificationOp1)){
+			
+			//if 0, return fail
+			if(op1.equals("0")) return Token.FAIL_TROOF_LITERAL;
+			
+			//else return win
+			else return Token.WIN_TROOF_LITERAL;
+		
+		//if NOOB, return fail
+		}else if(classificationOp1.equals(Token.NOOB_TYPE_LITERAL)) {
+			return Token.FAIL_TROOF_LITERAL;
+			
+		}else return op1;
+		
+
+	}
+	
+	//TYPECASTS NON NUMBAR/NUMBR OPERANDS TO NUMBR/NUMBAR
+	private String arithTypeCast(String op1) {
+		String classificationOp1 = getClass(op1);
+		if(classificationOp1.equals(Token.YARN_LITERAL_CLASSIFIER)) {
+			op1 = op1.replace("\"", "");
+			
+			classificationOp1 = getClass(op1);
+			if(!isADigit(classificationOp1)) return null;
+			
+		}else if(classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) {					
+			if(op1.equals(Token.WIN_TROOF_LITERAL)) return "1";
+			else return "0";
+		}else if(Token.NOOB_TYPE_LITERAL.equals(op1)) {
+			return null;
+		}
+		
+		return op1;
 	}
 	
 	private void viewStack(Stack<String> op) {
@@ -2670,6 +2713,7 @@ public class Interpreter {
 		if(Token.NUMBAR_LITERAL.matcher(currentLexeme).matches()) return Token.NUMBAR_LITERAL_CLASSIFIER;
 		if(Token.YARN_LITERAL.matcher(currentLexeme).matches()) return Token.YARN_LITERAL_CLASSIFIER;
 		if(currentLexeme.equals(Token.WIN_TROOF_LITERAL) || currentLexeme.equals(Token.FAIL_TROOF_LITERAL)) return Token.TROOF_LITERAL_CLASSIFIER;
+		if(currentLexeme.equals(Token.NOOB_TYPE_LITERAL)) return Token.NOOB_TYPE_LITERAL;
 		return Token.YARN_LITERAL_CLASSIFIER;
 	} 
 	
