@@ -458,7 +458,6 @@ public class Interpreter {
 
 					i++;
 				} while(i<tokensPerLine.size() && !stop);
-				i--;
 
 				if(operation == 4 && !smooshSyntax(opTokens)) return false;
 				else if(!combiSyntax(opTokens)) return false;
@@ -468,7 +467,6 @@ public class Interpreter {
 			else if(tplLexeme(i).equals(Token.EXCLAMATION_POINT)) {
 				if(tplSize(i+1))  i++;
 				else {
-					System.out.println("dito mali");
 					return false;
 				}
 			}
@@ -642,7 +640,17 @@ public class Interpreter {
 				if(tplClass(2).equals(Token.ITZ_CLASSIFIER)) { //case 2: I HAS A var ITZ var/lit/expr
 					if(tplSize(4) &&  isALitOrVar(tplClass(3))) return tplClass(3);	
 					if(tplSize(6) && Token.YARN_LITERAL_CLASSIFIER.equals(tplClass(4))) return tplClass(4);	
-					if(isAnExpr(tplClass(3)) != 0) return tplClass(3);	
+					if(isAnExpr(tplClass(3)) != 0) {
+						opTokens.clear();
+						for(int i=3;i<tokensPerLine.size();i++)
+							opTokens.add(tokensPerLine.get(i));
+							
+						if(!(smooshSyntax(opTokens) || combiSyntax(opTokens))) {
+							validSyntax = false;
+							return null;
+						}
+						return tplClass(3);	
+					}
 					return null;
 				}
 				return null;
