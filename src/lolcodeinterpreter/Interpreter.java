@@ -64,7 +64,7 @@ public class Interpreter {
     private String[] lines;
     private String currentLexeme,dialogText;
     private int lineNumber,status,orlyCount;
-    private boolean validLexical,validSyntax,validSemantics,readBack;
+    private boolean validLexical,validSyntax,validSemantics,readBack,conditionalStatement,switchStatement;
     private ArrayList<ArrayList<Token>> tokens = new ArrayList<ArrayList<Token>>();
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
@@ -76,7 +76,7 @@ public class Interpreter {
     private boolean executingSwitchStatement = false;
     
     //process queue for if-then
-    private Queue<ArrayList<Token>> ifQueue = new LinkedList<>();
+    private ArrayList<ArrayList<Token>> ifArray = new ArrayList<ArrayList<Token>>();
     private boolean checkingIfStatement = false;
     private boolean executingIfStatement = false;
 	
@@ -124,7 +124,8 @@ public class Interpreter {
     public final static String UNEXPECTED_END = "unexpected end of expression";
     public final static String DUP_MKAY = "duplicate MKAY/presence of nested infinite arity operation";
     public final static String UNNECESSARY_MKAY = "presence of MKAY without matching infinite arity operation";
-	public Interpreter() {
+	
+    public Interpreter() {
 		root = new Group();
 		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.web("#315f72"));
 		canvas = new Canvas(WINDOW_HEIGHT,WINDOW_HEIGHT);
@@ -336,29 +337,33 @@ public class Interpreter {
 				}
 				else validSyntax = false;
 			}
+			
 			else if(Token.HAI_CLASSIFIER.equals(tplClass(0))) {
 				if(!(tplSize(2) && tplLexeme(1).equals("1.2"))) validSyntax = false;
 			} 
+			
 			else validSyntax = false;
+			
 		} else {
 			switch(tplClass(0)) {
 				case Token.HAI_CLASSIFIER:
 					break;
 				case Token.KTHXBYE_CLASSIFIER:
-//					if(conditionalStatement==true || switchStatement==true) {
-//				    	for(ArrayList<Token> tokensPerLine: tokens) {
-//				        	for(Token token: tokensPerLine) {
-//								if(!token.getLexeme().equals(Token.OIC)) {
-//									validSyntax = false;
-//								} else {
-//									validSyntax = true;
-//									break;
-//								}
-//				        	}
-//				    	}
-//					} else {
-//						validSyntax = true;
-//					}
+					if(conditionalStatement==true || switchStatement==true) {
+				    	for(ArrayList<Token> tokensPerLine: tokens) {
+				        	for(Token token: tokensPerLine) {
+								if(token.getLexeme().equals(Token.OIC)) {
+									validSyntax = true;
+									break;
+								} else {
+									
+									validSyntax = false;
+								} 
+				        	} if(validSyntax) break;
+				    	}
+				    	
+				    	if(!validSyntax) createErrorPrompt(Interpreter.OIC_MISSING);
+					} 
 					break;
 				case Token.OBTW_CLASSIFIER:
 					break;	
@@ -366,6 +371,7 @@ public class Interpreter {
 					break;
 				case Token.WTF_CLASSIFIER:
 					checkingSwitchStatement = true;
+					switchStatement = true;
 					storeTokensToQueue(Token.WTF);
 					break;
 				case Token.OIC_CLASSIFIER:
@@ -393,6 +399,7 @@ public class Interpreter {
 					break;
 				case Token.O_RLY_CLASSIFIER:
 					checkingIfStatement = true;
+					conditionalStatement = true;
 					orlyCount++;
 					storeTokensToQueue(Token.O_RLY);
 					break;
@@ -1131,7 +1138,7 @@ public class Interpreter {
 					validSemantics = false;
 					return null;
 				}
-			}  else if(tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER)){
+			}  else if(tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER) || tkn.getClassification().equals(Token.MEBBE_CLASSIFIER)){
 				continue;
 			}else if(tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
 				operation.push("\""+tkn.getLexeme()+"\"");
@@ -1502,10 +1509,10 @@ public class Interpreter {
 		//get current queue size to get length of loop
 		int queueSize = pQueue.size();
 		
-		//store original value of LineCheck
+		//store original value of lineNumber
 		int originalLineCheck = lineNumber;
 		
-		//change linecheck back to start of switch case
+		//change lineNumber back to start of switch case
 		lineNumber -= queueSize;
 		
 		
@@ -1567,97 +1574,196 @@ public class Interpreter {
 		lineNumber = originalLineCheck;
 	}
 	
-	//SEMANTICS FOR IF ELSE STATEMENT
-	private void ifElseExecute() {
-		executingIfStatement = true;
+	private ArrayList <Integer> checkIfElse(Integer currLine) {
+		int buffer = 0;
+		int latestLine = 0;
+		
 		//checks if it has entered case
 		boolean enteredCase = false;
+		
 		//checks if it entered mebbe
 		boolean enteredMebbe = false;
+		int mebbeCount = 0;
+		ArrayList <Integer> skip = new ArrayList<Integer>();
+		
+		//store old IT value
+		Symbol oldIT = getIT();
+						
+		//checks if IT value is WIN
+		if(getIT().getValue().equals(Token.WIN_TROOF_LITERAL)) {
+			
+			//if WIN, look ahead of the code to check which lines to skip 
+			for(int i = currLine+1; i<ifArray.size(); i++) {
+				//store latest line
+				latestLine = i;
+				
+				//if ORLY is encountered, increment buffer. 
+				if(ifArray.get(i).get(0).getLexeme().equals(Token.O_RLY)) {
+					//if mebbe has been previously encountered, increment count
+					if(enteredMebbe) mebbeCount++;
+					buffer++;
+				}
+				
+				//if MEBBE is encountered, break to make sure next lines are skipped
+				else if(ifArray.get(i).get(0).getLexeme().equals(Token.MEBBE)) break;
+				
+				//if NOWAI is encountered, decrement buff count meaning the pairs are still correct
+				else if(ifArray.get(i).get(0).getLexeme().equals(Token.NO_WAI)) {
+					if(enteredMebbe) mebbeCount++;
+					if(!enteredMebbe && buffer==0) break;
+					else buffer--;
+				}
+			}
+			
+			//look ahead of the code again starting from the line you stopped checking
+			for(int i = latestLine+1; i<ifArray.size(); i++) {
+				
+				if(ifArray.get(i).get(0).getLexeme().equals(Token.O_RLY)) {
+					buffer++;
+				}
+				
+				else if(ifArray.get(i).get(0).getLexeme().equals(Token.OIC)) {
+					if(buffer==0) break;
+					else buffer--;
+				}
+				
+				else if(ifArray.get(i).get(0).getLexeme().equals(Token.OIC)) break;
+				
+				//add lines to skip
+				skip.add(i);
+			}
+			
+		} 
+		
+		//checks if IT value is FAIL
+		else {
+			for(int i = currLine+1; i<ifArray.size(); i++) {
+				
+				//if ORLY is encountered, increment buffer
+				if(ifArray.get(i).get(0).getLexeme().equals(Token.O_RLY)) {
+					//if MEBBE previously encountered, increment mebbe count 
+					//to make sure that the next mebbe will be skipped
+					if(enteredMebbe) mebbeCount++;
+					buffer++;
+				} 
+				
+				//if MEBBE is encountered
+				else if(ifArray.get(i).get(0).getLexeme().equals(Token.MEBBE)) {
+						enteredMebbe = true;
+						if(enteredMebbe) mebbeCount++;
+						
+						if(mebbeCount<2) { //if MEBBE count less than 2, meaning no other MEBBE entered a case
+							tokensPerLine = ifArray.get(i);
+							combiExecute(Token.IT, tokensPerLine);
+							Symbol it = getIT();
+							System.out.println("IT: " + it.getValue());
+							
+							//if the evaluated expression equivalent to WIN
+							if(it.getValue().equals(Token.WIN_TROOF_LITERAL)) {
+								
+								//if same, activate flag
+								enteredCase = true;
+								skip.add(i); //add line to lines to skip
+								continue;
+							} 
+							
+							//if the evaluate expression is FAIL
+							else {
+								
+								//return back the old value of IT before evaluating MEBBE
+								Symbol s = isASymbol(Token.IT);
+								mebbeCount--;
+								if(s != null) {	
+									s.setValue(oldIT.getValue());
+									s.setDataType(oldIT.getDataType());
+								} else validSemantics = false;
+							}
+						} 
+						
+						//if MEBBE were previously encountered, skip the line
+						else {
+							skip.add(i);
+							continue;
+						}
+						
+				}
+				
+				//if NO WAI is encountered, buffer and no case should be entered in order to stop the execution of if else block
+				else if(ifArray.get(i).get(0).getLexeme().equals(Token.NO_WAI)) {
+					if(enteredMebbe) mebbeCount++;
+					if(!enteredCase && buffer==0) break;
+					else buffer--;
+				}
+				
+				//if the line did not enter any case, skip the line
+				if(!enteredCase) skip.add(i);
+				
+				//if there are more than one MEBBE, skip the line
+				else if (mebbeCount > 1) skip.add(i);
+				
+			}
+		}
+		
+		return skip;
+	}
+	
+	//SEMANTICS FOR IF ELSE STATEMENT
+	private void ifElseExecute() {
+		ArrayList <Integer> skipList = new ArrayList<Integer>();
+		ArrayList <Integer> newSkip = new ArrayList<Integer>();
+		
+		executingIfStatement = true;
 		
 		//set checking if then statement to false so that it would execute instructions
 		checkingIfStatement = false;
 		
 		//get current queue size to get length of loop
-		int queueSize = ifQueue.size();
+		int arraySize = ifArray.size();
 		
-		//store original value of LineCheck
+		//store original value of lineNumber
 		int originalLineCheck = lineNumber;
 		
-		//store old IT value
-		Symbol oldIT = getIT();
-				
-		//change linecheck back to start of switch case
-		lineNumber -= queueSize;
+		//change lineNumber back to start of switch case
+		lineNumber -= arraySize;
 		
-		//execute instructions in ifQueue
-		for(int i = 0; i < queueSize; i++) {
-			//dequeues the process queue
-			tokensPerLine = ifQueue.remove();
-			lineNumber++;
-			//skip O RLY?
-			if(tplLexeme(0).equals(Token.O_RLY)) {
-				enteredCase = false;
+		//check all lines to be executed inside the if-then statement
+		for(int i = 0; i < arraySize; i++) {
+			
+			//if lines to be skipped are not empty, remove the current line and do not execute
+			if(!skipList.isEmpty())
+			if(skipList.contains(i)) {
+				skipList.remove((Object) i);
 				continue;
 			}
 			
-			//detects YA RLY (if-statement)
-			else if(tplLexeme(0).equals(Token.YA_RLY)) {
-				//if has yet to enter a case, check condition
-				if(!enteredCase) {
-					//compare IT and troof: if same, activate flag
-					if(getIT().getValue() == Token.WIN_TROOF_LITERAL) enteredCase = true;
-				} else continue; //skip if else
-			}
+			//get array index
+			tokensPerLine = ifArray.get(i);
+			lineNumber++;
 			
-			//detects MEBBE
-			else if(tplLexeme(0).equals(Token.MEBBE)) {	
-				System.out.println("case? " +enteredCase);
-				if(!enteredCase) {
-					combiExecute(Token.IT, tokensPerLine);
-					
-					Symbol it = getIT();
-					System.out.println("IT: " + it.getValue());
-
-					//if classification is the same, check if value is the same
-					if(it.getValue().equals(Token.WIN_TROOF_LITERAL)) {
-						//if same, activate flag
-						enteredCase = true;
-					} else {
-						Symbol s = isASymbol(Token.IT);
-						
-						if(s != null) {	
-							s.setValue(oldIT.getValue());
-							s.setDataType(oldIT.getDataType());
-						} else validSemantics = false;
-					}
-				} else enteredMebbe = true;
-				
-				Symbol it = getIT();
-				System.out.println("it.getValue(): " + it.getValue());
-			}
+			//if ORLY is encountered, enter function to look ahead of the code 
+			if(tokensPerLine.get(0).getLexeme().equals(Token.O_RLY)) {
+				newSkip = checkIfElse(i);
+				//add new lines to skip to the previously stored list of skips
+				newSkip.forEach(skipList::add);
+			} 
 			
-			//detects NO WAI (else-statement)
-			else if(tplLexeme(0).equals(Token.NO_WAI)){
-				//compare IT and troof: if same, activate flag
-				if(!enteredCase) {
-					if(getIT().getValue() == Token.FAIL_TROOF_LITERAL) enteredCase = true;
-				} else { //emptry queue 
-					ifQueue.clear();
-					break;	
-				}
-				
-			//execute instruction
-			}else if(tplLexeme(0).equals(Token.OIC)){
-				ifQueue.clear();
-				executingIfStatement = false;
-				break;			
-			} else if(enteredCase && !enteredMebbe) {
+			//when if-then keywords are encountered, just skip since they had been evaluated already
+			 else if(tokensPerLine.get(0).getLexeme().equals(Token.MEBBE) ||
+					 tokensPerLine.get(0).getLexeme().equals(Token.OIC) ||
+					 tokensPerLine.get(0).getLexeme().equals(Token.NO_WAI) ||
+					 tokensPerLine.get(0).getLexeme().equals(Token.YA_RLY)) {	
+				 continue;
+			} 
+			 
+			 //if lines of code are not keywords, execute its corresponding evaluation
+			 else {
 				checkSyntaxAndSemantics();
 				if(!validSemantics) return;
 			}
 		}
-		
+
+		//set to false since the if statement is finished
+		executingIfStatement = false;
 		lineNumber = originalLineCheck;
 	}
 	
@@ -1751,7 +1857,7 @@ public class Interpreter {
 		for(Token tkn: tokensPerLine) lineTokens.add(new Token(tkn.getLexeme(), tkn.getClassification()));
 		
 		if(statement == Token.WTF) pQueue.add(lineTokens);
-		else if(statement == Token.O_RLY) ifQueue.add(lineTokens);
+		else if(statement == Token.O_RLY) ifArray.add(lineTokens);
 	}
 	
 	//create error prompt
@@ -1774,7 +1880,7 @@ public class Interpreter {
 				if(line.get(0).getLexeme().equals(lexeme)) return true;
 			} 
 		} else if (statement == Token.O_RLY) {
-			for(ArrayList<Token> line: ifQueue) {
+			for(ArrayList<Token> line: ifArray) {
 				if(line.get(0).getLexeme().equals(lexeme)) return true;
 			} 
 		} 
@@ -2235,12 +2341,14 @@ public class Interpreter {
 		validLexical = true;
 		validSyntax = true;
 		validSemantics = true;
+		conditionalStatement = false;
+		switchStatement = false;
 		tokens.clear();
 		tokensPerLine.clear();
 		symbols.clear();
 		opTokens.clear();
 		pQueue.clear();
-		ifQueue.clear();
+		ifArray.clear();
 		outputDisplay.clear();
 		clearTable();
 		passIndicator.setImage(neutralImg);
