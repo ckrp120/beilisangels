@@ -1,0 +1,9 @@
+BTW SYNTAX CHECKER FOR GIMMEH
+HAI
+  I HAS A your
+  GIMMEH an "UNO"
+
+  BTW undeclared varident
+  GIMMEH UNO
+  VISIBLE UNO
+KTHXBYE
