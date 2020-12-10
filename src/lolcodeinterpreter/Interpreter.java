@@ -69,7 +69,8 @@ public class Interpreter {
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
     private ArrayList<Token> opTokens = new ArrayList<Token>();
-
+    private Stack<String> operation = new Stack<String>();
+    
     //process queue for switch
     private LinkedList<ArrayList<Token>> pQueue = new LinkedList<>();
     private boolean checkingSwitchStatement = false;
@@ -534,8 +535,6 @@ public class Interpreter {
 							}
 														
 						}
-					}else if(tplClass(i).equals(Token.MKAY_CLASSIFIER)) {
-						stop = true;
 					}
 
 					i++;
@@ -824,7 +823,6 @@ public class Interpreter {
 	}
 			
 	private boolean combiSyntax(ArrayList<Token> combiTokens) {
-		Stack<String> checker = new Stack<String>();
 		Token currentToken;
 		int infArityOpCount = 0;
 		boolean mkayIsPresent = false;
@@ -868,7 +866,7 @@ public class Interpreter {
 				else {
 					
 					//insufficient amount of operands
-					if(checker.size() == 0) {
+					if(operation.size() == 0) {
 						createErrorPrompt(Interpreter.INSUFFICIENT_OP);
 						return false;
 					}
@@ -889,10 +887,10 @@ public class Interpreter {
 					int popCnt = 0;	
 					while(popCnt < infArityOpCount-1) {
 						System.out.println(popCnt);
-						if(checker.size() > 1) {
-							checker.pop();
-							checker.pop();
-							checker.push("TROOF");
+						if(operation.size() > 1) {
+							operation.pop();
+							operation.pop();
+							operation.push("TROOF");
 							popCnt++;
 						}else {
 							createErrorPrompt(Interpreter.INSUFFICIENT_OP);
@@ -910,6 +908,8 @@ public class Interpreter {
 				else {
 					if(infArityOpCount <= 1) createErrorPrompt(Interpreter.INSUFFICIENT_OP);
 					else createErrorPrompt(Interpreter.AN_MISPLACED);
+					
+					return false;
 				}
 			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) || currentToken.getLexeme().equals(Token.NOOB_TYPE_LITERAL)) {
 				//if last token, it must be preceeded with an AN or NOT
@@ -928,7 +928,7 @@ public class Interpreter {
 				}
 				
 				//push to stack
-				 checker.push("TROOFNOOB");
+				 operation.push("TROOFNOOB");
 				
 				 //update inf arity op count if mkay is present
 				 if(mkayIsPresent) infArityOpCount++;
@@ -952,7 +952,7 @@ public class Interpreter {
 				}
 				
 				//push to stack
-				 checker.push("YARN");
+				 operation.push("YARN");
 				 if(mkayIsPresent) infArityOpCount++;
 			}else if(isAVar(currentToken.getClassification())) {
 				
@@ -972,7 +972,7 @@ public class Interpreter {
 						
 				}
 				
-				checker.push("VARIDENT");
+				operation.push("VARIDENT");
 				if(mkayIsPresent) infArityOpCount++;
 			}else if(isADigit(currentToken.getClassification())) {
 				if(i == 0) {
@@ -990,14 +990,10 @@ public class Interpreter {
 						
 				}
 				
-				checker.push("DIGIT");
+				operation.push("DIGIT");
 				if(mkayIsPresent) infArityOpCount++;
 			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(currentToken.getClassification())) {
-				//make sure it is not followed by an 'AN'
-				if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
-					createErrorPrompt(Interpreter.AN_MISPLACED);
-					return false;
-				}
+				
 				
 				//make sure it is not the last token
 				if(i == 0) {
@@ -1006,12 +1002,19 @@ public class Interpreter {
 				}
 				
 				
+				//make sure it is not followed by an 'AN'
+				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
+					createErrorPrompt(Interpreter.AN_MISPLACED);
+					return false;
+				}
+				
+				
 				
 				//pop one operand
-				if(checker.size() > 1) {
-					checker.pop();
-					checker.pop();
-					checker.push("TROOF");
+				if(operation.size() > 1) {
+					operation.pop();
+					operation.pop();
+					operation.push("TROOF");
 					if(mkayIsPresent) infArityOpCount--;
 				}
 				
@@ -1021,34 +1024,31 @@ public class Interpreter {
 					return false;
 				}
 			} else if(Token.ARITHMETIC_EXPRESSIONS.contains(currentToken.getClassification())){
-				//make sure it is not followed by an 'AN'
-				if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
-					createErrorPrompt(Interpreter.AN_MISPLACED);
-					return false;
-				}
+				
 				//make sure it is not the last token
 				if(i == 0) {
 					createErrorPrompt(Interpreter.OPERATOR_MISPLACED);
 					return false;
 				}
 				
+				//make sure it is not followed by an 'AN'
+				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
+					createErrorPrompt(Interpreter.AN_MISPLACED);
+					return false;
+				}
+				
 				//pop one operand
-				if(checker.size() > 1) {
-					checker.pop();
-					checker.pop();
-					checker.push("DIGIT");
+				if(operation.size() > 1) {
+					operation.pop();
+					operation.pop();
+					operation.push("DIGIT");
 					if(mkayIsPresent) infArityOpCount--;
 				}else{
 					createErrorPrompt(Interpreter.INSUFFICIENT_OP);
 					return false;
 				}
 			}else if(Token.COMPARISON_OPERATORS.contains(currentToken.getClassification())){
-				//make sure it is not followed by an 'AN'
-				if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
-					createErrorPrompt(Interpreter.AN_MISPLACED);
-					return false;
-				}
-					
+				
 				
 				//make sure it is not the last token
 				if(i == 0) {
@@ -1056,11 +1056,18 @@ public class Interpreter {
 					return false;
 				}
 				
+				//make sure it is not followed by an 'AN'
+				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
+					createErrorPrompt(Interpreter.AN_MISPLACED);
+					return false;
+				}
+					
+				
 				//pop one operand
-				if(checker.size() > 1) {
-					checker.pop();
-					checker.pop();
-					checker.push("TROOF");
+				if(operation.size() > 1) {
+					operation.pop();
+					operation.pop();
+					operation.push("TROOF");
 					if(mkayIsPresent) infArityOpCount--;
 				}else{
 					createErrorPrompt(Interpreter.INSUFFICIENT_OP);
@@ -1075,7 +1082,12 @@ public class Interpreter {
 				
 				if(i == 0) {
 					String nextToken = combiTokens.get(i+1).getClassification();
-					if(!(isALit(nextToken) || isAVar(nextToken) || Token.STRING_DELIMITER_CLASSIFIER.equals(nextToken))) {
+					if(nextToken.equals(Token.MKAY_CLASSIFIER)) {
+						createErrorPrompt(Interpreter.DUP_MKAY);
+						return false;
+					}
+					
+					else if(!(isALit(nextToken) || isAVar(nextToken) || Token.STRING_DELIMITER_CLASSIFIER.equals(nextToken))) {
 						createErrorPrompt(Interpreter.OPERAND_MISSING);
 						return false;
 					}
@@ -1094,11 +1106,12 @@ public class Interpreter {
 		
 		}
 		
+		System.out.println("here?!");
 		//there should only be 1 operand left
-		if((checker.size() == 1) && infArityOpCount == 0) {
+		if((operation.size() == 1) && infArityOpCount == 0) {
 			//back to original state
 			Collections.reverse(combiTokens);
-			System.out.println("return true");
+			operation.pop();
 			return true;
 		}
 		else {
@@ -1106,15 +1119,23 @@ public class Interpreter {
 			return false;
 		
 		}
+		
+		
 	}
 	
 	private String combiExecute(String dataHolder, ArrayList<Token> combiTokens) {
-		Stack<String> operation = new Stack<String>();
-
 		//since prefix, read the line in reverse
 		Collections.reverse(combiTokens);
 		int infArityOpCount = 0;
 		boolean mkayIsPresent = false;
+		
+		//check if dataHolder exists
+		Symbol s = isASymbol(dataHolder);
+		if(s == null) {
+			createErrorPrompt(Interpreter.UNDECLARED);
+			validSemantics = false;
+			return null;
+		}
 		
 		
 		for(Token tkn: combiTokens) {			
@@ -1138,7 +1159,7 @@ public class Interpreter {
 					validSemantics = false;
 					return null;
 				}
-			}  else if(tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER) || tkn.getClassification().equals(Token.MEBBE_CLASSIFIER)){
+			}  else if(tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER)){
 				continue;
 			}else if(tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
 				operation.push("\""+tkn.getLexeme()+"\"");
@@ -1335,6 +1356,7 @@ public class Interpreter {
 					case Token.QUOSHUNT_OF_CLASSIFIER:
 						if(o2 == 0) {
 							validSemantics = false;
+							createErrorPrompt(Interpreter.DIV_BY_ZERO);
 							return null;
 						}
 						answer = o1 / o2;
@@ -1342,6 +1364,7 @@ public class Interpreter {
 						break;
 					case Token.MOD_OF_CLASSIFIER:
 						if(o2 == 0) {
+							createErrorPrompt(Interpreter.DIV_BY_ZERO);
 							validSemantics = false;
 							return null;
 						}
@@ -1393,19 +1416,11 @@ public class Interpreter {
 		
 		
 		String result = operation.pop();
-		
-		Symbol s = isASymbol(dataHolder);
-	
-		if(s != null) {	
-			s.setValue(result);
-			s.setDataType(Symbol.BOOLEAN);
-		} else{
-			createErrorPrompt(Interpreter.UNDECLARED);
-			validSemantics = false;
-		}
+		s.setValue(result);
+		s.setDataType(Symbol.BOOLEAN);
 		return result;
 	}
-	
+		
 	//TYPECASTS NON TROOF OPERANDS TO TROOF
 	private String boolTypeCast(String op1) {
 		String classificationOp1 = getClass(op1);
@@ -2347,6 +2362,7 @@ public class Interpreter {
 		tokensPerLine.clear();
 		symbols.clear();
 		opTokens.clear();
+		operation.clear();
 		pQueue.clear();
 		ifArray.clear();
 		outputDisplay.clear();
