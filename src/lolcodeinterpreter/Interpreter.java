@@ -80,6 +80,47 @@ public class Interpreter {
     private boolean checkingIfStatement = false;
     private boolean executingIfStatement = false;
 	
+    /* ERROR PROMPTS */
+    
+    //MISSING KEYWORDS
+    public final static String WTF_MISSING = "missing WTF keyword";
+    public final static String OMG_MISSING = "missing OMG keyword";
+    public final static String OMGWTF_MISSING = "missing OMGWTF keyword";
+    public final static String OIC_MISSING = "missing OIC keyword";
+    public final static String ORLY_MISSING = "missing ORLY keyword";
+    public final static String YARLY_MISSING = "missing YARLY keyword";
+    public final static String EXPR_MISSING = "missing expression";
+    public final static String MKAY_MISSING = "missing MKAY keyword";
+    public final static String VARIDENT_MISSING = "missing variable identifier";
+    public final static String ITZ_MISSING = "missing ITZ keyword";
+    public final static String OPERAND_MISSING = "missing operand";
+
+    //INCORRECT
+    public final static String INCORRECT_TYPE = "incorrect type";
+    public final static String INCORRECT_STATEMENT = "incorrect statement";
+    public final static String INCORRECT_TOKEN_NUM = "incorrect number of tokens";
+    
+    //MISPLACED
+    public final static String AN_MISPLACED = "misplaced AN keyword";
+    public final static String NOT_MISPLACED = "misplaced NOT keyword";
+    public final static String OPERATOR_MISPLACED = "misplaced operator";
+    
+    //TYPECASTING ERRORS
+    public final static String PARSE_YARN = "cannot parse YARN to NUMBR/NUMBAR";
+    public final static String PARSE_NOOB = "cannot parse NOOB to NUMBR/NUMBAR";
+    
+    //UNIQUE
+    public final static String UNDECLARED = "undeclared variable identifier";
+    public final static String INSUFFICIENT_OP = "insufficient amount of operands"; 
+    public final static String UNEXPECTED_FLOAT = "unexpected float";
+    public final static String DIV_BY_ZERO = "division by zero";
+    public final static String INVALID_DATA_TYPE = "invalid data type";
+    public final static String NOTHING_TO_PRINT = "nothing to print";
+    public final static String PRINT_NULL = "cannot print NOOB value";
+    public final static String EXCLAMATION_ERROR = "invalid format";
+    public final static String INVALID_STATEMENT = "invalid statement";
+
+    
 	public Interpreter() {
 		root = new Group();
 		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.web("#315f72"));
@@ -778,8 +819,11 @@ public class Interpreter {
 			if(currentToken.getLexeme().equals(Token.AN)) {
 				
 				//AN is starting/last token
-				if(i == 0 || i == (combiTokens.size()-1)) 
+				if(i == 0 || i == (combiTokens.size()-1)) { 
+					createErrorPrompt(Interpreter.AN_MISPLACED);
 					return false;
+				}
+					
 				
 				//followed by AN/MKAY
 				else if((combiTokens.get(i-1).getLexeme().equals(Token.AN) || combiTokens.get(i-1).getLexeme().equals(Token.MKAY)))
@@ -1615,6 +1659,11 @@ public class Interpreter {
 		else if(statement == Token.O_RLY) ifQueue.add(lineTokens);
 	}
 	
+	//create error prompt
+	public void createErrorPrompt(String errorPrompt) {
+		outputDisplayText += "\nERROR on Line Number: "+lineNumber+" ";
+	}
+	
 	private void addToTokens() {
 		ArrayList<Token> copyTokensPerLine = new ArrayList<Token>();
 		for(Token tkn: tokensPerLine) 
@@ -2168,7 +2217,7 @@ public class Interpreter {
     private void showError() {  	
     	//update GUI to show fail
     	passIndicator.setImage(cryingImg);
-		outputDisplay.setText("[!] Error detected in line " + lineNumber);
+		outputDisplay.setText(outputDisplayText);
 		
 		//prompt error dialog
 		Alert alert = new Alert(AlertType.INFORMATION);
