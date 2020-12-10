@@ -2016,24 +2016,35 @@ public class Interpreter {
 	
 	//check if the lexeme is a possible keyword used as a variable identifier
 	public boolean isAVariable() {
-		String tkn;
+		String[] tkn;
 
 		if(tokensPerLine.size()>0) {
-			tkn = tplLexeme(0);
-			if(tkn.equals(Token.I_HAS_A) || tkn.equals(Token.VISIBLE)) {
-				if(Character.isLetter(currentLexeme.charAt(0))) return true;
+			if(tplLexeme(0).equals(Token.I_HAS_A)) {
+				if(Character.isLetter(currentLexeme.charAt(0))) {
+					System.out.println("ihasavisible");
+					return true;
+				}
+				else return false;
+			} else if(tplLexeme(0).equals(Token.VISIBLE)) {
+				tkn = currentLexeme.split(" ");
+				if(isASymbol(tkn[0])!=null) return true;
 				else return false;
 			}
 			else return false;		
 		} 
 
-		if(currentLexeme.contains(" R ")) return true;
+		if(currentLexeme.contains(" R ")) {
+			System.out.println("r");
+			return true;
+		}
 
 		if(tokens.size()>0) {
 			ArrayList<Token> tokensPerLine = tokens.get(tokens.size()-1);
-			tkn = tokensPerLine.get(tokensPerLine.size()-1).getLexeme();
-			if(tkn.equals(Token.BTW) || tkn.equals(Token.TLDR)) return false;
-			else return true;		
+			if(tplLexeme(tokensPerLine.size()-1).equals(Token.BTW) || tplLexeme(tokensPerLine.size()-1).equals(Token.TLDR)) return false;
+			else {
+				System.out.println("btwtldr");
+				return true;		
+			}
 		}
 
 		return false;		
