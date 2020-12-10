@@ -58,12 +58,6 @@ public class Interpreter {
 	private Image happyImg = new Image("imgs/laughing.gif", 150, 150, true,true);
 	private Image neutralImg = new Image("imgs/neutral.gif", 150, 150, true,true);
 	private Image cryingImg = new Image("imgs/crying.gif", 150, 150, true,true);
-	private Image lexicalPassImg = new Image("imgs/lexicalpassed.png", 150, 150, true,true);
-	private Image syntaxPassImg = new Image("imgs/syntaxpassed.png", 150, 150, true,true);
-	private Image semanticPassImg = new Image("imgs/semanticpassed.png", 150, 150, true,true);
-	private Image lexicalFailImg = new Image("imgs/lexicalfailed.png", 150, 150, true,true);
-	private Image syntaxFailImg = new Image("imgs/syntaxfailed.png", 150, 150, true,true);
-	private Image semanticFailImg = new Image("imgs/semanticfailed.png", 150, 150, true,true);
     private TableColumn<Token, String> lexemefirstDataColumn, lexemesecondDataColumn;
     private TableColumn<Symbol, Symbol> symbolfirstDataColumn, symbolsecondDataColumn;
     private TableView<Token> lexemeTableView = new TableView<Token>();
@@ -72,7 +66,7 @@ public class Interpreter {
     //FOR LEXICAL/SYNTAX/SEMANTIC ANALYSIS
     private String[] lines;
     private String currentLexeme,dialogText;
-    private int wordCheck,lineCheck,status,orlyCount;
+    private int lineNumber,status,orlyCount;
     private boolean validLexeme,validSyntax,validSemantics,readBack,conditionalStatement,switchStatement;
     private ArrayList<ArrayList<Token>> tokens = new ArrayList<ArrayList<Token>>();
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
@@ -159,55 +153,42 @@ public class Interpreter {
 	}
 	
 	
-	//FUNCTION FOR ANALYZING LOLCODE FILE
-	private void analyzeFile() {		
-		//process every line
-		while(lineCheck<lines.length) {
+	//FUNCTION FOR INTERPRETING LOLCODE FILE
+	private void interpretFile() {		
+		while(lineNumber<lines.length) { //process every line
+			status = 0;
 			readBack=false;
-			wordCheck = 0;
 			
 			//check status of the current line
-			//0 - valid lexeme; 1 - invalid lexeme; 2 - invalid lexeme, but process again bc a varident is detected as a possible keyword
-			status = checkLexeme(lines[lineCheck]);
+			//0 - valid lexeme; 
+			//1 - invalid lexeme; 
+			//2 - invalid lexeme, but process again bc a varident is detected as a possible keyword
+			status = checkLexeme(lines[lineNumber]);
 			
-			//case 2
-			if(status == 2) {
-				lineCheck--;
+			if(status == 2) { //case 2
+				lineNumber--;
 				//process again starting from where an invalid lexeme is detected
 				status = checkLexeme(currentLexeme);
 			}  
-			//case 1 or case 2 and there's still an invalid lexeme
-
-			if(status == 1) {	//LEXICAL ERROR
+			if(status == 1) { //case 1 or case 2 and there's still an invalid lexeme
 				validSyntax = false;
-				validSemantics = false;
 				break;
 			}	
 			
 			if(!tokensPerLine.isEmpty()) {
-				copyTokensPerLine();
+				addToTokens();
 			
 				//if the current line has a comment, ignore the BTW token
 				if(tokensPerLine.get(tokensPerLine.size()-1).getLexeme().equals(Token.BTW))
 					tokensPerLine.remove(tokensPerLine.size()-1);
 			}
 			
-//			if(validLexeme) System.out.println("Line "+lineCheck+": passed lexical");
 			if(!tokensPerLine.isEmpty()) {
 				checkSyntaxAndSemantics();
-
-//				if(validSyntax) System.out.println("Line "+lineCheck+": passed syntax");
-//				if(validSemantics) System.out.println("Line "+lineCheck+": passed semantics");
-
-				if(!validSyntax || !validSemantics) {
-		    		if(!validSyntax) validSemantics = false; //SYNTAX ERROR
-		    		break;
-		    	}
+				if(!validSyntax || !validSemantics) break;
 			}
-
 			tokensPerLine.clear();
 		}
-		
 	}
 	
 	
@@ -217,8 +198,8 @@ public class Interpreter {
 			//SWITCH CASE = WTF? OMG OMGWTF OIC
 			//IF WTF? was the previous operation, it must be followed by an OMG keyword
 			if(checkingSwitchStatement && pQueue.size() == 1) {
-				if(tokensPerLine.get(0).getClassification().equals(Token.OMG_CLASSIFIER) && tokensPerLine.size() == 2) {
-					if(Token.LITERALS.contains(tokensPerLine.get(1).getClassification()))
+				if(tplClass(0).equals(Token.OMG_CLASSIFIER) && tokensPerLine.size() == 2) {
+					if(Token.LITERALS.contains(tplClass(1)))
 						storeTokensToQueue(Token.WTF);
 					else validSyntax = false;
 				}			
@@ -226,25 +207,25 @@ public class Interpreter {
 			}
 			
 			//OMG
-			else if(tokensPerLine.get(0).getLexeme().equals(Token.OMG)) {
+			else if(tplLexeme(0).equals(Token.OMG)) {
 				//check if the line next to OMG is a literal
-				if(Token.LITERALS.contains(tokensPerLine.get(1).getClassification()) && tokensPerLine.size() == 2)
+				if(Token.LITERALS.contains(tplClass(1)) && tokensPerLine.size() == 2)
 					storeTokensToQueue(Token.WTF);
 				else validSyntax = false;
 			}
 			
 			//MEBBE
-			else if(tokensPerLine.get(0).getLexeme().equals(Token.MEBBE)) {
+			else if(tplLexeme(0).equals(Token.MEBBE)) {
 				if(checkingIfStatement) {
-					if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(1).getClassification()) || 
-							Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(1).getClassification()) || Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(1).getClassification())) {
+					if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tplClass(1)) || 
+							Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tplClass(1)) || Token.COMPARISON_OPERATORS.contains(tplClass(1))) {
 						storeTokensToQueue(Token.O_RLY);
 					} else validSyntax = false;
 				} else validSyntax = false;
 			}
 			
 			//PRINT = VISIBLE
-			else if(tokensPerLine.get(0).getLexeme().equals(Token.VISIBLE)) {
+			else if(tplLexeme(0).equals(Token.VISIBLE)) {
 				if(printSyntax()) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
@@ -254,7 +235,7 @@ public class Interpreter {
 			}
 			
 			//ACCEPT = GIMMEH
-			else if(tokensPerLine.get(0).getLexeme().equals(Token.GIMMEH)) {
+			else if(tplLexeme(0).equals(Token.GIMMEH)) {
 				if(acceptSyntax()) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
@@ -265,7 +246,7 @@ public class Interpreter {
 			}
 			
 			//VARIABLE DECLARATION = I HAS A
-			else if(tokensPerLine.get(0).getLexeme().equals(Token.I_HAS_A)) {
+			else if(tplLexeme(0).equals(Token.I_HAS_A)) {
 				String literalClassification = varDeclarationSyntax();
 				if(literalClassification != null) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
@@ -276,7 +257,7 @@ public class Interpreter {
 			}
 	
 			//ASSIGNMENT STATEMENT = R
-			else if(tokensPerLine.get(1).getLexeme().equals(Token.R)) {
+			else if(tplLexeme(1).equals(Token.R)) {
 				String literalClassification = varAssignmentSyntax();
 				if(literalClassification != null) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
@@ -287,7 +268,7 @@ public class Interpreter {
 			}
 			
 			//ARITHMETIC OPERATIONS
-			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification())) {
+			else if(Token.ARITHMETIC_EXPRESSIONS.contains(tplClass(0))) {
 				if(combiSyntax(tokensPerLine)) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
@@ -297,7 +278,7 @@ public class Interpreter {
 			}	
 			
 			//COMPARISON OPERATORS
-			else if(Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification()) ) {
+			else if(Token.COMPARISON_OPERATORS.contains(tplClass(0)) ) {
 				if(combiSyntax(tokensPerLine)) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
@@ -307,8 +288,8 @@ public class Interpreter {
 			}
 	
 			//BOOLEAN OPERATIONS
-			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || 
-					Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tokensPerLine.get(0).getClassification()) || Token.COMPARISON_OPERATORS.contains(tokensPerLine.get(0).getClassification())) {
+			else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tplClass(0)) || 
+					Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tplClass(0)) || Token.COMPARISON_OPERATORS.contains(tplClass(0))) {
 				if(combiSyntax(tokensPerLine)) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
@@ -317,7 +298,7 @@ public class Interpreter {
 				else validSyntax = false;
 			}
 			
-			else if(Token.SMOOSH_CLASSIFIER.equals(tokensPerLine.get(0).getClassification())) {
+			else if(Token.SMOOSH_CLASSIFIER.equals(tplClass(0))) {
 				if(smooshSyntax(tokensPerLine)) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
@@ -325,12 +306,12 @@ public class Interpreter {
 				}
 				else validSyntax = false;
 			}
-			else if(Token.HAI_CLASSIFIER.equals(tokensPerLine.get(0).getClassification())) {
-				if(!(tokensPerLine.size()==2 && tokensPerLine.get(1).getLexeme().equals("1.2"))) validSyntax = false;
+			else if(Token.HAI_CLASSIFIER.equals(tplClass(0))) {
+				if(!(tokensPerLine.size()==2 && tplLexeme(1).equals("1.2"))) validSyntax = false;
 			} 
 			else validSyntax = false;
 		} else {
-			switch(tokensPerLine.get(0).getClassification()) {
+			switch(tplClass(0)) {
 				case Token.HAI_CLASSIFIER:
 					break;
 				case Token.KTHXBYE_CLASSIFIER:
@@ -396,6 +377,14 @@ public class Interpreter {
 			}
 		}
 	}	
+	
+	private String tplLexeme(int index) {
+		return tokensPerLine.get(index).getLexeme();
+	}
+	
+	private String tplClass(int index) {
+		return tokensPerLine.get(index).getClassification();
+	}
 	
 	//SYNTAX FOR PRINT = VISIBLE
 	private boolean printSyntax() {
@@ -563,7 +552,7 @@ public class Interpreter {
 	//SYNTAX FOR ACCEPT = GIMMEH
 	private boolean acceptSyntax() {
 		if(tokensPerLine.size() == 2) {
-			if(tokensPerLine.get(1).getClassification().equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER))
+			if(tplClass(1).equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER))
 				return true; 
 			//return false if not a varident
 			return false;
@@ -577,7 +566,7 @@ public class Interpreter {
 		Symbol s;
 		
 		//check if the varident is in the symbols
-		if((s = isASymbol(tokensPerLine.get(1).getLexeme())) != null) {
+		if((s = isASymbol(tplLexeme(1))) != null) {
 			outputDisplay.setText(outputDisplayText);
 			//get user input
 			clearTable();
@@ -619,11 +608,11 @@ public class Interpreter {
 	
 	private String varDeclarationSyntax() {
 		if(tokensPerLine.size() > 1) {
-			if(isAVarident(tokensPerLine.get(1).getClassification())) {	
+			if(isAVarident(tplClass(1))) {	
 				//case 1: I HAS A var
 				if(tokensPerLine.size() == 2) return "";
 				//case 2: I HAS A var ITZ var/lit/expr
-				if(tokensPerLine.get(2).getClassification().equals(Token.ITZ_CLASSIFIER)) {
+				if(tplClass(2).equals(Token.ITZ_CLASSIFIER)) {
 					if(tokensPerLine.size() == 4 && 
 							(isAVarident(tokensPerLine.get(3).getClassification()) || Token.LITERALS.contains(tokensPerLine.get(3).getClassification())))
 						return tokensPerLine.get(3).getClassification();	
@@ -644,7 +633,7 @@ public class Interpreter {
 	
 	//SEMANTICS FOR VARIABLE DECLARATION = I HAS A
 	public void varDeclarationExecute(String litClass) {
-		String identifier = tokensPerLine.get(1).getLexeme();
+		String identifier = tplLexeme(1);
 		int operation;
 		
 		//check if the varident is already declared before
@@ -714,23 +703,23 @@ public class Interpreter {
 	//SYNTAX FOR ASSIGNMENT STATEMENT = R
 	private String varAssignmentSyntax() {
 		//check if it assigns to a varident
-		if(isAVarident(tokensPerLine.get(0).getClassification())) {
+		if(isAVarident(tplClass(0))) {
 			//return value if it is a varident/it, literal, or expr
 			if(tokensPerLine.size() == 3 &&
-					(isAVarident(tokensPerLine.get(2).getClassification()) || Token.LITERALS.contains(tokensPerLine.get(2).getClassification())))
-				return tokensPerLine.get(2).getClassification();	
+					(isAVarident(tplClass(2)) || Token.LITERALS.contains(tplClass(2))))
+				return tplClass(2);	
 			if(tokensPerLine.size() == 5 && Token.YARN_LITERAL_CLASSIFIER.equals(tokensPerLine.get(3).getClassification())) 
 				return tokensPerLine.get(3).getClassification();
-			if(isALitOrExpr(tokensPerLine.get(2).getClassification()))
-				return tokensPerLine.get(2).getClassification();
+			if(isALitOrExpr(tplClass(2)))
+				return tplClass(2);
 			return null;
 		} return null;
 	}
 	
 	//SEMANTICS FOR ASSIGNMENT STATEMENT = R
 	private void varAssignmentExecute(String litClass) {
-		Symbol s = isASymbol(tokensPerLine.get(0).getLexeme());
-		Symbol sv = isASymbol(tokensPerLine.get(2).getLexeme());
+		Symbol s = isASymbol(tplLexeme(0));
+		Symbol sv = isASymbol(tplLexeme(2));
 		int operation;
 		
 		//get the symbol, then set the value
@@ -756,7 +745,7 @@ public class Interpreter {
 					if(smooshSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else smooshExecute(tokensPerLine.get(0).getLexeme(),opTokens);
+						else smooshExecute(tplLexeme(0),opTokens);
 					}
 					else validSyntax = false;
 				}
@@ -766,7 +755,7 @@ public class Interpreter {
 					if(combiSyntax(opTokens)) {
 						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else combiExecute(tokensPerLine.get(0).getLexeme(),opTokens);
+						else combiExecute(tplLexeme(0),opTokens);
 					}
 					else validSyntax = false;
 				}
@@ -780,17 +769,17 @@ public class Interpreter {
 			}
 			//or other type literals
 			else if(litClass.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) {
-				s.setValue(tokensPerLine.get(2).getLexeme());
+				s.setValue(tplLexeme(2));
 				s.setDataType(Symbol.FLOAT);
 			}
 			
 			else if(litClass.equals(Token.NUMBR_LITERAL_CLASSIFIER)) {
-				s.setValue(tokensPerLine.get(2).getLexeme());
+				s.setValue(tplLexeme(2));
 				s.setDataType(Symbol.INTEGER);
 			}
 			
 			else if(litClass.equals(Token.TROOF_LITERAL_CLASSIFIER)) {
-				s.setValue(tokensPerLine.get(2).getLexeme());
+				s.setValue(tplLexeme(2));
 				s.setDataType(Symbol.BOOLEAN);
 			}
 		} else validSemantics = false;
@@ -1122,7 +1111,7 @@ public class Interpreter {
 					}
 				}
 			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
-				//System.out.println("Line check: "+lineCheck);
+				//System.out.println("Line check: "+lineNumber);
 				boolean resultIsNumbar = false;
 				String op1 = operation.pop();
 				String classificationOp1 = getClass(op1);
@@ -1397,10 +1386,10 @@ public class Interpreter {
 		int queueSize = pQueue.size();
 		
 		//store original value of LineCheck
-		int originalLineCheck = lineCheck;
+		int originalLineCheck = lineNumber;
 		
 		//change linecheck back to start of switch case
-		lineCheck -= queueSize;
+		lineNumber -= queueSize;
 		
 		
 		//execute instructions in pQueue
@@ -1408,13 +1397,13 @@ public class Interpreter {
 			//dequeues the process queue
 			tokensPerLine = pQueue.remove();
 			
-			lineCheck++;
+			lineNumber++;
 			
 			//skip WTF
 			if(i == 0) continue; 
 			
 			//detects OMG
-			else if(tokensPerLine.get(0).getLexeme().equals(Token.OMG)) {				
+			else if(tplLexeme(0).equals(Token.OMG)) {				
 				//if has yet to enter a case, check condition
 				if(!enteredCase) {
 					
@@ -1424,31 +1413,31 @@ public class Interpreter {
 					//check if same datatype
 					String classificationIT = getClass(it.getValue());
 
-					String classificationCase = getClass(tokensPerLine.get(1).getLexeme());
+					String classificationCase = getClass(tplLexeme(1));
 					
 					//if classification is the same, check if value is the same
 					if(classificationIT.equals(classificationCase)) {
 						//if same, activate flag
 						
-						if(it.getValue().equals(tokensPerLine.get(1).getLexeme())) enteredCase = true;
+						if(it.getValue().equals(tplLexeme(1))) enteredCase = true;
 
 					}
 				} else continue;
 			
 			//if GTFO, clear the process queue and exit switch statement
-			} else if(tokensPerLine.get(0).getLexeme().equals(Token.GTFO) && enteredCase) {
+			} else if(tplLexeme(0).equals(Token.GTFO) && enteredCase) {
 				pQueue.clear();
 				executingSwitchStatement = false;
 				break;
 				
 			//if OIC, clear the process queue and exit the switch statement	
-			} else if(tokensPerLine.get(0).getLexeme().equals(Token.OIC)){
+			} else if(tplLexeme(0).equals(Token.OIC)){
 				pQueue.clear();
 				executingSwitchStatement = false;
 				break;
 			
 			//default case
-			} else if(tokensPerLine.get(0).getLexeme().equals(Token.OMGWTF)){
+			} else if(tplLexeme(0).equals(Token.OMGWTF)){
 				enteredCase = true;
 				
 			//execute instruction
@@ -1458,7 +1447,7 @@ public class Interpreter {
 				}
 		}
 		
-		lineCheck = originalLineCheck;
+		lineNumber = originalLineCheck;
 	}
 	
 	//SEMANTICS FOR IF ELSE STATEMENT
@@ -1476,27 +1465,27 @@ public class Interpreter {
 		int queueSize = ifQueue.size();
 		
 		//store original value of LineCheck
-		int originalLineCheck = lineCheck;
+		int originalLineCheck = lineNumber;
 		
 		//store old IT value
 		Symbol oldIT = getIT();
 				
 		//change linecheck back to start of switch case
-		lineCheck -= queueSize;
+		lineNumber -= queueSize;
 		
 		//execute instructions in ifQueue
 		for(int i = 0; i < queueSize; i++) {
 			//dequeues the process queue
 			tokensPerLine = ifQueue.remove();
-			lineCheck++;
+			lineNumber++;
 			//skip O RLY?
-			if(tokensPerLine.get(0).getLexeme().equals(Token.O_RLY)) {
+			if(tplLexeme(0).equals(Token.O_RLY)) {
 				enteredCase = false;
 				continue;
 			}
 			
 			//detects YA RLY (if-statement)
-			else if(tokensPerLine.get(0).getLexeme().equals(Token.YA_RLY)) {
+			else if(tplLexeme(0).equals(Token.YA_RLY)) {
 				//if has yet to enter a case, check condition
 				if(!enteredCase) {
 					//compare IT and troof: if same, activate flag
@@ -1505,7 +1494,7 @@ public class Interpreter {
 			}
 			
 			//detects MEBBE
-			else if(tokensPerLine.get(0).getLexeme().equals(Token.MEBBE)) {	
+			else if(tplLexeme(0).equals(Token.MEBBE)) {	
 				System.out.println("case? " +enteredCase);
 				if(!enteredCase) {
 					combiExecute(Token.IT, tokensPerLine);
@@ -1532,7 +1521,7 @@ public class Interpreter {
 			}
 			
 			//detects NO WAI (else-statement)
-			else if(tokensPerLine.get(0).getLexeme().equals(Token.NO_WAI)){
+			else if(tplLexeme(0).equals(Token.NO_WAI)){
 				//compare IT and troof: if same, activate flag
 				if(!enteredCase) {
 					if(getIT().getValue() == Token.FAIL_TROOF_LITERAL) enteredCase = true;
@@ -1542,7 +1531,7 @@ public class Interpreter {
 				}
 				
 			//execute instruction
-			}else if(tokensPerLine.get(0).getLexeme().equals(Token.OIC)){
+			}else if(tplLexeme(0).equals(Token.OIC)){
 				ifQueue.clear();
 				executingIfStatement = false;
 				break;			
@@ -1552,7 +1541,7 @@ public class Interpreter {
 			}
 		}
 		
-		lineCheck = originalLineCheck;
+		lineNumber = originalLineCheck;
 	}
 	
 	//SYNTAX FOR CONCATENATION
@@ -1648,7 +1637,7 @@ public class Interpreter {
 		else if(statement == Token.O_RLY) ifQueue.add(lineTokens);
 	}
 	
-	private void copyTokensPerLine() {
+	private void addToTokens() {
 		ArrayList<Token> copyTokensPerLine = new ArrayList<Token>();
 		for(Token tkn: tokensPerLine) 
 			copyTokensPerLine.add(new Token(tkn.getLexeme(), tkn.getClassification()));
@@ -1733,7 +1722,7 @@ public class Interpreter {
 	    boolean acceptedLexeme=false;
 		String classification;
 		
-		lineCheck++;
+		lineNumber++;
 		
 		//if the current line has no code, continue to the next line
 		if(isEmpty(line)) return 0;
@@ -1812,7 +1801,7 @@ public class Interpreter {
 							tokensPerLine.add(new Token(currentLexeme,classification));
 							currentLexeme = "";
 						//case 2: OBTW .. TLDR (must have their own lines)
-						} else if(wordCheck == 0) {
+						} else if(tokensPerLine.size() == 0) {
 							tokensPerLine.add(new Token(currentLexeme,classification));
 							currentLexeme = "";
 							String commentEnder;
@@ -1820,8 +1809,8 @@ public class Interpreter {
 							//ignore lines until a TLDR is detected
 							do {
 								commentEnder="";
-								lineCheck++;
-								line = lines[lineCheck];
+								lineNumber++;
+								line = lines[lineNumber];
 								String[] lexemes = line.split(" ");
 								
 								
@@ -1841,7 +1830,6 @@ public class Interpreter {
 						}
 						currentLexeme ="";
 					}						
-					wordCheck++;
 				}
 			}	
 		}
@@ -1903,7 +1891,7 @@ public class Interpreter {
 		String tkn;
 
 		if(tokensPerLine.size()>0) {
-			tkn = tokensPerLine.get(0).getLexeme();
+			tkn = tplLexeme(0);
 			if(tkn.equals(Token.I_HAS_A) || tkn.equals(Token.VISIBLE)) {
 				if(Character.isLetter(currentLexeme.charAt(0))) return true;
 				else return false;
@@ -2046,7 +2034,7 @@ public class Interpreter {
 				if(isAComment(l)!=0 || l.equals(Token.TLDR)) continue;
 				else if(l.equals(Token.HAI)) return true;
 				else {
-					lineCheck = 1;
+					lineNumber = 1;
 					validSyntax = false;
 					return false;
 				}
@@ -2108,7 +2096,7 @@ public class Interpreter {
 		//clear all values
 		fileString = "";
 		outputDisplayText = "";
-		lineCheck = 0;		
+		lineNumber = 0;		
 		orlyCount =0;
 		validLexeme = true;
 		validSyntax = true;
@@ -2206,24 +2194,8 @@ public class Interpreter {
     private void showError() {  	
     	//update GUI to show fail
     	passIndicator.setImage(cryingImg);
-		outputDisplay.setText("[!] Error detected in line " + lineCheck);
-    	
-    	if(!validLexeme) {
-    		lexicalIndicator.setImage(lexicalFailImg);
-    		validSyntax = false;
-    		validSemantics = false;
-    	}
-    	else lexicalIndicator.setImage(lexicalPassImg);
-    		
-		if(!validSyntax) {
-			syntaxIndicator.setImage(syntaxFailImg);
-    		validSemantics = false;
-		}
-    	else syntaxIndicator.setImage(syntaxPassImg);
-    		
-    	if(!validSemantics) semanticIndicator.setImage(semanticFailImg);
-    	else semanticIndicator.setImage(semanticPassImg);
-
+		outputDisplay.setText("[!] Error detected in line " + lineNumber);
+		
 		//prompt error dialog
 		Alert alert = new Alert(AlertType.INFORMATION);
 		alert.setContentText("[!] Errors found in your code.");
@@ -2237,16 +2209,13 @@ public class Interpreter {
 		populateTable();		
 		outputDisplay.setText(outputDisplayText);
 		passIndicator.setImage(happyImg);
-		lexicalIndicator.setImage(lexicalPassImg);
-		syntaxIndicator.setImage(syntaxPassImg);
-		semanticIndicator.setImage(semanticPassImg);
     }
     
 	private void generateLexemes() {
 		executeButton.setOnAction(e -> {
 			if(file!=null) {
 				readFile();
-				analyzeFile();
+				interpretFile();
 				if(execute() && validLexeme && validSyntax && validSemantics) showPass();
 				else showError();
 			} else {
