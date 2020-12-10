@@ -2401,12 +2401,8 @@ public class Interpreter {
 			return false;
 		}
 		
-		if(startsWithHAI!=0 && validSemantics) {
-			if(encounteredKTHXBYE && endsWithKTHXBYE==0) {
-				createErrorPrompt(Interpreter.KTHXBYE_MISSING);
-				return false;
-			}
-			if(!encounteredKTHXBYE && validSemantics && endsWithKTHXBYE==0) {
+		if(startsWithHAI!=0 && validLexical && validSyntax && validSemantics) {
+			if(endsWithKTHXBYE==0) {
 				createErrorPrompt(Interpreter.KTHXBYE_MISSING);
 				return false;
 			}			
