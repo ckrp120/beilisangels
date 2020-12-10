@@ -38,4 +38,4 @@ HAI
   VISIBLE var10
   VISIBLE var11
 
-
+KTHXBYE

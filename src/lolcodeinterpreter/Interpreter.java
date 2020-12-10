@@ -103,6 +103,7 @@ public class Interpreter {
     public final static String ITZ_MISSING = "missing ITZ keyword";
     public final static String OPERAND_MISSING = "missing operand";
     public final static String AN_MISSING = "missing AN keyword";
+    public final static String TLDR_MISSING = "missing TLDR keyword pair";
 
     //INCORRECT
     public final static String INCORRECT_TYPE = "incorrect type";
@@ -113,7 +114,6 @@ public class Interpreter {
     public final static String AN_MISPLACED = "misplaced AN keyword";
     public final static String NOT_MISPLACED = "misplaced NOT keyword";
     public final static String OPERATOR_MISPLACED = "misplaced operator";
-    public final static String HAI_MISPLACED = "misplaced HAI keyword";
     public final static String KTHXBYE_MISPLACED = "misplaced KTHXBYE keyword";
  
     //TYPECASTING ERRORS
@@ -389,7 +389,7 @@ public class Interpreter {
 				if(tplSize(2) && tplLexeme(1).equals("1.2")) {
 					if(startsWithHAI==0) {
 						if(!startsWithHAI()) {
-							createErrorPrompt(Interpreter.HAI_MISPLACED);
+							createErrorPrompt(Interpreter.HAI_MISSING);
 							validSemantics = false;
 						} else startsWithHAI = lineNumber;
 					} else {
@@ -552,10 +552,7 @@ public class Interpreter {
 					i++;
 				} while(i<tokensPerLine.size() && !stop);
 
-				if(operation == 4 && !smooshSyntax(opTokens)) {
-					
-					return false;
-				}
+				if(operation == 4 && !smooshSyntax(opTokens)) return false;
 				else if(!combiSyntax(opTokens)) return false;
 			}
 			
@@ -566,6 +563,9 @@ public class Interpreter {
 					createErrorPrompt(Interpreter.INVALID_FORMAT);
 					return false;
 				}
+			} else {
+				createErrorPrompt(Interpreter.INCORRECT_TYPE);
+				return false;
 			}
 		}	
 		return true;
@@ -678,11 +678,10 @@ public class Interpreter {
 			} else if(tplLexeme(i).equals(Token.EXCLAMATION_POINT)) { //visible ends with an exclamation
 				appendNewLine = false;
 			} else {
-				createErrorPrompt(Interpreter.INVALID_FORMAT);
+				createErrorPrompt(Interpreter.INCORRECT_TYPE);
 				validSemantics = false;
 				break;
 			}
-			
 			i++;
 		}	
 		
@@ -733,51 +732,54 @@ public class Interpreter {
             	s.setDataType(getDataType(value)); //automatically typecast based on input
             	outputDisplayText += value + "\n";
             });	
-        } else validSemantics = false;  
+        } else {
+			createErrorPrompt(Interpreter.NO_INPUT);
+        	validSemantics = false;  
+        }
 	}
 	
 	
 	
 	//SYNTAX FOR VARIABLE DECLARATION = I HAS A
 	private String varDeclarationSyntax() {
-		if(tokensPerLine.size() > 1) {
-			if(isAVar(tplClass(1))) {	
-				if(tplSize(2)) return ""; //case 1: I HAS A var
-				if(tplClass(2).equals(Token.ITZ_CLASSIFIER)) { //case 2: I HAS A var ITZ var/lit/expr
-					if(tplSize(4)) {
-						if(isALitOrVar(tplClass(3))) return tplClass(3);
-						else {
-							createErrorPrompt(Interpreter.INCORRECT_TYPE);
-							return null;
-						}
+		if(isAVar(tplClass(1))) {	
+			if(tplSize(2)) return ""; //case 1: I HAS A var
+			if(tplClass(2).equals(Token.ITZ_CLASSIFIER)) { //case 2: I HAS A var ITZ var/lit/expr
+				if(tplSize(4)) {
+					if(isALitOrVar(tplClass(3))) return tplClass(3);
+					else {
+						createErrorPrompt(Interpreter.INCORRECT_TYPE);
+						return null;
 					}
-					if(tplSize(6) && Token.YARN_LITERAL_CLASSIFIER.equals(tplClass(4))) return tplClass(4);	
-					if(isAnExpr(tplClass(3)) != 0) {
-						opTokens.clear();
-						for(int i=3;i<tokensPerLine.size();i++)
-							opTokens.add(tokensPerLine.get(i));
-							
-						if(!(smooshSyntax(opTokens) || combiSyntax(opTokens))) {
-							validSyntax = false;
-							return null;
-						}
-						return tplClass(3);	
+				}
+				if(tplSize(6)) {
+					if(Token.YARN_LITERAL_CLASSIFIER.equals(tplClass(4))) return tplClass(4);	
+					else {
+						createErrorPrompt(Interpreter.INCORRECT_TYPE);
+						return null;
 					}
-					createErrorPrompt(Interpreter.INVALID_FORMAT);
-					return null;
 				}
-				else {
-					createErrorPrompt(Interpreter.ITZ_MISSING);
-					return null;
+				if(isAnExpr(tplClass(3)) != 0) {
+					opTokens.clear();
+					for(int i=3;i<tokensPerLine.size();i++)
+						opTokens.add(tokensPerLine.get(i));
+						
+					if(!(smooshSyntax(opTokens) || combiSyntax(opTokens))) {
+						validSyntax = false;
+						return null;
+					}
+					return tplClass(3);	
 				}
-			} else {
 				createErrorPrompt(Interpreter.INCORRECT_TYPE);
 				return null;
 			}
+			else {
+				createErrorPrompt(Interpreter.ITZ_MISSING);
+				return null;
+			}
 		} else {
-			//return null if no varident is declared
-			createErrorPrompt(Interpreter.VARIDENT_MISSING);
-			return null;			
+			createErrorPrompt(Interpreter.INCORRECT_TYPE);
+			return null;
 		}
 	}
 	
@@ -872,9 +874,21 @@ public class Interpreter {
 			//check if it assigns to a varident
 			if(isAVar(tplClass(0))) {
 				//return value if it is a varident/it, literal, or expr
-				if(tplSize(3) && isALitOrVar(tplClass(2)))
-					return tplClass(2);	
-				if(tplSize(5) && Token.YARN_LITERAL_CLASSIFIER.equals(tplClass(3))) return tplClass(3);
+				if(tplSize(3)) {
+					if(isALitOrVar(tplClass(2))) return tplClass(2);	
+					else {
+						createErrorPrompt(Interpreter.INCORRECT_TYPE);
+						validSemantics = false;
+					}
+				}
+					
+				if(tplSize(5)) {
+					if(Token.YARN_LITERAL_CLASSIFIER.equals(tplClass(3))) return tplClass(3);
+					else {
+						createErrorPrompt(Interpreter.INCORRECT_TYPE);
+						validSemantics = false;
+					}
+				}
 				if(isAnExpr(tplClass(2))!=0) return tplClass(2);
 				createErrorPrompt(Interpreter.INVALID_FORMAT);
 				validSyntax = false;
@@ -928,7 +942,6 @@ public class Interpreter {
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else smooshExecute(tplLexeme(0),opTokens);
 					}
-					else validSyntax = false;
 				}
 				
 				//case: other op
@@ -938,7 +951,6 @@ public class Interpreter {
 						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 						else combiExecute(tplLexeme(0),opTokens);
 					}
-					else validSyntax = false;
 				}
 			}
 							
@@ -962,6 +974,9 @@ public class Interpreter {
 			else if(litClass.equals(Token.TROOF_LITERAL_CLASSIFIER)) {
 				s.setValue(tplLexeme(2));
 				s.setDataType(Symbol.BOOLEAN);
+			} else {
+				createErrorPrompt(Interpreter.INCORRECT_TYPE);
+				validSemantics = false;
 			}
 		} else {
 			createErrorPrompt(Interpreter.UNDECLARED);
@@ -2203,19 +2218,30 @@ public class Interpreter {
 							tokensPerLine.add(new Token(currentLexeme,classification));
 							currentLexeme = "";
 							String commentEnder;
-							
+							int saveLineNumber = lineNumber;
+							boolean TLDR;
 							//ignore lines until a TLDR is detected
 							do {
+								TLDR=false;
 								commentEnder="";
-								lineNumber++;
 								line = lines[lineNumber];
+								lineNumber++;
 								String[] lexemes = line.split(" ");
 								
 								
 								for(int i=0;i<lexemes.length;i++) {
 									if(!lexemes[i].equals("")) commentEnder+=lexemes[i];
 								}	
-							} while(!commentEnder.equals(Token.TLDR));		
+								if(commentEnder.equals(Token.TLDR)) TLDR=true;
+							} while(!TLDR && lineNumber<lines.length);			
+	
+							if(!TLDR) {
+								lineNumber = saveLineNumber;
+								System.out.println("return false");
+								createErrorPrompt(TLDR_MISSING);
+								validSyntax = false;
+								validSemantics = false;
+							}
 						}
 						break;
 					
