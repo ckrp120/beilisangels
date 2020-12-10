@@ -334,20 +334,20 @@ public class Interpreter {
 				case Token.HAI_CLASSIFIER:
 					break;
 				case Token.KTHXBYE_CLASSIFIER:
-					if(conditionalStatement==true || switchStatement==true) {
-				    	for(ArrayList<Token> tokensPerLine: tokens) {
-				        	for(Token token: tokensPerLine) {
-								if(!token.getLexeme().equals(Token.OIC)) {
-									validSyntax = false;
-								} else {
-									validSyntax = true;
-									break;
-								}
-				        	}
-				    	}
-					} else {
-						validSyntax = true;
-					}
+//					if(conditionalStatement==true || switchStatement==true) {
+//				    	for(ArrayList<Token> tokensPerLine: tokens) {
+//				        	for(Token token: tokensPerLine) {
+//								if(!token.getLexeme().equals(Token.OIC)) {
+//									validSyntax = false;
+//								} else {
+//									validSyntax = true;
+//									break;
+//								}
+//				        	}
+//				    	}
+//					} else {
+//						validSyntax = true;
+//					}
 					break;
 				case Token.OBTW_CLASSIFIER:
 					break;	
@@ -409,8 +409,9 @@ public class Interpreter {
 				
 				if(isAVarident(tkn.getClassification()) ||
 					isALitOrExpr(tkn.getClassification()) ||
-					tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER))
-					continue;
+					tkn.getLexeme().equals(Token.STRING_DELIMITER) ||
+					tkn.getLexeme().equals(Token.AN))
+					i++;
 				else return false;
 			}
 		}
@@ -2019,7 +2020,10 @@ public class Interpreter {
 	
 					if(isAComment(l)!=0 || l.equals(Token.TLDR)) continue;
 					else {
-						if(l.equals(Token.KTHXBYE)) return true;
+						if(l.equals(Token.KTHXBYE)) {
+							System.out.println("tama");
+							return true;
+						}
 						else {				
 							validSyntax = false;
 							return false;
