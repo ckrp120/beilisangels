@@ -49,16 +49,13 @@ public class Interpreter {
 	private TextArea codeDisplay = new TextArea();
 	private TextArea outputDisplay = new TextArea();
 	private String outputDisplayText="";
-	private ImageView passIndicator = new ImageView(new Image("imgs/neutral.gif", 150, 150, true,true));
-	private ImageView lexicalIndicator = new ImageView();
-	private ImageView syntaxIndicator = new ImageView();
-	private ImageView semanticIndicator = new ImageView();
-	private ImageView titleImage = new ImageView(new Image("imgs/title.png", 1000, 90, true,true));
 	private Image titleImg = new Image("imgs/title.png", 1000, 90, true,true);
+	private ImageView titleImage = new ImageView(titleImg);
 	private Image happyImg = new Image("imgs/laughing.gif", 150, 150, true,true);
 	private Image neutralImg = new Image("imgs/neutral.gif", 150, 150, true,true);
 	private Image cryingImg = new Image("imgs/crying.gif", 150, 150, true,true);
-    private TableColumn<Token, String> lexemefirstDataColumn, lexemesecondDataColumn;
+	private ImageView passIndicator = new ImageView(neutralImg);
+	private TableColumn<Token, String> lexemefirstDataColumn, lexemesecondDataColumn;
     private TableColumn<Symbol, Symbol> symbolfirstDataColumn, symbolsecondDataColumn;
     private TableView<Token> lexemeTableView = new TableView<Token>();
     private TableView<Symbol> symbolTableView = new TableView<Symbol>(); 
@@ -67,7 +64,7 @@ public class Interpreter {
     private String[] lines;
     private String currentLexeme,dialogText;
     private int lineNumber,status,orlyCount;
-    private boolean validLexeme,validSyntax,validSemantics,readBack,conditionalStatement,switchStatement;
+    private boolean validLexical,validSyntax,validSemantics,readBack;
     private ArrayList<ArrayList<Token>> tokens = new ArrayList<ArrayList<Token>>();
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
@@ -118,19 +115,7 @@ public class Interpreter {
         //set preferences for imageview of pass indicator
         this.passIndicator.setLayoutX(1270);
         this.passIndicator.setLayoutY(650);
-        
-        //set preferences for imageview of lexical analysis indicator
-        this.lexicalIndicator.setLayoutX(1270);
-        this.lexicalIndicator.setLayoutY(810);
-        
-        //set preferences for imageview of syntax analysis indicator
-        this.syntaxIndicator.setLayoutX(1270);
-        this.syntaxIndicator.setLayoutY(850);
-        
-        //set preferences for imageview of semantic analysis indicator
-        this.semanticIndicator.setLayoutX(1270);
-        this.semanticIndicator.setLayoutY(890);
-        
+          
         //set preferences for imageview of title
         this.titleImage.setLayoutX(530);
         this.titleImage.setLayoutY(10);
@@ -141,7 +126,7 @@ public class Interpreter {
 		createTable("lexemes");
 		createTable("symbols");
 		
-		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, lexicalIndicator, syntaxIndicator, semanticIndicator, titleImage);
+		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, titleImage);
 		root.getStylesheets().add(getClass().getResource("lolcodeinterpreter.css").toString());
 		this.stage = stage;
 		this.stage.getIcons().add(new Image(("imgs/title.png")));
@@ -336,7 +321,6 @@ public class Interpreter {
 					break;
 				case Token.WTF_CLASSIFIER:
 					checkingSwitchStatement = true;
-					switchStatement = true;
 					storeTokensToQueue(Token.WTF);
 					break;
 				case Token.OIC_CLASSIFIER:
@@ -360,7 +344,6 @@ public class Interpreter {
 					break;
 				case Token.O_RLY_CLASSIFIER:
 					checkingIfStatement = true;
-					conditionalStatement = true;
 					orlyCount++;
 					storeTokensToQueue(Token.O_RLY);
 					break;
@@ -386,24 +369,73 @@ public class Interpreter {
 		return tokensPerLine.get(index).getClassification();
 	}
 	
-	//SYNTAX FOR PRINT = VISIBLE
 	private boolean printSyntax() {
 		Token tkn;
-		int i=1;
+		int i=1,operation;
 		
 		if(tokensPerLine.size() == 1) return true;
-		else {
-			while(i<tokensPerLine.size()) {
-				tkn = tokensPerLine.get(i);
-				
-				if(isAVarident(tkn.getClassification()) ||
-					isALitOrExpr(tkn.getClassification()) ||
-					tkn.getLexeme().equals(Token.STRING_DELIMITER) ||
-					tkn.getLexeme().equals(Token.AN))
+		
+		while(i<tokensPerLine.size()) {
+			tkn = tokensPerLine.get(i);
+			
+			//case 1: varident/it
+			if(isAVarident(tkn.getClassification()) || 
+				Token.LITERALS.contains(tkn.getClassification()) ||
+				tkn.getLexeme().equals(Token.STRING_DELIMITER))
 					i++;
-				else return false;
+
+			//case 2: expr
+			else if((operation = isAnExpr(tkn.getClassification())) != 0) {
+				opTokens.clear();
+				
+				//copy the tokens starting from the operation until the end of the expression
+				String currToken,nextToken;
+				boolean stop = false;
+				
+				do {
+					currToken = tokensPerLine.get(i).getClassification();
+					opTokens.add(tokensPerLine.get(i));
+					if(currToken.equals(Token.STRING_DELIMITER_CLASSIFIER)) {
+						i++;
+						continue;
+					}
+					
+					if(isAVarident(currToken) || Token.LITERALS.contains(currToken) || Token.MKAY_CLASSIFIER.equals(currToken)) {
+						if(i+1 != tokensPerLine.size()) {
+							if(currToken.equals(Token.YARN_LITERAL_CLASSIFIER)) {
+								if(i+2 < tokensPerLine.size()) {
+									nextToken = tokensPerLine.get(i+2).getLexeme();
+									if(!(nextToken.equals(Token.AN) || nextToken.equals(Token.MKAY))) stop = true;	
+								}
+							}else {
+								nextToken = tokensPerLine.get(i+1).getLexeme();
+								if(!(nextToken.equals(Token.AN) | nextToken.equals(Token.MKAY))) stop = true;
+							}
+														
+						}
+					}else if(currToken.equals(Token.MKAY_CLASSIFIER)) {
+						stop = true;
+					}
+
+					i++;
+				} while(i<tokensPerLine.size() && !stop);
+				i--;
+
+				
+				//case 2.3: concat op
+				if(operation == 4 && !smooshSyntax(opTokens)) return false;
+				else if(!combiSyntax(opTokens)) return false;
 			}
-		}
+			
+			//case where the visible ends with an exclamation
+			else if(tkn.getLexeme().equals(Token.EXCLAMATION_POINT)) {
+				if(i+1 == tokensPerLine.size())  i++;
+				else {
+					System.out.println("dito mali");
+					return false;
+				}
+			}
+		}	
 		return true;
 	}
 	
@@ -440,7 +472,6 @@ public class Interpreter {
 				
 				//copy the tokens starting from the operation until the end of the expression
 				String currToken,nextToken;
-				int string=0;
 				boolean stop = false;
 				
 				do {
@@ -451,8 +482,7 @@ public class Interpreter {
 						continue;
 					}
 					
-					if(isAVarident(currToken) || Token.LITERALS.contains(currToken) || string==2 || Token.MKAY_CLASSIFIER.equals(currToken)) {
-						string = 0;
+					if(isAVarident(currToken) || Token.LITERALS.contains(currToken) || Token.MKAY_CLASSIFIER.equals(currToken)) {
 						if(i+1 != tokensPerLine.size()) {
 							
 							if(currToken.equals(Token.YARN_LITERAL_CLASSIFIER)) {
@@ -526,11 +556,7 @@ public class Interpreter {
 			
 			//case where the visible ends with an exclamation
 			else if(tkn.getLexeme().equals(Token.EXCLAMATION_POINT)) {
-				if(i+1 == tokensPerLine.size()) appendNewLine = false;
-				else {
-					validSemantics = false;
-					break;
-				}
+				appendNewLine = false;
 			}
 			else {
 				validSemantics = false;
@@ -1785,7 +1811,7 @@ public class Interpreter {
 									}
 									currentLexeme ="";
 								} else {
-									validLexeme = false;
+									validLexical = false;
 									break;
 								}
 							} 
@@ -1841,7 +1867,7 @@ public class Interpreter {
 			return 2;
 		//there's an invalid lexeme, stop iteration for getting lexemes
 		} else if(!isEmpty(currentLexeme)) {
-			validLexeme = false;
+			validLexical = false;
 			return 1;
 		}		
 		
@@ -2098,11 +2124,9 @@ public class Interpreter {
 		outputDisplayText = "";
 		lineNumber = 0;		
 		orlyCount =0;
-		validLexeme = true;
+		validLexical = true;
 		validSyntax = true;
 		validSemantics = true;
-		conditionalStatement = false;
-		switchStatement = false;
 		tokens.clear();
 		tokensPerLine.clear();
 		symbols.clear();
@@ -2113,9 +2137,6 @@ public class Interpreter {
 		clearTable();
 		passIndicator.setImage(neutralImg);
 		titleImage.setImage(titleImg);
-		lexicalIndicator.setImage(null);
-		syntaxIndicator.setImage(null);
-		semanticIndicator.setImage(null);
 		symbols.add(new Symbol(Token.IT,Token.NOOB_TYPE_LITERAL, Symbol.UNINITIALIZED));
 	}
 	
@@ -2216,7 +2237,7 @@ public class Interpreter {
 			if(file!=null) {
 				readFile();
 				interpretFile();
-				if(execute() && validLexeme && validSyntax && validSemantics) showPass();
+				if(execute() && validLexical && validSyntax && validSemantics) showPass();
 				else showError();
 			} else {
 				//prompt error dialog
