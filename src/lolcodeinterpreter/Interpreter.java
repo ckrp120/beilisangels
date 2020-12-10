@@ -2132,6 +2132,7 @@ public class Interpreter {
 				acceptedLexeme = false;
 
 				if(currPos < line.length()) {				
+					System.out.println(line.charAt(currPos)+"-"+currPos);
 					while(isASpace(line.charAt(currPos))) currPos++;
 	
 					currChar = line.charAt(currPos);
@@ -2142,13 +2143,14 @@ public class Interpreter {
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
 
-			System.out.println(currentLexeme+"-");
+			System.out.println(currentLexeme+"-"+currPos);
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
-			if(currPos==line.length() || isASpace(line.charAt(currPos))) {
+			if(currPos==line.length() || isASpace(line.charAt(currPos)) || currentLexeme.endsWith("!")) {
 				boolean endsWithExclamation=false;
-				if(!currentLexeme.equals(Token.EXCLAMATION_POINT) && currentLexeme.endsWith("!") && currPos==line.length()) {
+				if(!currentLexeme.equals(Token.EXCLAMATION_POINT) && currentLexeme.endsWith("!")) {
 					endsWithExclamation=true;
 					currentLexeme = currentLexeme.substring(0, currentLexeme.length()-1);
+					System.out.println(currentLexeme+"-with exclamation");
 				}
 				classification = isAValidLexeme(currentLexeme);
 				//if it is, then add it to the list of tokens
