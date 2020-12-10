@@ -71,7 +71,7 @@ public class Interpreter {
     private ArrayList<Token> opTokens = new ArrayList<Token>();
 
     //process queue for switch
-    private Queue<ArrayList<Token>> pQueue = new LinkedList<>();
+    private LinkedList<ArrayList<Token>> pQueue = new LinkedList<>();
     private boolean checkingSwitchStatement = false;
     private boolean executingSwitchStatement = false;
     
@@ -193,8 +193,11 @@ public class Interpreter {
 			
 			//OMG
 			else if(tplLexeme(0).equals(Token.OMG)) {
+				if(!checkingSwitchStatement) validSyntax = false;
+				//there is already a default case
+				else if(inProcessQueue(Token.OMGWTF, Token.WTF)) validSyntax = false;
 				//check if the line next to OMG is a literal
-				if(Token.LITERALS.contains(tplClass(1)) && tokensPerLine.size() == 2)
+				else if(Token.LITERALS.contains(tplClass(1)) && tokensPerLine.size() == 2)
 					storeTokensToQueue(Token.WTF);
 				else validSyntax = false;
 			}
@@ -329,6 +332,7 @@ public class Interpreter {
 						storeTokensToQueue(Token.WTF);
 						switchCaseExecute();	
 					}
+					
 					//check if ORLY, YA RLY are already in the if-then statement
 					else if((inProcessQueue(Token.O_RLY, Token.O_RLY) && inProcessQueue(Token.YA_RLY, Token.O_RLY) && checkingIfStatement) || executingIfStatement) {
 						storeTokensToQueue(Token.O_RLY);
@@ -340,7 +344,10 @@ public class Interpreter {
 					storeTokensToQueue(Token.WTF);
 					break;
 				case Token.OMGWTF_CLASSIFIER:
-					storeTokensToQueue(Token.WTF);
+					//duplication of OMGWTF
+					if(inProcessQueue(Token.OMGWTF, Token.WTF)) validSyntax = false;
+					
+					else storeTokensToQueue(Token.WTF);
 					break;
 				case Token.O_RLY_CLASSIFIER:
 					checkingIfStatement = true;
