@@ -810,10 +810,18 @@ public class Interpreter {
 		if(s != null) {							
 			//case 1: varident
 			if(isAVar(litClass)) {							
-				if(sv != null && !sv.getDataType().equals(Symbol.UNINITIALIZED)) {
-					s.setValue(sv.getValue());
-					s.setDataType(sv.getDataType());
-				} else validSemantics = false;
+				if(sv != null) {
+					if(!sv.getDataType().equals(Symbol.UNINITIALIZED)) {
+						s.setValue(sv.getValue());
+						s.setDataType(sv.getDataType());
+					} else {
+						createErrorPrompt(Interpreter.UNINITIALIZED);
+						validSemantics = false;						
+					}
+				} else {
+					createErrorPrompt(Interpreter.UNDECLARED);
+					validSemantics = false;
+				}
 			}
 			
 			//case 2.2: expr

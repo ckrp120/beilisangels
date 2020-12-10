@@ -4,5 +4,7 @@ SOMETHING
 TLDR
 HAI
 
-I HAS E var ITZ 1
+I HAS A var2 ITZ 2
+I HAS A var1
+var1 R var2 var1
 KTHXBYE
