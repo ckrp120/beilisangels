@@ -152,8 +152,7 @@ public class Interpreter {
 			
 			if(status == 2) { //case 2
 				lineNumber--;
-				//process again starting from where an invalid lexeme is detected
-				status = checkLexeme(currentLexeme);
+				status = checkLexeme(currentLexeme); //process again starting from where an invalid lexeme is detected
 			}  
 			if(status == 1) { //case 1 or case 2 and there's still an invalid lexeme
 				validSyntax = false;
@@ -164,7 +163,7 @@ public class Interpreter {
 				addToTokens();
 			
 				//if the current line has a comment, ignore the BTW token
-				if(tokensPerLine.get(tokensPerLine.size()-1).getLexeme().equals(Token.BTW))
+				if(tplLexeme(tokensPerLine.size()-1).equals(Token.BTW))
 					tokensPerLine.remove(tokensPerLine.size()-1);
 			}
 			
@@ -183,9 +182,8 @@ public class Interpreter {
 			//SWITCH CASE = WTF? OMG OMGWTF OIC
 			//IF WTF? was the previous operation, it must be followed by an OMG keyword
 			if(checkingSwitchStatement && pQueue.size() == 1) {
-				if(tplClass(0).equals(Token.OMG_CLASSIFIER) && tokensPerLine.size() == 2) {
-					if(Token.LITERALS.contains(tplClass(1)))
-						storeTokensToQueue(Token.WTF);
+				if(tplClass(0).equals(Token.OMG_CLASSIFIER) && tplSize(2)) {
+					if(isALit(tplClass(1))) storeTokensToQueue(Token.WTF);
 					else validSyntax = false;
 				}			
 				else validSyntax = false;
@@ -197,7 +195,7 @@ public class Interpreter {
 				//there is already a default case
 				else if(inProcessQueue(Token.OMGWTF, Token.WTF)) validSyntax = false;
 				//check if the line next to OMG is a literal
-				else if(Token.LITERALS.contains(tplClass(1)) && tokensPerLine.size() == 2)
+				else if(isALit(tplClass(1)) && tplSize(2))
 					storeTokensToQueue(Token.WTF);
 				else validSyntax = false;
 			}
@@ -295,7 +293,7 @@ public class Interpreter {
 				else validSyntax = false;
 			}
 			else if(Token.HAI_CLASSIFIER.equals(tplClass(0))) {
-				if(!(tokensPerLine.size()==2 && tplLexeme(1).equals("1.2"))) validSyntax = false;
+				if(!(tplSize(2) && tplLexeme(1).equals("1.2"))) validSyntax = false;
 			} 
 			else validSyntax = false;
 		} else {
@@ -382,7 +380,7 @@ public class Interpreter {
 	private boolean printSyntax() {
 		int i=1,operation;
 		
-		if(tokensPerLine.size() == 1) return true;
+		if(tplSize(1)) return true;
 		
 		while(i<tokensPerLine.size()) {			
 			//case 1: varident/it
@@ -390,12 +388,11 @@ public class Interpreter {
 
 			//case 2: expr
 			else if((operation = isAnExpr(tplClass(i))) != 0) {
-				opTokens.clear();
-				
-				//copy the tokens starting from the operation until the end of the expression
-				String currToken,nextToken;
+				opTokens.clear();				
 				boolean stop = false;
-				
+
+				//copy the tokens starting from the operation until the end of the expression
+
 				do {
 					opTokens.add(tokensPerLine.get(i));
 					if(isADlmtr(tplClass(i))) {
@@ -422,8 +419,6 @@ public class Interpreter {
 				} while(i<tokensPerLine.size() && !stop);
 				i--;
 
-				
-				//case 2.3: concat op
 				if(operation == 4 && !smooshSyntax(opTokens)) return false;
 				else if(!combiSyntax(opTokens)) return false;
 			}
@@ -442,7 +437,6 @@ public class Interpreter {
 	
 	//SEMANTICS FOR PRINT = VISIBLE
 	private void printExecute() {
-		Token tkn;
 		int i=1,operation;
 		boolean appendNewLine=true;
 		String itValue = symbols.get(0).getValue();
@@ -450,14 +444,12 @@ public class Interpreter {
 		
 		if(tplSize(1)) visibleValue = "\n";
 		
-		while(i<tokensPerLine.size()) {
-			tkn = tokensPerLine.get(i);
-			
+		while(i<tokensPerLine.size()) {			
 			//case 1: varident/it
 			if(isAVar(tplClass(i))) {
 				
 				//check if the varident is in the symbols
-				Symbol s = isASymbol(tkn.getLexeme());
+				Symbol s = isASymbol(tplLexeme(i));
 				
 				if(s != null && !s.getDataType().equals(Symbol.UNINITIALIZED)) {
 					visibleValue += s.getValue();	
@@ -476,28 +468,26 @@ public class Interpreter {
 				boolean stop = false;
 				
 				do {
-					currToken = tokensPerLine.get(i).getClassification();
 					opTokens.add(tokensPerLine.get(i));
-					if(currToken.equals(Token.STRING_DELIMITER_CLASSIFIER)) {
+					if(tplClass(i).equals(Token.STRING_DELIMITER_CLASSIFIER)) {
 						i++;
 						continue;
 					}
 					
-					if(isAVar(currToken) || Token.LITERALS.contains(currToken) || Token.MKAY_CLASSIFIER.equals(currToken)) {
+					if(isALitOrVar(tplClass(i)) || Token.MKAY_CLASSIFIER.equals(tplClass(i))) {
 						if(i+1 != tokensPerLine.size()) {
 							
-							if(currToken.equals(Token.YARN_LITERAL_CLASSIFIER)) {
+							if(tplClass(i).equals(Token.YARN_LITERAL_CLASSIFIER)) {
 								if(i+2 < tokensPerLine.size()) {
 									nextToken = tokensPerLine.get(i+2).getLexeme();
-									if(!(nextToken.equals(Token.AN) || nextToken.equals(Token.MKAY))) stop = true;	
+									if(!(tplLexeme(i+2).equals(Token.AN) || tplLexeme(i+2).equals(Token.MKAY))) stop = true;	
 								}
 							}else {
-								nextToken = tokensPerLine.get(i+1).getLexeme();
-								if(!(nextToken.equals(Token.AN) | nextToken.equals(Token.MKAY))) stop = true;
+								if(!(tplLexeme(i+1).equals(Token.AN) || tplLexeme(i+1).equals(Token.MKAY))) stop = true;
 							}
 														
 						}
-					}else if(currToken.equals(Token.MKAY_CLASSIFIER)) {
+					}else if(tplClass(i).equals(Token.MKAY_CLASSIFIER)) {
 						stop = true;
 					}
 
@@ -535,71 +525,51 @@ public class Interpreter {
 							visibleValue += symbols.get(0).getValue();
 							symbols.get(0).setValue(itValue);
 						}
-					}
-					else {
+					} else {
 						validSyntax = false;
 						break;
 					}
-				}
-			}
-			
-			//case 3: literals
-			else if(Token.LITERALS.contains(tplClass(i))) {
-				visibleValue += tkn.getLexeme();
-				dialogText = tkn.getLexeme();
-			}
-			
-			//skip when the token is a string delimiter of a yarn literal
-			else if(tkn.getLexeme().equals(Token.STRING_DELIMITER)) {
+				}			
+			} else if(isALit(tplClass(i))) { //case 3: literals
+				visibleValue += tplLexeme(i);
+				dialogText = tplLexeme(i);
+			} else if(isADlmtr(tplClass(i))) { //skip string delimiter of a yarn literal
 				i++;
 				continue;
-			}
-			
-			//case where the visible ends with an exclamation
-			else if(tkn.getLexeme().equals(Token.EXCLAMATION_POINT)) {
+			} else if(tplLexeme(i).equals(Token.EXCLAMATION_POINT)) { //visible ends with an exclamation
 				appendNewLine = false;
-			}
-			else {
+			} else {
 				validSemantics = false;
 				break;
 			}
+			
 			i++;
 		}	
 		
-		
 		outputDisplayText += visibleValue;
-		//symbols.get(0).setValue(visibleValue);
-		//symbols.get(0).setDataType(Symbol.STRING);
-		//System.out.println("Symbol: "+symbols.get(0).getSymbol() + " Data Type: " + symbols.get(0).getDataType());
-		
-
 		if(appendNewLine) outputDisplayText += "\n";						
 	}
 	
 	//SYNTAX FOR ACCEPT = GIMMEH
 	private boolean acceptSyntax() {
 		if(tplSize(2)) {
-			if(tplClass(1).equals(Token.VARIABLE_IDENTIFIER_CLASSIFIER))
-				return true; 
-			//return false if not a varident
-			return false;
+			if(isAVar(tplClass(1))) return true; 
+			return false; //not a variable
 		}
-		//return false if GIMMEH contains anything more than the varident
-		return false;
+		return false; //GIMMEH contains anything less or more than the variable
+
 	}
 	
 	//SEMANTICS FOR ACCEPT = GIMMEH
 	private void acceptExecute() {
-		Symbol s;
+		Symbol s = isASymbol(tplLexeme(1));
 		
-		//check if the varident is in the symbols
-		if((s = isASymbol(tplLexeme(1))) != null) {
-			outputDisplay.setText(outputDisplayText);
-			//get user input
+		if(s != null) { //check if the variable is in the symbols
 			clearTable();
 			populateTable();
-	        getInput(s,dialogText);
-		} else validSemantics = false;
+			outputDisplay.setText(outputDisplayText);
+	        getInput(s,dialogText); //get user input
+		} else validSemantics = false; //variable is undeclared
 	}
 	
 	private void getInput(Symbol s,String dialogText) {
@@ -610,42 +580,30 @@ public class Interpreter {
         inputDialog.setHeaderText(null);
         inputDialog.setContentText(dialogText);
         
-        Optional<String> input = inputDialog.showAndWait();
-               
-        //if user entered an input, set the varident's value to the input
-        if(input.isPresent()) {
+        Optional<String> input = inputDialog.showAndWait();     
+        
+        if(input.isPresent()) { //if user entered an input, set the variable's value to the input
             input.ifPresent(value -> {
             	s.setValue(value);
-            	
-            	//automatically typecast based on input
-            	s.setDataType(getDataType(value));
+            	s.setDataType(getDataType(value)); //automatically typecast based on input
             	outputDisplayText += value + "\n";
             });	
-        //else, error
-        } else {
-        	validSemantics = false;
-        }
-        
+        } else validSemantics = false;  
 	}
 	
 	
 	
 	//SYNTAX FOR VARIABLE DECLARATION = I HAS A
-	
-	
 	private String varDeclarationSyntax() {
 		if(tokensPerLine.size() > 1) {
 			if(isAVar(tplClass(1))) {	
-				//case 1: I HAS A var
-				if(tplSize(2)) return "";
-				//case 2: I HAS A var ITZ var/lit/expr
-				if(tplClass(2).equals(Token.ITZ_CLASSIFIER)) {
+				if(tplSize(2)) return ""; //case 1: I HAS A var
+				if(tplClass(2).equals(Token.ITZ_CLASSIFIER)) { //case 2: I HAS A var ITZ var/lit/expr
 					if(tplSize(4) &&  isALitOrVar(tplClass(3))) return tplClass(3);	
 					if(tplSize(6) && Token.YARN_LITERAL_CLASSIFIER.equals(tplClass(4))) return tplClass(4);	
 					if(isAnExpr(tplClass(3)) != 0) return tplClass(3);	
 					return null;
 				}
-				
 				return null;
 			}
 		}
@@ -987,7 +945,7 @@ public class Interpreter {
 				
 				if(i == 0) {
 					String nextToken = combiTokens.get(i+1).getClassification();
-					if(!(Token.LITERALS.contains(nextToken) || isAVar(nextToken) || Token.STRING_DELIMITER_CLASSIFIER.equals(nextToken))) {
+					if(!(isALit(nextToken) || isAVar(nextToken) || Token.STRING_DELIMITER_CLASSIFIER.equals(nextToken))) {
 						return false;
 					}
 						
@@ -1570,7 +1528,7 @@ public class Interpreter {
 			currentToken = smooshTokens.get(1);
 
 			//token after SMOOSH must be a literal or a varident
-			if(!(Token.LITERALS.contains(currentToken.getClassification()) || isAVar(currentToken.getClassification()) || Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification()))) {
+			if(!(isALit(currentToken.getClassification()) || isAVar(currentToken.getClassification()) || Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification()))) {
 				return false;
 			}
 			
@@ -1578,7 +1536,7 @@ public class Interpreter {
 				currentToken = smooshTokens.get(i);
 				
 				//if literal/varident
-				if(Token.LITERALS.contains(currentToken.getClassification()) || isAVar(currentToken.getClassification())) {
+				if(isALit(currentToken.getClassification()) || isAVar(currentToken.getClassification())) {
 					
 					
 					//if not last token
@@ -1627,7 +1585,7 @@ public class Interpreter {
 			if(varHolder == null) return null;
 			
 			for(Token tkn: smooshTokens) {
-				if(Token.LITERALS.contains(tkn.getClassification())) {
+				if(isALit(tkn.getClassification())) {
 					concat += tkn.getLexeme();
 				}else if(isAVar(tkn.getClassification())) {
 					Symbol var = isASymbol(tkn.getLexeme());
