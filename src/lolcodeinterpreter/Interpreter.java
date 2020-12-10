@@ -63,7 +63,7 @@ public class Interpreter {
     private String[] lines;
     private String currentLexeme,dialogText;
     private int lineNumber,status,orlyCount;
-    private boolean validFile,validLexical,validSyntax,validSemantics,readBack;
+    private boolean validFile,validLexical,validSyntax,validSemantics,readBack,encounteredKTHXBYE;
     private int startsWithHAI,endsWithKTHXBYE;
     private boolean conditionalStatement,switchStatement;
     private ArrayList<ArrayList<Token>> tokens = new ArrayList<ArrayList<Token>>();
@@ -89,7 +89,6 @@ public class Interpreter {
     public final static String HAI_IDENTIFIED = "invalid HAI keyword";
     public final static String HAI_MISPLACED = "misplaced HAI keyword";
     public final static String KTHXBYE_MISSING = "missing KTHXBYE keyword";
-    public final static String KTHXBYE_IDENTIFIED = "invalid KTHXBYE keyword";
     public final static String KTHXBYE_MISPLACED = "misplaced KTHXBYE keyword";
     public final static String WTF_MISSING = "missing WTF keyword";
     public final static String OMG_MISSING = "missing OMG keyword";
@@ -410,6 +409,7 @@ public class Interpreter {
 			else if(tplClass(0).equals(Token.OBTW_CLASSIFIER) || tplClass(0).equals(Token.TLDR_CLASSIFIER))
 				validSyntax = true;
 			else if(tplClass(0).equals(Token.KTHXBYE_CLASSIFIER)) {
+				encounteredKTHXBYE = true;
 				endsWithKTHXBYE = lineNumber;
 				if(!endsWithKTHXBYE()) {
 					lineNumber = endsWithKTHXBYE;
@@ -2381,7 +2381,7 @@ public class Interpreter {
 			return false;
 		}
 		
-		if(startsWithHAI!=0 && validSemantics) {
+		if(startsWithHAI!=0 && validSemantics && encounteredKTHXBYE) {
 			if(endsWithKTHXBYE==0) {
 				createErrorPrompt(Interpreter.KTHXBYE_MISSING);
 				return false;
@@ -2520,6 +2520,7 @@ public class Interpreter {
 		orlyCount =0;
 		startsWithHAI = 0;
 		endsWithKTHXBYE = 0;
+		encounteredKTHXBYE = false;
 		validLexical = true;
 		validSyntax = true;
 		validSemantics = true;
