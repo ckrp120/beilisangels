@@ -90,10 +90,7 @@ public class Interpreter {
     
     //MISSING KEYWORDS
     public final static String HAI_MISSING = "missing HAI keyword";
-    public final static String HAI_IDENTIFIED = "invalid HAI keyword";
-    public final static String HAI_MISPLACED = "misplaced HAI keyword";
     public final static String KTHXBYE_MISSING = "missing KTHXBYE keyword";
-    public final static String KTHXBYE_MISPLACED = "misplaced KTHXBYE keyword";
     public final static String WTF_MISSING = "missing WTF keyword";
     public final static String OMG_MISSING = "missing OMG keyword";
     public final static String OMGWTF_MISSING = "missing OMGWTF keyword";
@@ -116,12 +113,16 @@ public class Interpreter {
     public final static String AN_MISPLACED = "misplaced AN keyword";
     public final static String NOT_MISPLACED = "misplaced NOT keyword";
     public final static String OPERATOR_MISPLACED = "misplaced operator";
-    
+    public final static String HAI_MISPLACED = "misplaced HAI keyword";
+    public final static String KTHXBYE_MISPLACED = "misplaced KTHXBYE keyword";
+ 
     //TYPECASTING ERRORS
     public final static String PARSE_YARN = "cannot parse YARN to NUMBR/NUMBAR";
     public final static String PARSE_NOOB = "cannot parse NOOB to NUMBR/NUMBAR";
     
     //UNIQUE
+    public final static String NO_INPUT = "no input entered";
+    public final static String HAI_IDENTIFIED = "invalid HAI keyword";
     public final static String UNDECLARED = "undeclared variable identifier";
     public final static String DECLARED = "previously declared variable identifier";
     public final static String UNINITIALIZED = "uninitialized variable identifier";
@@ -409,7 +410,9 @@ public class Interpreter {
 			if(tplClass(0).equals(Token.HAI_CLASSIFIER)) {
 				if(startsWithHAI==0) {
 					if(!startsWithHAI()) {
-						createErrorPrompt(Interpreter.HAI_MISPLACED);
+						outputDisplayText = "";
+						lineNumber = 1;
+						createErrorPrompt(Interpreter.HAI_MISSING);
 						validSemantics = false;
 					} 
 				} else {
@@ -708,7 +711,10 @@ public class Interpreter {
 			populateTable();
 			outputDisplay.setText(outputDisplayText);
 	        getInput(s,dialogText); //get user input
-		} else validSemantics = false; //variable is undeclared
+		} else {
+			createErrorPrompt(Interpreter.UNDECLARED);
+			validSemantics = false; //variable is undeclared
+		}
 	}
 	
 	private void getInput(Symbol s,String dialogText) {
@@ -2395,8 +2401,12 @@ public class Interpreter {
 			return false;
 		}
 		
-		if(startsWithHAI!=0 && validSemantics && encounteredKTHXBYE) {
-			if(endsWithKTHXBYE==0) {
+		if(startsWithHAI!=0 && validSemantics) {
+			if(encounteredKTHXBYE && endsWithKTHXBYE==0) {
+				createErrorPrompt(Interpreter.KTHXBYE_MISSING);
+				return false;
+			}
+			if(!encounteredKTHXBYE && validSemantics && endsWithKTHXBYE==0) {
 				createErrorPrompt(Interpreter.KTHXBYE_MISSING);
 				return false;
 			}			
@@ -2420,7 +2430,7 @@ public class Interpreter {
 		}
 		return false;
 	}
-	
+		
 	public boolean endsWithKTHXBYE() {
 		int currentLine = lineNumber;
 		String lexemes[];

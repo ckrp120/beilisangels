@@ -1,6 +1,6 @@
 BTW for switch
 HAI
-  IT R 7
+  IT R 18
   WTF?
     OMG 1
       VISIBLE "I'm the only oneeeee"
