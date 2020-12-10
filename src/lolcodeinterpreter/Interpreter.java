@@ -190,13 +190,15 @@ public class Interpreter {
 		while(lineNumber<lines.length) { //process every line
 			status = 0;
 			readBack=false;
+
 			
 			//check status of the current line
 			//0 - valid lexeme; 
 			//1 - invalid lexeme; 
 			//2 - invalid lexeme, but process again bc a varident is detected as a possible keyword
 			status = checkLexeme(lines[lineNumber]);
-			
+			System.out.println("Line check: "+lineNumber);
+
 			if(status == 2) { //case 2
 				lineNumber--;
 				status = checkLexeme(currentLexeme); //process again starting from where an invalid lexeme is detected
@@ -207,6 +209,8 @@ public class Interpreter {
 				break;
 			}	
 			
+			System.out.println("passed lexical");
+
 			if(!tokensPerLine.isEmpty()) {
 				addToTokens();
 			
@@ -217,7 +221,10 @@ public class Interpreter {
 			
 			if(!tokensPerLine.isEmpty()) {
 				checkSyntaxAndSemantics();
+				if(validSyntax) System.out.println("passed syntax");
+				if(validSemantics) System.out.println("passed semantics");
 				if(!validSyntax || !validSemantics) break;
+
 			}
 			tokensPerLine.clear();
 		}
@@ -648,7 +655,13 @@ public class Interpreter {
 			if(isAVar(tplClass(1))) {	
 				if(tplSize(2)) return ""; //case 1: I HAS A var
 				if(tplClass(2).equals(Token.ITZ_CLASSIFIER)) { //case 2: I HAS A var ITZ var/lit/expr
-					if(tplSize(4) &&  isALitOrVar(tplClass(3))) return tplClass(3);	
+					if(tplSize(4)) {
+						if(isALitOrVar(tplClass(3))) return tplClass(3);
+						else {
+							createErrorPrompt(Interpreter.INCORRECT_TYPE);
+							return null;
+						}
+					}
 					if(tplSize(6) && Token.YARN_LITERAL_CLASSIFIER.equals(tplClass(4))) return tplClass(4);	
 					if(isAnExpr(tplClass(3)) != 0) {
 						opTokens.clear();
@@ -659,9 +672,9 @@ public class Interpreter {
 							validSyntax = false;
 							return null;
 						}
-						createErrorPrompt(Interpreter.INVALID_FORMAT);
 						return tplClass(3);	
 					}
+					createErrorPrompt(Interpreter.INVALID_FORMAT);
 					return null;
 				}
 				else {
@@ -2038,6 +2051,7 @@ public class Interpreter {
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
 
+			System.out.println(currentLexeme+"-");
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isASpace(line.charAt(currPos))) {
 				boolean endsWithExclamation=false;
@@ -2175,6 +2189,7 @@ public class Interpreter {
 	public boolean isAVariable() {
 		String[] tkn;
 
+		System.out.println("1");
 		if(tokensPerLine.size()>0) {
 			if(tplLexeme(0).equals(Token.I_HAS_A)) {
 				if(Character.isLetter(currentLexeme.charAt(0))) {
@@ -2190,13 +2205,7 @@ public class Interpreter {
 		} 
 
 		if(currentLexeme.contains(" R ")) return true;
-		
-		if(tokens.size()>0) {
-			ArrayList<Token> tokensPerLine = tokens.get(tokens.size()-1);
-			if(tplLexeme(tokensPerLine.size()-1).equals(Token.BTW) || tplLexeme(tokensPerLine.size()-1).equals(Token.TLDR)) return false;
-			else return true;
-		}
-
+	
 		return false;		
 	}
 	
