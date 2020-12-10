@@ -231,8 +231,14 @@ public class Interpreter {
 				if(tplClass(0).equals(Token.OMG_CLASSIFIER) && tplSize(2)) {
 					if(isALit(tplClass(1))) storeTokensToQueue(Token.WTF);
 					else validSyntax = false;
-				}			
-				else validSyntax = false;
+				}else if(tokensPerLine.size() > 2 && tplClass(2).equals(Token.YARN_LITERAL_CLASSIFIER)) {			
+					storeTokensToQueue(Token.WTF);
+				}
+				else{
+					
+					System.out.println("Test"+tplClass(2));
+					validSyntax = false;
+				}
 			}
 			
 			//OMG
@@ -242,6 +248,8 @@ public class Interpreter {
 				else if(inProcessQueue(Token.OMGWTF, Token.WTF)) validSyntax = false;
 				//check if the line next to OMG is a literal
 				else if(isALit(tplClass(1)) && tplSize(2))
+					storeTokensToQueue(Token.WTF);
+				else if(tokensPerLine.size() > 2 && tplClass(2).equals(Token.YARN_LITERAL_CLASSIFIER))
 					storeTokensToQueue(Token.WTF);
 				else validSyntax = false;
 			}
@@ -1549,18 +1557,15 @@ public class Interpreter {
 					/* compare IT and literal */
 					
 					Symbol it = getIT();
-					//check if same datatype
-					String classificationIT = getClass(it.getValue());
-
-					String classificationCase = getClass(tplLexeme(1));
 					
-					//if classification is the same, check if value is the same
-					if(classificationIT.equals(classificationCase)) {
-						//if same, activate flag
-						
+					if(tplLexeme(1).equals(Token.STRING_DELIMITER)) {
+						if(it.getDataType().equals(Symbol.STRING)) {
+							if(it.getValue().equals(tplLexeme(2))) enteredCase = true;
+						}
+					}else {
 						if(it.getValue().equals(tplLexeme(1))) enteredCase = true;
+					}					
 
-					}
 				} else continue;
 			
 			//if GTFO, clear the process queue and exit switch statement
