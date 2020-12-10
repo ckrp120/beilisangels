@@ -63,7 +63,9 @@ public class Interpreter {
     private String[] lines;
     private String currentLexeme,dialogText;
     private int lineNumber,status,orlyCount;
-    private boolean validFile,validLexical,validSyntax,validSemantics,readBack,conditionalStatement,switchStatement;
+    private boolean validFile,validLexical,validSyntax,validSemantics,readBack;
+    private int startsWithHAI,endsWithKTHXBYE;
+    private boolean conditionalStatement,switchStatement;
     private ArrayList<ArrayList<Token>> tokens = new ArrayList<ArrayList<Token>>();
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
@@ -83,6 +85,12 @@ public class Interpreter {
     /* ERROR PROMPTS */
     
     //MISSING KEYWORDS
+    public final static String HAI_MISSING = "missing HAI keyword";
+    public final static String HAI_IDENTIFIED = "invalid HAI keyword";
+    public final static String HAI_MISPLACED = "misplaced HAI keyword";
+    public final static String KTHXBYE_MISSING = "missing KTHXBYE keyword";
+    public final static String KTHXBYE_IDENTIFIED = "invalid KTHXBYE keyword";
+    public final static String KTHXBYE_MISPLACED = "misplaced KTHXBYE keyword";
     public final static String WTF_MISSING = "missing WTF keyword";
     public final static String OMG_MISSING = "missing OMG keyword";
     public final static String OMGWTF_MISSING = "missing OMGWTF keyword";
@@ -354,7 +362,17 @@ public class Interpreter {
 			}
 			
 			else if(Token.HAI_CLASSIFIER.equals(tplClass(0))) {
-				if(!(tplSize(2) && tplLexeme(1).equals("1.2"))) {
+				if(tplSize(2) && tplLexeme(1).equals("1.2")) {
+					if(startsWithHAI==0) {
+						if(!startsWithHAI()) {
+							createErrorPrompt(Interpreter.HAI_MISPLACED);
+							validSemantics = false;
+						} else startsWithHAI = lineNumber;
+					} else {
+						createErrorPrompt(Interpreter.HAI_IDENTIFIED);
+						validSemantics = false;
+					}
+				} else {
 					createErrorPrompt(Interpreter.UNEXPECTED_FLOAT);
 					validSyntax = false;
 				}
@@ -365,10 +383,28 @@ public class Interpreter {
 				validSyntax = false;
 			}
 		} else {
-			if(tplClass(0).equals(Token.HAI_CLASSIFIER) || 
-				tplClass(0).equals(Token.OBTW_CLASSIFIER) || tplClass(0).equals(Token.TLDR_CLASSIFIER))
+			if(tplClass(0).equals(Token.HAI_CLASSIFIER)) {
+				if(startsWithHAI==0) {
+					if(!startsWithHAI()) {
+						createErrorPrompt(Interpreter.HAI_MISPLACED);
+						validSemantics = false;
+					} 
+				} else {
+					createErrorPrompt(Interpreter.HAI_IDENTIFIED);
+					validSemantics = false;
+				}
+				startsWithHAI = lineNumber;
+			}
+			else if(tplClass(0).equals(Token.OBTW_CLASSIFIER) || tplClass(0).equals(Token.TLDR_CLASSIFIER))
 				validSyntax = true;
 			else if(tplClass(0).equals(Token.KTHXBYE_CLASSIFIER)) {
+				endsWithKTHXBYE = lineNumber;
+				if(!endsWithKTHXBYE()) {
+					lineNumber = endsWithKTHXBYE;
+					createErrorPrompt(Interpreter.KTHXBYE_MISPLACED);
+					validSemantics = false;
+				}
+				
 				if(conditionalStatement==true || switchStatement==true) {
 			    	for(ArrayList<Token> tokensPerLine: tokens) {
 			        	for(Token token: tokensPerLine) {
@@ -2301,27 +2337,24 @@ public class Interpreter {
 		return 0;                    
 	}
 	
-	//check if there are no errors in the file
-	public boolean endsWithKTHXBYE() {
-		String l;
+	//check if there file starts with HAI and end with KTHXBYE
+	public boolean correctStartAndEnd() {
+		if(startsWithHAI==0) {
+			outputDisplayText = "";
+			lineNumber = 1;
+			createErrorPrompt(Interpreter.HAI_MISSING);
+			return false;
+		}
 		
-		for(int i=tokens.size()-1;i>=0;i--) {
-			ArrayList<Token> tokensPerLine = tokens.get(i);
-			
-			for(int j=tokensPerLine.size()-1;j>=0;j--) {
-				l = tokensPerLine.get(j).getLexeme();	
+		if(startsWithHAI!=0 && validSemantics) {
+			if(endsWithKTHXBYE==0) {
+				createErrorPrompt(Interpreter.KTHXBYE_MISSING);
+				return false;
+			}			
+		}
 
-				if(isAComment(l)!=0 || l.equals(Token.TLDR)) continue;
-				else {
-					if(l.equals(Token.KTHXBYE)) return true;
-					else {				
-						validSyntax = false;
-						return false;
-					}
-				}
-			}
-		}		
-		return false;
+		
+		return true;
 	}
 	
 	public boolean startsWithHAI() {
@@ -2333,14 +2366,56 @@ public class Interpreter {
 
 				if(isAComment(l)!=0 || l.equals(Token.TLDR)) continue;
 				else if(l.equals(Token.HAI)) return true;
-				else {
-					lineNumber = 1;
-					validSyntax = false;
-					return false;
-				}
+				else return false;
 			}
 		}
 		return false;
+	}
+	
+	public boolean endsWithKTHXBYE() {
+		int currentLine = lineNumber;
+		String lexemes[];
+		
+		while(currentLine<lines.length) {
+			lexemes = lines[currentLine].split(" ");
+			
+			for(String l:lexemes) {
+				if(isEmpty(l)) continue;
+				System.out.println(l);
+
+				if(isAComment(l)==1) {
+					currentLine++;
+					break;
+				}
+				else if(isAComment(l)==2) {
+					String commentEnder;
+					boolean TLDR=false;
+					//ignore lines until a TLDR is detected
+					do {
+						commentEnder="";
+						currentLine++;
+						lexemes = lines[currentLine].split(" ");
+						
+						
+						for(int i=0;i<lexemes.length;i++)
+							if(!lexemes[i].equals("")) commentEnder+=lexemes[i];
+						System.out.println(commentEnder);
+						if(commentEnder.equals(Token.TLDR)) TLDR=true;
+					} while(!TLDR && currentLine<lines.length);			
+					currentLine++;
+
+					if(!TLDR) {
+						System.out.println("return false");
+						return false;
+					}
+				}
+				else if(isAComment(l)==0) return false;
+			}
+			
+		}
+		
+		System.out.println("return true");
+		return true;
 	}
 	
 	//FUNCTIONS FOR FILE READING
@@ -2408,6 +2483,8 @@ public class Interpreter {
 		outputDisplayText = "";
 		lineNumber = 0;		
 		orlyCount =0;
+		startsWithHAI = 0;
+		endsWithKTHXBYE = 0;
 		validLexical = true;
 		validSyntax = true;
 		validSemantics = true;
@@ -2526,7 +2603,7 @@ public class Interpreter {
 					readFile();
 					interpretFile();
 
-					if(startsWithHAI() && endsWithKTHXBYE() && validLexical && validSyntax && validSemantics) showPass();
+					if(correctStartAndEnd() && validLexical && validSyntax && validSemantics) showPass();
 					else showError();
 				}
 			} else {
