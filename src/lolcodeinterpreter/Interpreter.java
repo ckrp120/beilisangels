@@ -67,7 +67,7 @@ public class Interpreter {
     private String[] lines;
     private String currentLexeme,dialogText;
     private int lineNumber,status,orlyCount;
-    private boolean validFile,validLexical,validSyntax,validSemantics,readBack,encounteredKTHXBYE;
+    private boolean validFile,validLexical,validSyntax,validSemantics,readBack;
     private int startsWithHAI,endsWithKTHXBYE;
     private boolean conditionalStatement,switchStatement;
     private ArrayList<ArrayList<Token>> tokens = new ArrayList<ArrayList<Token>>();
@@ -176,12 +176,12 @@ public class Interpreter {
         this.passIndicator.setLayoutY(650);
         
         //set preferences for imageview of passing indicator
-        this.passingIndicator.setLayoutX(1280);
-        this.passingIndicator.setLayoutY(810);
+        this.passingIndicator.setLayoutX(1285);
+        this.passingIndicator.setLayoutY(805);
         
         //set preferences for imageview of failing indicator
-        this.failingIndicator.setLayoutX(1280);
-        this.failingIndicator.setLayoutY(810);
+        this.failingIndicator.setLayoutX(1285);
+        this.failingIndicator.setLayoutY(805);
           
         //set preferences for imageview of title
         this.titleImage.setLayoutX(530);
@@ -424,7 +424,6 @@ public class Interpreter {
 			else if(tplClass(0).equals(Token.OBTW_CLASSIFIER) || tplClass(0).equals(Token.TLDR_CLASSIFIER))
 				validSyntax = true;
 			else if(tplClass(0).equals(Token.KTHXBYE_CLASSIFIER)) {
-				encounteredKTHXBYE = true;
 				endsWithKTHXBYE = lineNumber;
 				if(!endsWithKTHXBYE()) {
 					lineNumber = endsWithKTHXBYE;
@@ -928,7 +927,7 @@ public class Interpreter {
 			}
 			
 			//case 2.2: expr
-			if((operation = isAnExpr(litClass)) != 0) {
+			else if((operation = isAnExpr(litClass)) != 0) {
 				opTokens.clear();
 				
 				//copy the tokens starting from the operation
@@ -974,9 +973,6 @@ public class Interpreter {
 			else if(litClass.equals(Token.TROOF_LITERAL_CLASSIFIER)) {
 				s.setValue(tplLexeme(2));
 				s.setDataType(Symbol.BOOLEAN);
-			} else {
-				createErrorPrompt(Interpreter.INCORRECT_TYPE);
-				validSemantics = false;
 			}
 		} else {
 			createErrorPrompt(Interpreter.UNDECLARED);
@@ -2566,7 +2562,6 @@ public class Interpreter {
 		orlyCount =0;
 		startsWithHAI = 0;
 		endsWithKTHXBYE = 0;
-		encounteredKTHXBYE = false;
 		validLexical = true;
 		validSyntax = true;
 		validSemantics = true;
