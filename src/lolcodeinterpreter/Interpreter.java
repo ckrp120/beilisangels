@@ -94,6 +94,7 @@ public class Interpreter {
     public final static String VARIDENT_MISSING = "missing variable identifier";
     public final static String ITZ_MISSING = "missing ITZ keyword";
     public final static String OPERAND_MISSING = "missing operand";
+    public final static String AN_MISSING = "missing AN keyword";
 
     //INCORRECT
     public final static String INCORRECT_TYPE = "incorrect type";
@@ -119,8 +120,10 @@ public class Interpreter {
     public final static String PRINT_NULL = "cannot print NOOB value";
     public final static String EXCLAMATION_ERROR = "invalid format";
     public final static String INVALID_STATEMENT = "invalid statement";
-
-    
+    public final static String TOO_MANY_OPERANDS = "too many operands";
+    public final static String UNEXPECTED_END = "unexpected end of expression";
+    public final static String DUP_MKAY = "duplicate MKAY/presence of nested infinite arity operation";
+    public final static String UNNECESSARY_MKAY = "presence of MKAY without matching infinite arity operation";
 	public Interpreter() {
 		root = new Group();
 		scene = new Scene(this.root,WINDOW_WIDTH,WINDOW_HEIGHT, Color.web("#315f72"));
@@ -452,8 +455,6 @@ public class Interpreter {
 							}
 														
 						}
-					}else if(tplClass(i).equals(Token.MKAY_CLASSIFIER)) {
-						stop = true;
 					}
 
 					i++;
@@ -825,29 +826,34 @@ public class Interpreter {
 		
 		for(int i=0; i < combiTokens.size(); i++) {
 			currentToken = combiTokens.get(i);
-			
+			System.out.println("here" + currentToken.getLexeme());
 			//if AN is detected, it must not be the last or starting token, and must not be followed by an AN
 			if(currentToken.getLexeme().equals(Token.AN)) {
 				
 				//AN is starting/last token
 				if(i == 0 || i == (combiTokens.size()-1)) { 
-					createErrorPrompt(Interpreter.AN_MISPLACED);
+					createErrorPrompt(Interpreter.UNEXPECTED_END);
 					return false;
 				}
 					
 				
 				//followed by AN/MKAY
-				else if((combiTokens.get(i-1).getLexeme().equals(Token.AN) || combiTokens.get(i-1).getLexeme().equals(Token.MKAY)))
+				else if((combiTokens.get(i-1).getLexeme().equals(Token.AN) || combiTokens.get(i-1).getLexeme().equals(Token.MKAY))) {
+					createErrorPrompt(Interpreter.AN_MISPLACED);
 					return false;
+				}
+					
 			}else if(currentToken.getClassification().equals(Token.NOT_CLASSIFIER)) {
 			
 				//NOT is last token
 				if(i == 0) {
+					createErrorPrompt(Interpreter.NOT_MISPLACED);
 					return false;
 				}
 				
 				//followed by AN/MKAY
 				else if(combiTokens.get(i-1).getLexeme().equals(Token.AN) || combiTokens.get(i-1).getLexeme().equals(Token.MKAY)) {
+					createErrorPrompt(Interpreter.AN_MISPLACED);
 					return false;
 				}
 					
@@ -855,14 +861,22 @@ public class Interpreter {
 				else {
 					
 					//insufficient amount of operands
-					if(checker.size() == 0) return false;
+					if(checker.size() == 0) {
+						createErrorPrompt(Interpreter.INSUFFICIENT_OP);
+						return false;
+					}
 						
 					
 				}
 			}else if(currentToken.getLexeme().equals(Token.ALL_OF) || currentToken.getLexeme().equals(Token.ANY_OF)) {
-				if(!mkayIsPresent) return false;
 				
-				//if it starts with ANY OF/ALL OF then num of stack is ignored since these are infinite arity operations
+				//missing mkay
+				if(!mkayIsPresent) {
+					createErrorPrompt(Interpreter.MKAY_MISSING);
+					return false;
+				}
+				
+				//if it starts with ANY OF/ALL OF, pop depending on the amt of inf arity op cnt
 				if(infArityOpCount > 1 && !combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
 					
 					int popCnt = 0;	
@@ -874,6 +888,7 @@ public class Interpreter {
 							checker.push("TROOF");
 							popCnt++;
 						}else {
+							createErrorPrompt(Interpreter.INSUFFICIENT_OP);
 							validSyntax = false;
 							return false;
 						}
@@ -884,34 +899,46 @@ public class Interpreter {
 				}
 					 
 				
-				//operation cannot be nested
-				else return false;
+				
+				else {
+					if(infArityOpCount <= 1) createErrorPrompt(Interpreter.INSUFFICIENT_OP);
+					else createErrorPrompt(Interpreter.AN_MISPLACED);
+				}
 			}else if(currentToken.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) || currentToken.getLexeme().equals(Token.NOOB_TYPE_LITERAL)) {
 				//if last token, it must be preceeded with an AN or NOT
 				if(i == 0) {
-					if(i+1 < combiTokens.size() && !(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
+					if(i+1 < combiTokens.size()-1 && !(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT))) {
+						createErrorPrompt(Interpreter.AN_MISSING);
 						return false;
+					}
 				} else {
 					//if not last token, it must be followed with an AN/MKAY
-					if(!(combiTokens.get(i-1).getLexeme().equals(Token.AN) || combiTokens.get(i-1).getLexeme().equals(Token.MKAY)))
+					if(!(combiTokens.get(i-1).getLexeme().equals(Token.AN) || combiTokens.get(i-1).getLexeme().equals(Token.MKAY))) {
+						createErrorPrompt(Interpreter.AN_MISPLACED);
 						return false;
+					}
+						
 				}
 				
 				//push to stack
 				 checker.push("TROOFNOOB");
-				if(mkayIsPresent) infArityOpCount++;
+				
+				 //update inf arity op count if mkay is present
+				 if(mkayIsPresent) infArityOpCount++;
 			}else if(Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification())) {
 				continue;
 			}else if(currentToken.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)){
 				if(i == 0) {
 					
-					if(i+2 < combiTokens.size() && !(combiTokens.get(i+2).getLexeme().equals(Token.AN) || combiTokens.get(i+2).getLexeme().equals(Token.NOT))) {
+					if(i+2 < combiTokens.size()-1 && !(combiTokens.get(i+2).getLexeme().equals(Token.AN) || combiTokens.get(i+2).getLexeme().equals(Token.NOT))) {
+						createErrorPrompt(Interpreter.AN_MISSING);
 						return false;
 					}
 						
 				} else {
 					//if not last token, it must be followed with an AN/MKAY
 					if(i-2 > 0 && !(combiTokens.get(i-2).getLexeme().equals(Token.AN) || combiTokens.get(i-2).getLexeme().equals(Token.MKAY))) {
+						createErrorPrompt(Interpreter.AN_MISSING);
 						return false;
 					}
 						
@@ -922,36 +949,54 @@ public class Interpreter {
 				 if(mkayIsPresent) infArityOpCount++;
 			}else if(isAVar(currentToken.getClassification())) {
 				
+				//if not last token
 				if(i == 0) {
-					if(i+1 < combiTokens.size() && !(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
+					if(i+1 < combiTokens.size() && !(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT))) {
+						createErrorPrompt(Interpreter.AN_MISSING);
 						return false;
+					}
+						
 				} else {
 					//if not last token, it must be followed with an AN/MKAY
-					if(i-1 > 0 && !(combiTokens.get(i-1).getLexeme().equals(Token.AN) || !combiTokens.get(i-1).getLexeme().equals(Token.MKAY)))
+					if(i-1 > 0 && !(combiTokens.get(i-1).getLexeme().equals(Token.AN) || !combiTokens.get(i-1).getLexeme().equals(Token.MKAY))) {
+						createErrorPrompt(Interpreter.AN_MISSING);
 						return false;
+					}
+						
 				}
 				
 				checker.push("VARIDENT");
 				if(mkayIsPresent) infArityOpCount++;
 			}else if(isADigit(currentToken.getClassification())) {
 				if(i == 0) {
-					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT)))
+					if(!(combiTokens.get(i+1).getLexeme().equals(Token.AN) || combiTokens.get(i+1).getLexeme().equals(Token.NOT))) {
+						createErrorPrompt(Interpreter.AN_MISSING);
 						return false;
+					}
+						
 				} else {
 					//if not last token, it must be followed with an AN
-					if(!(combiTokens.get(i-1).getLexeme().equals(Token.AN) | combiTokens.get(i-1).getLexeme().equals(Token.MKAY)))
+					if(!(combiTokens.get(i-1).getLexeme().equals(Token.AN) | combiTokens.get(i-1).getLexeme().equals(Token.MKAY))) {
+						createErrorPrompt(Interpreter.AN_MISSING);
 						return false;
+					}
+						
 				}
 				
 				checker.push("DIGIT");
 				if(mkayIsPresent) infArityOpCount++;
 			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(currentToken.getClassification())) {
 				//make sure it is not followed by an 'AN'
-				if(combiTokens.get(i-1).getLexeme().equals(Token.AN))
+				if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
+					createErrorPrompt(Interpreter.AN_MISPLACED);
 					return false;
+				}
 				
 				//make sure it is not the last token
-				if(i == 0) return false;
+				if(i == 0) {
+					createErrorPrompt(Interpreter.UNEXPECTED_END);
+					return false;
+				}
 				
 				
 				
@@ -964,14 +1009,21 @@ public class Interpreter {
 				}
 				
 				//insufficient amount of operands
-				else return false;
+				else{
+					createErrorPrompt(Interpreter.INSUFFICIENT_OP);
+					return false;
+				}
 			} else if(Token.ARITHMETIC_EXPRESSIONS.contains(currentToken.getClassification())){
 				//make sure it is not followed by an 'AN'
-				if(combiTokens.get(i-1).getLexeme().equals(Token.AN))
+				if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
+					createErrorPrompt(Interpreter.AN_MISPLACED);
 					return false;
-				
+				}
 				//make sure it is not the last token
-				if(i == 0) return false;
+				if(i == 0) {
+					createErrorPrompt(Interpreter.OPERATOR_MISPLACED);
+					return false;
+				}
 				
 				//pop one operand
 				if(checker.size() > 1) {
@@ -979,14 +1031,23 @@ public class Interpreter {
 					checker.pop();
 					checker.push("DIGIT");
 					if(mkayIsPresent) infArityOpCount--;
-				}else return false;
+				}else{
+					createErrorPrompt(Interpreter.INSUFFICIENT_OP);
+					return false;
+				}
 			}else if(Token.COMPARISON_OPERATORS.contains(currentToken.getClassification())){
 				//make sure it is not followed by an 'AN'
-				if(combiTokens.get(i-1).getLexeme().equals(Token.AN))
+				if(combiTokens.get(i-1).getLexeme().equals(Token.AN)) {
+					createErrorPrompt(Interpreter.AN_MISPLACED);
 					return false;
+				}
+					
 				
 				//make sure it is not the last token
-				if(i == 0) return false;
+				if(i == 0) {
+					createErrorPrompt(Interpreter.OPERATOR_MISPLACED);
+					return false;
+				}
 				
 				//pop one operand
 				if(checker.size() > 1) {
@@ -994,19 +1055,28 @@ public class Interpreter {
 					checker.pop();
 					checker.push("TROOF");
 					if(mkayIsPresent) infArityOpCount--;
-				}else return false;
+				}else{
+					createErrorPrompt(Interpreter.INSUFFICIENT_OP);
+					return false;
+				}
 			}else if(Token.MKAY_CLASSIFIER.equals(currentToken.getClassification())) {
-				if(mkayIsPresent) return false;
+				if(mkayIsPresent) {
+					System.out.println("here");
+					createErrorPrompt(Interpreter.DUP_MKAY);
+					return false;
+				}
 				
 				if(i == 0) {
 					String nextToken = combiTokens.get(i+1).getClassification();
 					if(!(isALit(nextToken) || isAVar(nextToken) || Token.STRING_DELIMITER_CLASSIFIER.equals(nextToken))) {
+						createErrorPrompt(Interpreter.OPERAND_MISSING);
 						return false;
 					}
 						
 				} else {
 					//if not last token, it must be followed with an AN/MKAY
 					if(!(combiTokens.get(i-1).getLexeme().equals(Token.AN))) {
+						createErrorPrompt(Interpreter.AN_MISSING);
 						return false;
 					}
 						
@@ -1021,9 +1091,11 @@ public class Interpreter {
 		if((checker.size() == 1) && infArityOpCount == 0) {
 			//back to original state
 			Collections.reverse(combiTokens);
+			System.out.println("return true");
 			return true;
 		}
 		else {
+			createErrorPrompt(Interpreter.TOO_MANY_OPERANDS);
 			return false;
 		
 		}
@@ -1055,6 +1127,7 @@ public class Interpreter {
 					if(mkayIsPresent) infArityOpCount++;
 				}
 				else {
+					createErrorPrompt(Interpreter.UNDECLARED);
 					validSemantics = false;
 					return null;
 				}
@@ -1196,6 +1269,8 @@ public class Interpreter {
 						break;
 					case Token.QUOSHUNT_OF_CLASSIFIER:
 						if(o2 == 0) {
+							
+							createErrorPrompt(Interpreter.DIV_BY_ZERO);
 							validSemantics = false;
 							return null;
 						}
@@ -1204,6 +1279,7 @@ public class Interpreter {
 						break;
 					case Token.MOD_OF_CLASSIFIER:
 						if(o2 == 0) {
+							createErrorPrompt(Interpreter.DIV_BY_ZERO);
 							validSemantics = false;
 							return null;
 						}
@@ -1316,7 +1392,10 @@ public class Interpreter {
 		if(s != null) {	
 			s.setValue(result);
 			s.setDataType(Symbol.BOOLEAN);
-		} else validSemantics = false;
+		} else{
+			createErrorPrompt(Interpreter.UNDECLARED);
+			validSemantics = false;
+		}
 		return result;
 	}
 	
@@ -1359,12 +1438,17 @@ public class Interpreter {
 			op1 = op1.replace("\"", "");
 			
 			classificationOp1 = getClass(op1);
-			if(!isADigit(classificationOp1)) return null;
+			if(!isADigit(classificationOp1)) {
+				
+				createErrorPrompt(Interpreter.PARSE_YARN);
+				return null;
+			}
 			
 		}else if(classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) {					
 			if(op1.equals(Token.WIN_TROOF_LITERAL)) return "1";
 			else return "0";
 		}else if(Token.NOOB_TYPE_LITERAL.equals(op1)) {
+			createErrorPrompt(Interpreter.PARSE_NOOB);
 			return null;
 		}
 		
@@ -1672,7 +1756,7 @@ public class Interpreter {
 	
 	//create error prompt
 	public void createErrorPrompt(String errorPrompt) {
-		outputDisplayText += "\nERROR on Line Number: "+lineNumber+" ";
+		outputDisplayText += "ERROR on Line Number "+lineNumber+": "+errorPrompt;
 	}
 	
 	private void addToTokens() {
