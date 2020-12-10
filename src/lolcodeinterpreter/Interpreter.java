@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Scanner;
 import java.util.Stack;
 import java.util.regex.Matcher;
@@ -39,7 +38,7 @@ public class Interpreter {
 	//FOR FILE READING
 	private FileChooser fileChooser = new FileChooser();
 	private File file;
-	private String currentPath = Paths.get("original_files").toAbsolutePath().normalize().toString();
+	private String currentPath = Paths.get("testcases").toAbsolutePath().normalize().toString();
 	private String fileString="";
 	private Scanner scanner;
 
@@ -113,13 +112,15 @@ public class Interpreter {
     
     //UNIQUE
     public final static String UNDECLARED = "undeclared variable identifier";
+    public final static String DECLARED = "previously declared variable identifier";
+    public final static String UNINITIALIZED = "uninitialized variable identifier";
     public final static String INSUFFICIENT_OP = "insufficient amount of operands"; 
     public final static String UNEXPECTED_FLOAT = "unexpected float";
     public final static String DIV_BY_ZERO = "division by zero";
-    public final static String INVALID_DATA_TYPE = "invalid data type";
-    public final static String NOTHING_TO_PRINT = "nothing to print";
     public final static String PRINT_NULL = "cannot print NOOB value";
-    public final static String EXCLAMATION_ERROR = "invalid format";
+    public final static String INVALID_DATA_TYPE = "invalid data type";
+    public final static String INVALID_FORMAT = "invalid format";
+    public final static String INVALID_LEXEME = "invalid lexeme";
     public final static String INVALID_STATEMENT = "invalid statement";
     public final static String TOO_MANY_OPERANDS = "too many operands";
     public final static String UNEXPECTED_END = "unexpected end of expression";
@@ -201,6 +202,7 @@ public class Interpreter {
 				status = checkLexeme(currentLexeme); //process again starting from where an invalid lexeme is detected
 			}  
 			if(status == 1) { //case 1 or case 2 and there's still an invalid lexeme
+				createErrorPrompt(Interpreter.INVALID_LEXEME);
 				validSyntax = false;
 				break;
 			}	
@@ -277,8 +279,7 @@ public class Interpreter {
 				if(acceptSyntax()) {
 					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-					else acceptExecute();
-					
+					else acceptExecute();		
 				}
 				else validSyntax = false;
 			}
@@ -346,102 +347,87 @@ public class Interpreter {
 			}
 			
 			else if(Token.HAI_CLASSIFIER.equals(tplClass(0))) {
-				if(!(tplSize(2) && tplLexeme(1).equals("1.2"))) validSyntax = false;
+				if(!(tplSize(2) && tplLexeme(1).equals("1.2"))) {
+					createErrorPrompt(Interpreter.UNEXPECTED_FLOAT);
+					validSyntax = false;
+				}
 			} 
 			
-			else validSyntax = false;
-			
+			else {
+				createErrorPrompt(Interpreter.INVALID_STATEMENT);
+				validSyntax = false;
+			}
 		} else {
-			switch(tplClass(0)) {
-				case Token.HAI_CLASSIFIER:
-					break;
-				case Token.KTHXBYE_CLASSIFIER:
-					if(conditionalStatement==true || switchStatement==true) {
-				    	for(ArrayList<Token> tokensPerLine: tokens) {
-				        	for(Token token: tokensPerLine) {
-								if(token.getLexeme().equals(Token.OIC)) {
-									validSyntax = true;
-									break;
-								} else {
-									
-									validSyntax = false;
-								} 
-				        	} if(validSyntax) break;
-				    	}
-				    	
-				    	if(!validSyntax) createErrorPrompt(Interpreter.OIC_MISSING);
-					} 
-					break;
-				case Token.OBTW_CLASSIFIER:
-					break;	
-				case Token.TLDR_CLASSIFIER:
-					break;
-				case Token.WTF_CLASSIFIER:
-					checkingSwitchStatement = true;
-					switchStatement = true;
+			if(tplClass(0).equals(Token.HAI_CLASSIFIER) || 
+				tplClass(0).equals(Token.OBTW_CLASSIFIER) || tplClass(0).equals(Token.TLDR_CLASSIFIER))
+				validSyntax = true;
+			else if(tplClass(0).equals(Token.KTHXBYE_CLASSIFIER)) {
+				if(conditionalStatement==true || switchStatement==true) {
+			    	for(ArrayList<Token> tokensPerLine: tokens) {
+			        	for(Token token: tokensPerLine) {
+							if(token.getLexeme().equals(Token.OIC)) {
+								validSyntax = true;
+								break;
+							} else {
+								validSyntax = false;
+							} 
+			        	} 
+			        	if(validSyntax) break;
+			    	}
+			    	if(!validSyntax) createErrorPrompt(Interpreter.OIC_MISSING);
+				} 
+			} else if(tplClass(0).equals(Token.WTF_CLASSIFIER)) {
+				checkingSwitchStatement = true;
+				switchStatement = true;
+				storeTokensToQueue(Token.WTF);
+			} else if(tplClass(0).equals(Token.OIC_CLASSIFIER)) {
+				//check if WTF and OMGs are already in the switch statement
+				if((inProcessQueue(Token.WTF, Token.WTF) && inProcessQueue(Token.OMG, Token.WTF) && checkingSwitchStatement) || executingSwitchStatement) {
 					storeTokensToQueue(Token.WTF);
-					break;
-				case Token.OIC_CLASSIFIER:
-					//check if WTF and OMGs are already in the switch statement
-					if((inProcessQueue(Token.WTF, Token.WTF) && inProcessQueue(Token.OMG, Token.WTF) && checkingSwitchStatement) || executingSwitchStatement) {
-						storeTokensToQueue(Token.WTF);
-						switchCaseExecute();	
-					}
-					
-					//check if ORLY, YA RLY are already in the if-then statement
-					else if((inProcessQueue(Token.O_RLY, Token.O_RLY) && inProcessQueue(Token.YA_RLY, Token.O_RLY) && checkingIfStatement) || executingIfStatement) {
-						storeTokensToQueue(Token.O_RLY);
-						orlyCount--;
-						if(orlyCount==0) ifElseExecute();	
-					} else validSyntax = false;
-					break;
-				case Token.GTFO_CLASSIFIER:
-					storeTokensToQueue(Token.WTF);
-					break;
-				case Token.OMGWTF_CLASSIFIER:
-					//duplication of OMGWTF
-					if(inProcessQueue(Token.OMGWTF, Token.WTF)) validSyntax = false;
-					
-					else storeTokensToQueue(Token.WTF);
-					break;
-				case Token.O_RLY_CLASSIFIER:
-					checkingIfStatement = true;
-					conditionalStatement = true;
-					orlyCount++;
+					switchCaseExecute();	
+				}
+				
+				//check if ORLY, YA RLY are already in the if-then statement
+				else if((inProcessQueue(Token.O_RLY, Token.O_RLY) && inProcessQueue(Token.YA_RLY, Token.O_RLY) && checkingIfStatement) || executingIfStatement) {
 					storeTokensToQueue(Token.O_RLY);
-					break;
-				case Token.YA_RLY_CLASSIFIER:
-					if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-					else validSyntax=false;
-					break;
-				case Token.NO_WAI_CLASSIFIER:
-					if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-					break;
-				default:
-					validSyntax=false;
-					break;
+					orlyCount--;
+					if(orlyCount==0) ifElseExecute();	
+				} else validSyntax = false;
+			} else if(tplClass(0).equals(Token.GTFO_CLASSIFIER)) {
+				storeTokensToQueue(Token.WTF);
+			} else if(tplClass(0).equals(Token.OMGWTF_CLASSIFIER)) {
+				//duplication of OMGWTF
+				if(inProcessQueue(Token.OMGWTF, Token.WTF)) validSyntax = false;
+				else storeTokensToQueue(Token.WTF);
+			} else if(tplClass(0).equals(Token.O_RLY_CLASSIFIER)) {
+				checkingIfStatement = true;
+				conditionalStatement = true;
+				orlyCount++;
+				storeTokensToQueue(Token.O_RLY);
+			} else if(tplClass(0).equals(Token.YA_RLY_CLASSIFIER)) {
+				if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+				else validSyntax=false;
+			} else if(tplClass(0).equals(Token.NO_WAI_CLASSIFIER)) {
+				if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+				else validSyntax=false;
+			} else if(tplLexeme(0).equals(Token.I_HAS_A) || tplLexeme(0).equals(Token.GIMMEH)){
+				createErrorPrompt(Interpreter.VARIDENT_MISSING);				
+				validSyntax = false;
+			} else {
+				createErrorPrompt(Interpreter.INVALID_STATEMENT);				
+				validSyntax = false;				
 			}
 		}
 	}	
 	
-	private String tplLexeme(int index) {
-		return tokensPerLine.get(index).getLexeme();
-	}
-	
-	private String tplClass(int index) {
-		return tokensPerLine.get(index).getClassification();
-	}
-	
-	private boolean tplSize(int size) {
-		return tokensPerLine.size()==size;
-	}
+	//SYNTAX FOR PRINT = VISIBLE
 	private boolean printSyntax() {
 		int i=1,operation;
 		
 		if(tplSize(1)) return true;
 		
 		while(i<tokensPerLine.size()) {			
-			//case 1: varident/it
+			//case 1: varident or literal
 			if(isALitOrDlmtrOrVar(tplClass(i))) i++;
 
 			//case 2: expr
@@ -450,7 +436,6 @@ public class Interpreter {
 				boolean stop = false;
 
 				//copy the tokens starting from the operation until the end of the expression
-
 				do {
 					opTokens.add(tokensPerLine.get(i));
 					if(isADlmtr(tplClass(i))) {
@@ -474,7 +459,10 @@ public class Interpreter {
 					i++;
 				} while(i<tokensPerLine.size() && !stop);
 
-				if(operation == 4 && !smooshSyntax(opTokens)) return false;
+				if(operation == 4 && !smooshSyntax(opTokens)) {
+					
+					return false;
+				}
 				else if(!combiSyntax(opTokens)) return false;
 			}
 			
@@ -482,6 +470,7 @@ public class Interpreter {
 			else if(tplLexeme(i).equals(Token.EXCLAMATION_POINT)) {
 				if(tplSize(i+1))  i++;
 				else {
+					createErrorPrompt(Interpreter.INVALID_FORMAT);
 					return false;
 				}
 			}
@@ -505,9 +494,16 @@ public class Interpreter {
 				//check if the varident is in the symbols
 				Symbol s = isASymbol(tplLexeme(i));
 				
-				if(s != null && !s.getDataType().equals(Symbol.UNINITIALIZED)) {
-					visibleValue += s.getValue();	
+				if(s != null) {
+					if(!s.getDataType().equals(Symbol.UNINITIALIZED))
+						visibleValue += s.getValue();	
+					else {
+						createErrorPrompt(Interpreter.PRINT_NULL);
+						validSemantics = false;
+						break;
+					}
 				} else {
+					createErrorPrompt(Interpreter.UNDECLARED);
 					validSemantics = false;
 					break;
 				}
@@ -518,7 +514,6 @@ public class Interpreter {
 				opTokens.clear();
 				
 				//copy the tokens starting from the operation until the end of the expression
-				String currToken,nextToken;
 				boolean stop = false;
 				
 				do {
@@ -533,13 +528,12 @@ public class Interpreter {
 							
 							if(tplClass(i).equals(Token.YARN_LITERAL_CLASSIFIER)) {
 								if(i+2 < tokensPerLine.size()) {
-									nextToken = tokensPerLine.get(i+2).getLexeme();
-									if(!(tplLexeme(i+2).equals(Token.AN) || tplLexeme(i+2).equals(Token.MKAY))) stop = true;	
+									if(!(tplLexeme(i+2).equals(Token.AN) || tplLexeme(i+2).equals(Token.MKAY))) 
+										stop = true;	
 								}
-							}else {
-								if(!(tplLexeme(i+1).equals(Token.AN) || tplLexeme(i+1).equals(Token.MKAY))) stop = true;
 							}
-														
+							else if(!(tplLexeme(i+1).equals(Token.AN) || tplLexeme(i+1).equals(Token.MKAY))) 
+								stop = true;								
 						}
 					}
 
@@ -548,7 +542,7 @@ public class Interpreter {
 				i--;
 
 				
-				//case 2.3: concat op
+				//case 2.1: concat op
 				if(operation == 4) {
 					//check if the boolop has a valid syntax
 					if(smooshSyntax(opTokens)) {
@@ -566,7 +560,7 @@ public class Interpreter {
 					}
 				}
 				
-				//case 2.4: comp op
+				//case 2.2: other op
 				else {	
 					//check if the compop has a valid syntax
 					if(combiSyntax(opTokens)) {
@@ -591,6 +585,7 @@ public class Interpreter {
 			} else if(tplLexeme(i).equals(Token.EXCLAMATION_POINT)) { //visible ends with an exclamation
 				appendNewLine = false;
 			} else {
+				createErrorPrompt(Interpreter.INVALID_FORMAT);
 				validSemantics = false;
 				break;
 			}
@@ -606,8 +601,10 @@ public class Interpreter {
 	private boolean acceptSyntax() {
 		if(tplSize(2)) {
 			if(isAVar(tplClass(1))) return true; 
+			createErrorPrompt(Interpreter.INCORRECT_TYPE);
 			return false; //not a variable
 		}
+		createErrorPrompt(Interpreter.INCORRECT_TOKEN_NUM);
 		return false; //GIMMEH contains anything less or more than the variable
 
 	}
@@ -662,16 +659,24 @@ public class Interpreter {
 							validSyntax = false;
 							return null;
 						}
+						createErrorPrompt(Interpreter.INVALID_FORMAT);
 						return tplClass(3);	
 					}
 					return null;
 				}
+				else {
+					createErrorPrompt(Interpreter.ITZ_MISSING);
+					return null;
+				}
+			} else {
+				createErrorPrompt(Interpreter.INCORRECT_TYPE);
 				return null;
 			}
+		} else {
+			//return null if no varident is declared
+			createErrorPrompt(Interpreter.VARIDENT_MISSING);
+			return null;			
 		}
-		//return null if what's declared is not a varident/it
-		//or the value given is not a varident/it, literal, or expr
-		return null;
 	}
 	
 	//SEMANTICS FOR VARIABLE DECLARATION = I HAS A
@@ -680,7 +685,10 @@ public class Interpreter {
 		int operation;
 		
 		//check if the varident is already declared before
-		if(isASymbol(identifier) != null) validSemantics = false;
+		if(isASymbol(identifier) != null) {
+			createErrorPrompt(Interpreter.DECLARED);
+			validSemantics = false;
+		}
 		//case 1: I HAS A var
 		else if(tplSize(2)) {
 			symbols.add(new Symbol(identifier,Token.NOOB_TYPE_LITERAL, Symbol.UNINITIALIZED));	
@@ -688,11 +696,20 @@ public class Interpreter {
 		} else {
 			//case 2.1: varident
 			if(isAVar(litClass)) {	
-				Symbol s = isASymbol(tokensPerLine.get(3).getLexeme());
+				Symbol s = isASymbol(tplLexeme(3));
 				
-				if(s != null && !s.getDataType().equals(Symbol.UNINITIALIZED))
-					symbols.add(new Symbol(identifier,s.getValue(), s.getDataType()));
-				else validSemantics = false;
+				if(s != null) {
+					if(!s.getDataType().equals(Symbol.UNINITIALIZED))
+						symbols.add(new Symbol(identifier,s.getValue(), s.getDataType()));
+					else {
+						createErrorPrompt(Interpreter.UNINITIALIZED);
+						validSemantics = false;
+					}
+				}
+				else {
+					createErrorPrompt(Interpreter.UNDECLARED);
+					validSemantics = false;
+				}
 			}
 			
 			//case 2.2: expr
@@ -740,6 +757,10 @@ public class Interpreter {
 				symbols.add(new Symbol(identifier, tplLexeme(3), Symbol.INTEGER));
 			else if(litClass.equals(Token.TROOF_LITERAL_CLASSIFIER))
 				symbols.add(new Symbol(identifier, tplLexeme(3), Symbol.BOOLEAN));
+			else {
+				createErrorPrompt(Interpreter.INCORRECT_TYPE);
+				validSemantics = false;
+			}
 		}
 	}
 			
@@ -753,9 +774,16 @@ public class Interpreter {
 					return tplClass(2);	
 				if(tplSize(5) && Token.YARN_LITERAL_CLASSIFIER.equals(tplClass(3))) return tplClass(3);
 				if(isAnExpr(tplClass(2))!=0) return tplClass(2);
+				createErrorPrompt(Interpreter.INVALID_FORMAT);
+				validSyntax = false;
 				return null;
-			} 
+			} else {
+				createErrorPrompt(Interpreter.INCORRECT_TYPE);
+				validSyntax = false;
+				return null;
+			}
 		}
+		createErrorPrompt(Interpreter.INCORRECT_TOKEN_NUM);
 		return null;
 	}
 	
@@ -825,7 +853,10 @@ public class Interpreter {
 				s.setValue(tplLexeme(2));
 				s.setDataType(Symbol.BOOLEAN);
 			}
-		} else validSemantics = false;
+		} else {
+			createErrorPrompt(Interpreter.UNDECLARED);
+			validSemantics = false;
+		}
 	}
 			
 	private boolean combiSyntax(ArrayList<Token> combiTokens) {
@@ -1956,9 +1987,20 @@ public class Interpreter {
 		}
 		return null;
 	}
-		
-	//FUNCTIONS FOR THE LEXICAL ANALYSIS
 	
+	private String tplLexeme(int index) {
+		return tokensPerLine.get(index).getLexeme();
+	}
+	
+	private String tplClass(int index) {
+		return tokensPerLine.get(index).getClassification();
+	}
+	
+	private boolean tplSize(int size) {
+		return tokensPerLine.size()==size;
+	}
+	
+	//FUNCTIONS FOR THE LEXICAL ANALYSIS
 	private int checkLexeme(String line) {		
 		int currPos=0, commentDetected=0;
 	    char currChar;
