@@ -724,15 +724,18 @@ public class Interpreter {
 			
 	//SYNTAX FOR ASSIGNMENT STATEMENT = R
 	private String varAssignmentSyntax() {
-		//check if it assigns to a varident
-		if(isAVar(tplClass(0))) {
-			//return value if it is a varident/it, literal, or expr
-			if(tplSize(3) && isALitOrVar(tplClass(2)))
-				return tplClass(2);	
-			if(tplSize(5) && Token.YARN_LITERAL_CLASSIFIER.equals(tplClass(3))) return tplClass(3);
-			if(isAnExpr(tplClass(2))!=0) return tplClass(2);
-			return null;
-		} return null;
+		if(tokensPerLine.size() > 2) {		
+			//check if it assigns to a varident
+			if(isAVar(tplClass(0))) {
+				//return value if it is a varident/it, literal, or expr
+				if(tplSize(3) && isALitOrVar(tplClass(2)))
+					return tplClass(2);	
+				if(tplSize(5) && Token.YARN_LITERAL_CLASSIFIER.equals(tplClass(3))) return tplClass(3);
+				if(isAnExpr(tplClass(2))!=0) return tplClass(2);
+				return null;
+			} 
+		}
+		return null;
 	}
 	
 	//SEMANTICS FOR ASSIGNMENT STATEMENT = R
