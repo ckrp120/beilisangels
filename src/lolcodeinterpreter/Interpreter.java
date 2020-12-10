@@ -53,6 +53,10 @@ public class Interpreter {
 	private Image happyImg = new Image("imgs/laughing.gif", 150, 150, true,true);
 	private Image neutralImg = new Image("imgs/neutral.gif", 150, 150, true,true);
 	private Image cryingImg = new Image("imgs/crying.gif", 150, 150, true,true);
+	private Image passImg = new Image("imgs/pass.png", 120, 120, true,true);
+	private Image failImg = new Image("imgs/fail.png", 120, 120, true,true);
+	private ImageView passingIndicator = new ImageView();
+	private ImageView failingIndicator = new ImageView();
 	private ImageView passIndicator = new ImageView(neutralImg);
 	private TableColumn<Token, String> lexemefirstDataColumn, lexemesecondDataColumn;
     private TableColumn<Symbol, Symbol> symbolfirstDataColumn, symbolsecondDataColumn;
@@ -169,6 +173,14 @@ public class Interpreter {
         //set preferences for imageview of pass indicator
         this.passIndicator.setLayoutX(1270);
         this.passIndicator.setLayoutY(650);
+        
+        //set preferences for imageview of passing indicator
+        this.passingIndicator.setLayoutX(1280);
+        this.passingIndicator.setLayoutY(810);
+        
+        //set preferences for imageview of failing indicator
+        this.failingIndicator.setLayoutX(1280);
+        this.failingIndicator.setLayoutY(810);
           
         //set preferences for imageview of title
         this.titleImage.setLayoutX(530);
@@ -180,7 +192,7 @@ public class Interpreter {
 		createTable("lexemes");
 		createTable("symbols");
 		
-		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, titleImage);
+		root.getChildren().addAll(canvas, codeDisplay, fileButton, executeButton, outputDisplay, passIndicator, titleImage, failingIndicator, passingIndicator);
 		root.getStylesheets().add(getClass().getResource("lolcodeinterpreter.css").toString());
 		this.stage = stage;
 		this.stage.getIcons().add(new Image(("imgs/title.png")));
@@ -2535,6 +2547,8 @@ public class Interpreter {
 		ifArray.clear();
 		outputDisplay.clear();
 		clearTable();
+		passingIndicator.setImage(null);
+		failingIndicator.setImage(null);
 		passIndicator.setImage(neutralImg);
 		titleImage.setImage(titleImg);
 		symbols.add(new Symbol(Token.IT,Token.NOOB_TYPE_LITERAL, Symbol.UNINITIALIZED));
@@ -2616,6 +2630,7 @@ public class Interpreter {
     	//update GUI to show fail
     	passIndicator.setImage(cryingImg);
 		outputDisplay.setText(outputDisplayText);
+		failingIndicator.setImage(failImg);
 		
 		//prompt error dialog
 		Alert alert = new Alert(AlertType.INFORMATION);
@@ -2630,6 +2645,7 @@ public class Interpreter {
 		populateTable();		
 		outputDisplay.setText(outputDisplayText);
 		passIndicator.setImage(happyImg);
+		passingIndicator.setImage(passImg);
     }
     
 	private void generateLexemes() {
