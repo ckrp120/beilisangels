@@ -244,6 +244,7 @@ public class Interpreter {
 					storeTokensToQueue(Token.WTF);
 				}
 				else{
+					createErrorPrompt(Interpreter.INVALID_STATEMENT);
 					validSyntax = false;
 				}
 			}
@@ -258,7 +259,10 @@ public class Interpreter {
 					storeTokensToQueue(Token.WTF);
 				else if(tokensPerLine.size() > 2 && tplClass(2).equals(Token.YARN_LITERAL_CLASSIFIER))
 					storeTokensToQueue(Token.WTF);
-				else validSyntax = false;
+				else {
+					createErrorPrompt(Interpreter.INVALID_STATEMENT);
+					validSyntax = false;
+				}
 			}
 			
 			//MEBBE
@@ -267,8 +271,14 @@ public class Interpreter {
 					if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tplClass(1)) || 
 							Token.OTHER_BOOLEAN_EXPRESSIONS.contains(tplClass(1)) || Token.COMPARISON_OPERATORS.contains(tplClass(1))) {
 						storeTokensToQueue(Token.O_RLY);
-					} else validSyntax = false;
-				} else validSyntax = false;
+					} else {
+						createErrorPrompt(Interpreter.INVALID_STATEMENT);
+						validSyntax = false;
+					}
+				} else {
+					createErrorPrompt(Interpreter.INVALID_STATEMENT);
+					validSyntax = false;
+				}
 			}
 			
 			//PRINT = VISIBLE
@@ -278,7 +288,9 @@ public class Interpreter {
 					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
 					else printExecute();
 				}
-				else validSyntax = false;
+				else {
+					validSyntax = false;
+				}
 			}
 			
 			//ACCEPT = GIMMEH
@@ -399,7 +411,10 @@ public class Interpreter {
 					storeTokensToQueue(Token.O_RLY);
 					orlyCount--;
 					if(orlyCount==0) ifElseExecute();	
-				} else validSyntax = false;
+				} else {
+					createErrorPrompt(Interpreter.INVALID_STATEMENT);
+					validSyntax = false;
+				}
 			} else if(tplClass(0).equals(Token.GTFO_CLASSIFIER)) {
 				storeTokensToQueue(Token.WTF);
 			} else if(tplClass(0).equals(Token.OMGWTF_CLASSIFIER)) {
@@ -413,10 +428,30 @@ public class Interpreter {
 				storeTokensToQueue(Token.O_RLY);
 			} else if(tplClass(0).equals(Token.YA_RLY_CLASSIFIER)) {
 				if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-				else validSyntax=false;
+				else {
+					createErrorPrompt(Interpreter.INVALID_STATEMENT);
+					validSyntax=false;
+				}
 			} else if(tplClass(0).equals(Token.NO_WAI_CLASSIFIER)) {
-				if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-				else validSyntax=false;
+				if(checkingIfStatement) {
+					for(ArrayList<Token> tokensPerLine: tokens) {
+			        	for(Token token: tokensPerLine) {
+							if(token.getLexeme().equals(Token.YA_RLY)) {
+								storeTokensToQueue(Token.O_RLY);
+								validSyntax = true;
+								break;
+							} else {
+								validSyntax = false;
+							} 
+			        	} 
+			        	if(validSyntax) break;
+			    	}
+			    	if(!validSyntax) createErrorPrompt(Interpreter.YARLY_MISSING);
+				}
+				else {
+					createErrorPrompt(Interpreter.INVALID_STATEMENT);
+					validSyntax=false;
+				}
 			} else if(tplLexeme(0).equals(Token.I_HAS_A) || tplLexeme(0).equals(Token.GIMMEH)){
 				createErrorPrompt(Interpreter.VARIDENT_MISSING);				
 				validSyntax = false;
