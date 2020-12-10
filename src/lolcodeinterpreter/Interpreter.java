@@ -64,7 +64,7 @@ public class Interpreter {
     private String[] lines;
     private String currentLexeme,dialogText;
     private int lineNumber,status,orlyCount;
-    private boolean validLexical,validSyntax,validSemantics,readBack,conditionalStatement,switchStatement;
+    private boolean validFile,validLexical,validSyntax,validSemantics,readBack,conditionalStatement,switchStatement;
     private ArrayList<ArrayList<Token>> tokens = new ArrayList<ArrayList<Token>>();
     private ArrayList<Token> tokensPerLine = new ArrayList<Token>();
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
@@ -235,8 +235,6 @@ public class Interpreter {
 					storeTokensToQueue(Token.WTF);
 				}
 				else{
-					
-					System.out.println("Test"+tplClass(2));
 					validSyntax = false;
 				}
 			}
@@ -839,7 +837,7 @@ public class Interpreter {
 		
 		for(int i=0; i < combiTokens.size(); i++) {
 			currentToken = combiTokens.get(i);
-			System.out.println("here" + currentToken.getLexeme());
+
 			//if AN is detected, it must not be the last or starting token, and must not be followed by an AN
 			if(currentToken.getLexeme().equals(Token.AN)) {
 				
@@ -894,7 +892,6 @@ public class Interpreter {
 					
 					int popCnt = 0;	
 					while(popCnt < infArityOpCount-1) {
-						System.out.println(popCnt);
 						if(operation.size() > 1) {
 							operation.pop();
 							operation.pop();
@@ -1083,7 +1080,6 @@ public class Interpreter {
 				}
 			}else if(Token.MKAY_CLASSIFIER.equals(currentToken.getClassification())) {
 				if(mkayIsPresent) {
-					System.out.println("here");
 					createErrorPrompt(Interpreter.DUP_MKAY);
 					return false;
 				}
@@ -1114,7 +1110,6 @@ public class Interpreter {
 		
 		}
 		
-		System.out.println("here?!");
 		//there should only be 1 operand left
 		if((operation.size() == 1) && infArityOpCount == 0) {
 			//back to original state
@@ -1177,15 +1172,12 @@ public class Interpreter {
 			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
 				String op1 = operation.pop();
 				String classificationOp1 = getClass(op1);
-				if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = boolTypeCast(op1);
-				System.out.println("here"+op1);
-				
+				if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = boolTypeCast(op1);				
 				
 				String op2 = operation.pop();
 				String classificationOp2 = getClass(op2);
 				if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = boolTypeCast(op2);
 				
-				System.out.println("op2"+op2);
 				switch(tkn.getClassification()) {
 					case Token.BOTH_OF_CLASSIFIER:
 						operation.push(andOperator(op1, op2));
@@ -1253,7 +1245,6 @@ public class Interpreter {
 					}
 				}
 			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
-				//System.out.println("Line check: "+lineNumber);
 				boolean resultIsNumbar = false;
 				String op1 = operation.pop();
 				String classificationOp1 = getClass(op1);
@@ -1432,7 +1423,6 @@ public class Interpreter {
 	//TYPECASTS NON TROOF OPERANDS TO TROOF
 	private String boolTypeCast(String op1) {
 		String classificationOp1 = getClass(op1);
-		System.out.println("orig"+op1);
 		
 		//if string
 		if(classificationOp1.equals(Token.YARN_LITERAL_CLASSIFIER)) {
@@ -1676,7 +1666,6 @@ public class Interpreter {
 							tokensPerLine = ifArray.get(i);
 							combiExecute(Token.IT, tokensPerLine);
 							Symbol it = getIT();
-							System.out.println("IT: " + it.getValue());
 							
 							//if the evaluated expression equivalent to WIN
 							if(it.getValue().equals(Token.WIN_TROOF_LITERAL)) {
@@ -2006,7 +1995,7 @@ public class Interpreter {
 			 
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
-			System.out.println(currentLexeme+"-");
+
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isASpace(line.charAt(currPos))) {
 				boolean endsWithExclamation=false;
@@ -2147,7 +2136,6 @@ public class Interpreter {
 		if(tokensPerLine.size()>0) {
 			if(tplLexeme(0).equals(Token.I_HAS_A)) {
 				if(Character.isLetter(currentLexeme.charAt(0))) {
-					System.out.println("ihasavisible");
 					return true;
 				}
 				else return false;
@@ -2159,18 +2147,12 @@ public class Interpreter {
 			else return false;		
 		} 
 
-		if(currentLexeme.contains(" R ")) {
-			System.out.println("r");
-			return true;
-		}
-
+		if(currentLexeme.contains(" R ")) return true;
+		
 		if(tokens.size()>0) {
 			ArrayList<Token> tokensPerLine = tokens.get(tokens.size()-1);
 			if(tplLexeme(tokensPerLine.size()-1).equals(Token.BTW) || tplLexeme(tokensPerLine.size()-1).equals(Token.TLDR)) return false;
-			else {
-				System.out.println("btwtldr");
-				return true;		
-			}
+			else return true;
 		}
 
 		return false;		
@@ -2315,11 +2297,18 @@ public class Interpreter {
         	
         	//no file chosen
             if(file == null) {
-            	System.out.println("[!] User cancelled input dialog");
+            	outputDisplay.setText("No file selected");
+            	validFile = false;
             } else { //file chosen
             	//check if file extension ends with .lol
-            	if(file.getAbsolutePath().matches(".*.lol$")) readFile();
-            	else System.out.println("Invalid file!");
+            	if(file.getAbsolutePath().matches(".*.lol$")) {
+            		validFile = true;
+            		readFile();
+            	}
+            	else {
+                	outputDisplay.setText("Invalid file!");
+            		validFile = false;
+            	}
             }
         });
 	}
@@ -2327,29 +2316,31 @@ public class Interpreter {
 	private void readFile() {
 		String fileWithLines = "";
 		
-		resetAnalyzer();
-		try {
-			scanner = new Scanner(file);
+		if(validFile) {
+			resetAnalyzer();
 			
-			//save file to a string
-			while(scanner.hasNextLine()) {
-				String line = scanner.nextLine();
-				fileString += line += '\n';
-			} 
-			
-			//split file into lines
-			lines = fileString.split("\n");
-			
-			for(int i=0;i<lines.length;i++)
-				fileWithLines += String.format("%2d", i+1) + " " + lines[i] + "\n";
+			try {
+				scanner = new Scanner(file);
 				
-			//add to text area the content of file read
-			this.codeDisplay.setText(fileWithLines); 
-			System.out.println(fileString);
-		} catch(Exception e){
-			outputDisplay.setText("[!] File not found ");
-			System.out.println("File not found!");
-		}		
+				//save file to a string
+				while(scanner.hasNextLine()) {
+					String line = scanner.nextLine();
+					fileString += line += '\n';
+				} 
+				
+				//split file into lines
+				lines = fileString.split("\n");
+				
+				for(int i=0;i<lines.length;i++)
+					fileWithLines += String.format("%2d", i+1) + " " + lines[i] + "\n";
+					
+				//add to text area the content of file read
+				this.codeDisplay.setText(fileWithLines); 
+				System.out.println(fileString);
+			} catch(Exception e){
+				outputDisplay.setText("File not found!");
+			}
+		}
 	}
 	
 	private void resetAnalyzer() {
@@ -2472,14 +2463,17 @@ public class Interpreter {
 	private void generateLexemes() {
 		executeButton.setOnAction(e -> {
 			if(file!=null) {
-				readFile();
-				interpretFile();
-				if(startsWithHAI() && endsWithKTHXBYE() && validLexical && validSyntax && validSemantics) showPass();
-				else showError();
+				if(validFile) {
+					readFile();
+					interpretFile();
+
+					if(startsWithHAI() && endsWithKTHXBYE() && validLexical && validSyntax && validSemantics) showPass();
+					else showError();
+				}
 			} else {
 				//prompt error dialog
 				Alert alert = new Alert(AlertType.INFORMATION);
-				alert.setContentText("[!] There is no lolcode file.");
+				alert.setContentText("Please select a LOLCODE file");
 				alert.setTitle("Error Dialog");
 				alert.setHeaderText(null);
 				alert.show();
