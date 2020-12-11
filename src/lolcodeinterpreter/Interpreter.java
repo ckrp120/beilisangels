@@ -221,7 +221,6 @@ public class Interpreter {
 			//1 - invalid lexeme; 
 			//2 - invalid lexeme, but process again bc a varident is detected as a possible keyword
 			status = checkLexeme(lines[lineNumber]);
-			System.out.println("Line check: "+lineNumber);
 
 			if(status == 2) { //case 2
 				lineNumber--;
@@ -233,8 +232,6 @@ public class Interpreter {
 				break;
 			}	
 			
-			System.out.println("passed lexical");
-
 			if(!tokensPerLine.isEmpty()) {
 				addToTokens();
 			
@@ -245,8 +242,6 @@ public class Interpreter {
 			
 			if(!tokensPerLine.isEmpty()) {
 				checkSyntaxAndSemantics();
-				if(validSyntax) System.out.println("passed syntax");
-				if(validSemantics) System.out.println("passed semantics");
 				if(!validSyntax || !validSemantics) break;
 
 			}
@@ -1048,7 +1043,6 @@ public class Interpreter {
 					
 					int popCnt = 0;	
 					while(popCnt < infArityOpCount-1) {
-						System.out.println(popCnt);
 						if(operation.size() > 1) {
 							operation.pop();
 							operation.pop();
@@ -1237,7 +1231,6 @@ public class Interpreter {
 				}
 			}else if(Token.MKAY_CLASSIFIER.equals(currentToken.getClassification())) {
 				if(mkayIsPresent) {
-					System.out.println("here");
 					createErrorPrompt(Interpreter.DUP_MKAY);
 					return false;
 				}
@@ -1271,7 +1264,6 @@ public class Interpreter {
 		
 		}
 		
-		System.out.println("here?!");
 		//there should only be 1 operand left
 		if((operation.size() == 1) && infArityOpCount == 0) {
 			//back to original state
@@ -1335,14 +1327,12 @@ public class Interpreter {
 				String op1 = operation.pop();
 				String classificationOp1 = getClass(op1);
 				if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = boolTypeCast(op1);
-				System.out.println("here"+op1);
-				
 				
 				String op2 = operation.pop();
 				String classificationOp2 = getClass(op2);
 				if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = boolTypeCast(op2);
 				
-				System.out.println("op2"+op2);
+		
 				switch(tkn.getClassification()) {
 					case Token.BOTH_OF_CLASSIFIER:
 						operation.push(andOperator(op1, op2));
@@ -1410,7 +1400,6 @@ public class Interpreter {
 					}
 				}
 			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
-				//System.out.println("Line check: "+lineNumber);
 				boolean resultIsNumbar = false;
 				String op1 = operation.pop();
 				String classificationOp1 = getClass(op1);
@@ -2170,7 +2159,6 @@ public class Interpreter {
 				acceptedLexeme = false;
 
 				if(currPos < line.length()) {				
-					System.out.println(line.charAt(currPos)+"-"+currPos);
 					while(isASpace(line.charAt(currPos))) currPos++;
 	
 					currChar = line.charAt(currPos);
@@ -2180,15 +2168,13 @@ public class Interpreter {
 			 
 			//concatenate the current character to the current lexeme
 			currentLexeme += currChar;
-
-			System.out.println(currentLexeme+"-"+currPos);
+			
 			//if the end of the line is reached or the next char is a space, check if the current lexeme is a token
 			if(currPos==line.length() || isASpace(line.charAt(currPos)) || currentLexeme.endsWith("!")) {
 				boolean endsWithExclamation=false;
 				if(!currentLexeme.equals(Token.EXCLAMATION_POINT) && currentLexeme.endsWith("!")) {
 					endsWithExclamation=true;
 					currentLexeme = currentLexeme.substring(0, currentLexeme.length()-1);
-					System.out.println(currentLexeme+"-with exclamation");
 				}
 				classification = isAValidLexeme(currentLexeme);
 				//if it is, then add it to the list of tokens
@@ -2252,7 +2238,6 @@ public class Interpreter {
 									
 									for(int i=0;i<lexemes.length;i++) {
 										if(!lexemes[i].equals("")) {
-											System.out.println(lexemes[i]+"-------------------------------");
 											if(lexemes[i].equals(Token.TLDR)) {
 												saveLineNumber = lineNumber - 1;
 												possibleTLDR = true;
@@ -2276,14 +2261,12 @@ public class Interpreter {
 										} else {
 											lineNumber = saveLineNumber;
 
-											System.out.println("return false");
 											createErrorPrompt(TLDR_MISSING);
 										}
 									}
 									
 
 									lineNumber = saveLineNumber;
-									System.out.println(lineNumber+"-----"+saveLineNumber);
 
 									validSyntax = false;
 									validSemantics = false;
@@ -2369,7 +2352,6 @@ public class Interpreter {
 	public boolean isAVariable() {
 		String[] tkn;
 
-		System.out.println("1");
 		if(tokensPerLine.size()>0) {
 			if(tplLexeme(0).equals(Token.I_HAS_A)) {
 				if(lines[lineNumber-1].contains(" OF ")) return false;
@@ -2519,7 +2501,6 @@ public class Interpreter {
 			
 			for(String l:lexemes) {
 				if(isEmpty(l)) continue;
-				System.out.println(l);
 
 				if(isAComment(l)==1) {
 					currentLine++;
@@ -2537,13 +2518,12 @@ public class Interpreter {
 						
 						for(int i=0;i<lexemes.length;i++)
 							if(!lexemes[i].equals("")) commentEnder+=lexemes[i];
-						System.out.println(commentEnder);
+
 						if(commentEnder.equals(Token.TLDR)) TLDR=true;
 					} while(!TLDR && currentLine<lines.length);			
 					currentLine++;
 
 					if(!TLDR) {
-						System.out.println("return false");
 						return false;
 					}
 				}
@@ -2552,7 +2532,6 @@ public class Interpreter {
 			
 		}
 		
-		System.out.println("return true");
 		return true;
 	}
 	
@@ -2608,7 +2587,7 @@ public class Interpreter {
 					
 				//add to text area the content of file read
 				this.codeDisplay.setText(fileWithLines); 
-				System.out.println(fileString);
+			
 			} catch(Exception e){
 				outputDisplay.setText("File not found!");
 			}
