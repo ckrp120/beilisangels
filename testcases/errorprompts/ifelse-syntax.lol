@@ -4,7 +4,8 @@ HAI
   I HAS A b ITZ 5
 
   BOTH SAEM 18 AN SUM OF 12 AN b
-  O RLY?
+  dasjdsldaksd
+    YA RLY
       VISIBLE IT
       VISIBLE "it is the same"
       b R 17
