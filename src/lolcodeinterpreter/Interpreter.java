@@ -1437,7 +1437,7 @@ public class Interpreter {
 				classificationOp2 = getClass(op2);
 				
 				//check if one of the operands is numbar
-				if(isADigit(classificationOp1)) resultIsNumbar = true;
+				if(classificationOp1.equals(Token.NUMBAR_LITERAL) || classificationOp2.equals(Token.NUMBAR_LITERAL)) resultIsNumbar = true;
 				
 				if(mkayIsPresent) infArityOpCount--;
 				//if numbar, result must be float
