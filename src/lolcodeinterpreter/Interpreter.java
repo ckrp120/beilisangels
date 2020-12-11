@@ -121,7 +121,6 @@ public class Interpreter {
     //TYPECASTING ERRORS
     public final static String PARSE_YARN = "cannot parse YARN to NUMBR/NUMBAR";
     public final static String PARSE_NOOB = "cannot parse NOOB to NUMBR/NUMBAR";
-    public final static String PARSE_N_TO_STRING = "cannot parse NOOB to YARN";
     
     //UNIQUE
     public final static String NO_INPUT = "no input entered";
@@ -834,16 +833,23 @@ public class Interpreter {
 				
 				//case: smoosh
 				if(operation == 4) {
-					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-					else smooshExecute(identifier,opToken);
+					//check if the concat op has a valid syntax
+					if(smooshSyntax(opToken)) {
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+						else smooshExecute(identifier,opToken);
+					}
+					else validSyntax = false;
 				}
 
 				//case: other op
 				else {	
-					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-					else combiExecute(identifier,opToken);
+					if(combiSyntax(opToken)) {
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+						else combiExecute(identifier,opToken);
+					}
+					else validSyntax = false;
 				}
 			}
 
@@ -934,16 +940,20 @@ public class Interpreter {
 				
 				//case: concat op
 				if(operation == 4) {	
-					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-					else smooshExecute(tplLexeme(0),opTokens);
+					if(smooshSyntax(opTokens)) {
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+						else smooshExecute(tplLexeme(0),opTokens);
+					}
 				}
 				
 				//case: other op
 				else {	
-					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-					else combiExecute(tplLexeme(0),opTokens);
+					if(combiSyntax(opTokens)) {
+						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+						else combiExecute(tplLexeme(0),opTokens);
+					}
 				}
 			}
 							
@@ -1938,7 +1948,6 @@ public class Interpreter {
 
 			//token after SMOOSH must be a literal or a varident
 			if(!(isALit(currentToken.getClassification()) || isAVar(currentToken.getClassification()) || Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification()))) {
-				createErrorPrompt(Interpreter.OPERAND_MISSING);
 				return false;
 			}
 			
@@ -1957,14 +1966,12 @@ public class Interpreter {
 						//if yarn, skip delimiter and must be followed by AN/MKAY keyword
 						if(currentToken.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
 							if(i+2 < smooshTokens.size() && !(smooshTokens.get(i+2).getLexeme().equals(Token.AN) || smooshTokens.get(i+2).getLexeme().equals(Token.MKAY))) {
-								createErrorPrompt(Interpreter.AN_MISSING);
 								return false;
 							}
 						}
 						
 						//next token must AN/MKAY
 						else if(!(smooshTokens.get(i+1).getLexeme().equals(Token.AN) || smooshTokens.get(i+1).getLexeme().equals(Token.MKAY))) {
-							createErrorPrompt(Interpreter.AN_MISSING);
 							return false;
 						}
 					}
@@ -1975,24 +1982,20 @@ public class Interpreter {
 					
 					//must not be the last token
 					if(i == smooshTokens.size()-1) {
-						createErrorPrompt(Interpreter.UNEXPECTED_END);
 						return false;
 					
 					}
 					
 					//must not be followed by MKAY/AN
 					else if(smooshTokens.get(i+1).getClassification().equals(Token.AN_CLASSIFIER) || smooshTokens.get(i+1).getClassification().equals(Token.MKAY_CLASSIFIER)) {
-						createErrorPrompt(Interpreter.OPERAND_MISSING);
 						return false;
 					}
 				}else if(Token.MKAY_CLASSIFIER.equals(currentToken.getClassification())) {
 					//must be last token
 					if(i != smooshTokens.size()-1) {
-						createErrorPrompt(Interpreter.MKAY_MISSING);
 						return false;
 					}
 				}else{
-					createErrorPrompt(Interpreter.INVALID_STATEMENT);
 					return false;
 				}
 			}
@@ -2005,11 +2008,7 @@ public class Interpreter {
 			String concat = "";
 			
 			Symbol varHolder = isASymbol(dataHolder);
-			if(varHolder == null) {
-				createErrorPrompt(Interpreter.UNDECLARED);
-				return null;
-			
-			}
+			if(varHolder == null) return null;
 			
 			for(Token tkn: smooshTokens) {
 				if(isALit(tkn.getClassification())) {
@@ -2019,7 +2018,6 @@ public class Interpreter {
 					if(var != null && !var.getDataType().equals(Symbol.UNINITIALIZED)) {
 						concat += var.getValue();
 					}else {
-						createErrorPrompt(Interpreter.PARSE_N_TO_STRING);
 						validSemantics = false;
 						return null;
 					}
