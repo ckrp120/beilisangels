@@ -614,7 +614,7 @@ public class Interpreter {
 				
 				do {
 					opTokens.add(tokensPerLine.get(i));
-					if(tplClass(i).equals(Token.STRING_DELIMITER_CLASSIFIER)) {
+					if(isADlmtr(tplClass(i))) {
 						i++;
 						continue;
 					}
@@ -856,7 +856,7 @@ public class Interpreter {
 			//case 2.3: literal
 			//a yarn literal
 			else if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER))
-				symbols.add(new Symbol(identifier, tokensPerLine.get(4).getLexeme(), Symbol.STRING));
+				symbols.add(new Symbol(identifier, tplLexeme(4), Symbol.STRING));
 			//or other type literals
 			else if(litClass.equals(Token.NUMBAR_LITERAL_CLASSIFIER))
 				symbols.add(new Symbol(identifier, tplLexeme(3), Symbol.FLOAT));
@@ -960,7 +960,7 @@ public class Interpreter {
 			//case 3: literals
 			//a yarn literal
 			else if(litClass.equals(Token.YARN_LITERAL_CLASSIFIER)) {
-				s.setValue(tokensPerLine.get(3).getLexeme());
+				s.setValue(tplLexeme(3));
 				s.setDataType(Symbol.STRING);
 			}
 			//or other type literals
@@ -1094,7 +1094,7 @@ public class Interpreter {
 				
 				 //update inf arity op count if mkay is present
 				 if(mkayIsPresent) infArityOpCount++;
-			}else if(Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification())) {
+			}else if(isADlmtr(currentToken.getClassification())) {
 				continue;
 			}else if(currentToken.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)){
 				if(i == 1) {
@@ -1249,7 +1249,7 @@ public class Interpreter {
 						return false;
 					}
 					
-					else if(!(isALit(nextToken) || isAVar(nextToken) || Token.STRING_DELIMITER_CLASSIFIER.equals(nextToken))) {
+					else if(!(isALit(nextToken) || isAVar(nextToken) || isADlmtr(nextToken))) {
 						createErrorPrompt(Interpreter.OPERAND_MISSING);
 						return false;
 					}
@@ -1304,7 +1304,7 @@ public class Interpreter {
 		
 		
 		for(Token tkn: combiTokens) {			
-			if(tkn.getClassification().equals(Token.NUMBAR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.NUMBR_LITERAL_CLASSIFIER) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) || tkn.getLexeme().equals(Token.NOOB_TYPE_LITERAL)) {
+			if(isADigit(tkn.getClassification()) || tkn.getClassification().equals(Token.TROOF_LITERAL_CLASSIFIER) || tkn.getLexeme().equals(Token.NOOB_TYPE_LITERAL)) {
 				operation.push(tkn.getLexeme());
 				if(mkayIsPresent) infArityOpCount++;
 			}else if(isAVar(tkn.getClassification())) {
@@ -1324,7 +1324,7 @@ public class Interpreter {
 					validSemantics = false;
 					return null;
 				}
-			}  else if(tkn.getClassification().equals(Token.STRING_DELIMITER_CLASSIFIER)){
+			}  else if(isADlmtr(tkn.getClassification())){
 				continue;
 			}else if(tkn.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
 				operation.push("\""+tkn.getLexeme()+"\"");
@@ -1437,7 +1437,7 @@ public class Interpreter {
 				classificationOp2 = getClass(op2);
 				
 				//check if one of the operands is numbar
-				if(classificationOp1.equals(Token.NUMBAR_LITERAL_CLASSIFIER) || classificationOp2.equals(Token.NUMBAR_LITERAL_CLASSIFIER)) resultIsNumbar = true;
+				if(isADigit(classificationOp1)) resultIsNumbar = true;
 				
 				if(mkayIsPresent) infArityOpCount--;
 				//if numbar, result must be float
@@ -1915,17 +1915,15 @@ public class Interpreter {
 			lineNumber++;
 			
 			//if ORLY is encountered, enter function to look ahead of the code 
-			if(tokensPerLine.get(0).getLexeme().equals(Token.O_RLY)) {
+			if(tplLexeme(0).equals(Token.O_RLY)) {
 				newSkip = checkIfElse(i);
 				//add new lines to skip to the previously stored list of skips
 				newSkip.forEach(skipList::add);
 			} 
 			
 			//when if-then keywords are encountered, just skip since they had been evaluated already
-			 else if(tokensPerLine.get(0).getLexeme().equals(Token.MEBBE) ||
-					 tokensPerLine.get(0).getLexeme().equals(Token.OIC) ||
-					 tokensPerLine.get(0).getLexeme().equals(Token.NO_WAI) ||
-					 tokensPerLine.get(0).getLexeme().equals(Token.YA_RLY)) {	
+			 else if(tplLexeme(0).equals(Token.MEBBE) || tplLexeme(0).equals(Token.OIC) ||
+					 tplLexeme(0).equals(Token.NO_WAI) || tplLexeme(0).equals(Token.YA_RLY)) {	
 				 continue;
 			} 
 			 
@@ -1947,7 +1945,7 @@ public class Interpreter {
 			currentToken = smooshTokens.get(1);
 
 			//token after SMOOSH must be a literal or a varident
-			if(!(isALit(currentToken.getClassification()) || isAVar(currentToken.getClassification()) || Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification()))) {
+			if(!(isALitOrDlmtrOrVar(currentToken.getClassification()))) {
 				return false;
 			}
 			
@@ -1975,7 +1973,7 @@ public class Interpreter {
 							return false;
 						}
 					}
-				}else if(Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification())) {
+				}else if(isADlmtr(currentToken.getClassification())) {
 					//skip if delimiter
 					continue;
 				}else if(currentToken.getClassification().equals(Token.AN_CLASSIFIER)){
@@ -2234,7 +2232,7 @@ public class Interpreter {
 							currentLexeme = "";
 						//case 2: OBTW .. TLDR (must have their own lines)
 						} else if(commentDetected == 2) {
-							if(tokensPerLine.size() == 0) {
+							if(tplSize(0)) {
 								tokensPerLine.add(new Token(currentLexeme,classification));
 								currentLexeme = "";
 								String commentEnder;
@@ -2276,6 +2274,8 @@ public class Interpreter {
 										if(possibleTLDR) {
 											createErrorPrompt(TLDR_LINE);
 										} else {
+											lineNumber = saveLineNumber;
+
 											System.out.println("return false");
 											createErrorPrompt(TLDR_MISSING);
 										}
