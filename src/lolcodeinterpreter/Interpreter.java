@@ -2733,6 +2733,7 @@ public class Interpreter {
 				}
 			} else {
 				//prompt error dialog
+            	outputDisplay.setText("No file selected");
 				Alert alert = new Alert(AlertType.INFORMATION);
 				alert.setContentText("Please select a LOLCODE file");
 				alert.setTitle("Error Dialog");
