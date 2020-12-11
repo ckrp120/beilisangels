@@ -100,7 +100,7 @@ public class Interpreter {
     public final static String EXPR_MISSING = "missing expression";
     public final static String MKAY_MISSING = "missing MKAY keyword";
     public final static String VARIDENT_MISSING = "missing variable identifier";
-    public final static String ITZ_MISSING = "missing ITZ keyword";
+    public final static String ITZ_MISSING = "missing/misplaced ITZ keyword";
     public final static String OPERAND_MISSING = "missing operand";
     public final static String AN_MISSING = "missing AN keyword";
     public final static String TLDR_MISSING = "missing TLDR keyword pair";
