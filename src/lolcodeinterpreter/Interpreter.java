@@ -65,7 +65,7 @@ public class Interpreter {
 	
     //FOR LEXICAL/SYNTAX/SEMANTIC ANALYSIS
     private String[] lines;
-    private String currentLexeme,dialogText;
+    private String currentLexeme,dialogText,errorText;
     private int lineNumber,status,orlyCount;
     private boolean validFile,validLexical,validSyntax,validSemantics,readBack;
     private int startsWithHAI,endsWithKTHXBYE;
@@ -104,6 +104,7 @@ public class Interpreter {
     public final static String OPERAND_MISSING = "missing operand";
     public final static String AN_MISSING = "missing AN keyword";
     public final static String TLDR_MISSING = "missing TLDR keyword pair";
+    public final static String OBTW_MISSING = "missing OBTW keyword pair";
 
     //INCORRECT
     public final static String INCORRECT_TYPE = "incorrect type";
@@ -122,6 +123,8 @@ public class Interpreter {
     
     //UNIQUE
     public final static String NO_INPUT = "no input entered";
+    public final static String OBTW_LINE = "OBTW keyword must have its own line";
+    public final static String TLDR_LINE = "TLDR keyword must have its own line";
     public final static String HAI_IDENTIFIED = "invalid HAI keyword";
     public final static String UNDECLARED = "undeclared variable identifier";
     public final static String DECLARED = "previously declared variable identifier";
@@ -224,7 +227,7 @@ public class Interpreter {
 				status = checkLexeme(currentLexeme); //process again starting from where an invalid lexeme is detected
 			}  
 			if(status == 1) { //case 1 or case 2 and there's still an invalid lexeme
-				createErrorPrompt(Interpreter.INVALID_LEXEME);
+				if(errorText.equals("")) createErrorPrompt(Interpreter.INVALID_LEXEME);
 				validSyntax = false;
 				break;
 			}	
@@ -2023,7 +2026,10 @@ public class Interpreter {
 	
 	//create error prompt
 	public void createErrorPrompt(String errorPrompt) {
+		
 		outputDisplayText += "ERROR on Line Number "+lineNumber+": "+errorPrompt;
+		if(errorText.equals("")) showError();
+		errorText = errorPrompt;
 	}
 	
 	private void addToTokens() {
@@ -2210,34 +2216,70 @@ public class Interpreter {
 							tokensPerLine.add(new Token(currentLexeme,classification));
 							currentLexeme = "";
 						//case 2: OBTW .. TLDR (must have their own lines)
-						} else if(tokensPerLine.size() == 0) {
-							tokensPerLine.add(new Token(currentLexeme,classification));
-							currentLexeme = "";
-							String commentEnder;
-							int saveLineNumber = lineNumber;
-							boolean TLDR;
-							//ignore lines until a TLDR is detected
-							do {
-								TLDR=false;
-								commentEnder="";
-								line = lines[lineNumber];
-								lineNumber++;
-								String[] lexemes = line.split(" ");
+						} else if(commentDetected == 2) {
+							if(tokensPerLine.size() == 0) {
+								tokensPerLine.add(new Token(currentLexeme,classification));
+								currentLexeme = "";
+								String commentEnder;
+								int saveLineNumber = lineNumber;
+								boolean TLDR,possibleTLDR,otherOBTW;
 								
-								
-								for(int i=0;i<lexemes.length;i++) {
-									if(!lexemes[i].equals("")) commentEnder+=lexemes[i];
-								}	
-								if(commentEnder.equals(Token.TLDR)) TLDR=true;
-							} while(!TLDR && lineNumber<lines.length);			
-	
-							if(!TLDR) {
-								lineNumber = saveLineNumber;
-								System.out.println("return false");
-								createErrorPrompt(TLDR_MISSING);
+								//ignore lines until a TLDR is detected
+								do {
+									TLDR=false;
+									possibleTLDR=false;
+									otherOBTW=false;
+									commentEnder="";
+									line = lines[lineNumber];
+									lineNumber++;
+									String[] lexemes = line.split(" ");
+									
+									
+									for(int i=0;i<lexemes.length;i++) {
+										if(!lexemes[i].equals("")) {
+											System.out.println(lexemes[i]+"-------------------------------");
+											if(lexemes[i].equals(Token.TLDR)) {
+												saveLineNumber = lineNumber - 1;
+												possibleTLDR = true;
+											}
+											if(lexemes[i].equals(Token.OBTW)) {
+												otherOBTW = true;
+											}
+											commentEnder+=lexemes[i];
+										}
+									}	
+									if(commentEnder.equals(Token.TLDR)) TLDR=true;
+								} while(!TLDR && !possibleTLDR && !otherOBTW && lineNumber<lines.length);			
+		
+								if(!TLDR) {
+									if(otherOBTW) {										
+										lineNumber = saveLineNumber;
+										createErrorPrompt(TLDR_MISSING);
+									} else {
+										if(possibleTLDR) {
+											createErrorPrompt(TLDR_LINE);
+										} else {
+											System.out.println("return false");
+											createErrorPrompt(TLDR_MISSING);
+										}
+									}
+									
+
+									lineNumber = saveLineNumber;
+									System.out.println(lineNumber+"-----"+saveLineNumber);
+
+									validSyntax = false;
+									validSemantics = false;
+									break;
+								}
+							} else {
+								createErrorPrompt(Interpreter.OBTW_LINE);
 								validSyntax = false;
-								validSemantics = false;
 							}
+						} else {
+							createErrorPrompt(OBTW_MISSING);
+							validSyntax = false;
+							validSemantics = false;
 						}
 						break;
 					
@@ -2313,7 +2355,8 @@ public class Interpreter {
 		System.out.println("1");
 		if(tokensPerLine.size()>0) {
 			if(tplLexeme(0).equals(Token.I_HAS_A)) {
-				if(Character.isLetter(currentLexeme.charAt(0))) {
+				if(lines[lineNumber-1].contains(" OF ")) return false;
+				if(Character.isLetter(currentLexeme.charAt(0)) && !Token.OBTW.equals(currentLexeme.substring(0,4))) {
 					return true;
 				}
 				else return false;
@@ -2411,6 +2454,7 @@ public class Interpreter {
 	public int isAComment(String s) {
 		if(s.equals(Token.BTW)) return 1;
 		if(s.equals(Token.OBTW)) return 2;
+		if(s.equals(Token.TLDR)) return 3;
 		return 0;                    
 	}
 	
@@ -2558,6 +2602,7 @@ public class Interpreter {
 		//clear all values
 		fileString = "";
 		outputDisplayText = "";
+		errorText = "";		
 		lineNumber = 0;		
 		orlyCount =0;
 		startsWithHAI = 0;
@@ -2685,7 +2730,6 @@ public class Interpreter {
 					interpretFile();
 
 					if(correctStartAndEnd() && validLexical && validSyntax && validSemantics) showPass();
-					else showError();
 				}
 			} else {
 				//prompt error dialog

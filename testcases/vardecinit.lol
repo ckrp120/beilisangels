@@ -13,7 +13,7 @@ HAI
   I HAS A var6 ITZ var2
 
   BTW initialization of variable using expressions
-  I HAS A var7 ITZ DIFF OF 1 AN 2
+  I HAS A var7 ITZ DIFFF OF 1 AN 2
   I HAS A var8 ITZ QUOSHUNT OF 144 AN SUM OF 3 AN 9
   I HAS A var9 ITZ DIFFRINT 1 AN 1
   I HAS A var10 ITZ DIFFRINT 2 AN 1
