@@ -6,22 +6,22 @@ HAI
 	    	BOTH SAEM 1 AN 2
 	    	O RLY?
 				YA RLY
-			    	VISIBLE "WIN WIN"
+			    	VISIBLE "ORAYT"
 			    NO WAI
-			    	VISIBLE "WIN FAIL"
+			    	VISIBLE "SAD"
 			OIC	
-		    VISIBLE "AFTER WIN"
+		    VISIBLE "PAGTAPOS NG YARLY HAHA"
 	    NO WAI
 		    BOTH SAEM 1 AN 2
 	    	O RLY?
 				YA RLY
-			    	VISIBLE "FAIL WIN"
+			    	VISIBLE "AWITZ"
 			    NO WAI
-			    	VISIBLE "FAIL FAIL"
+			    	VISIBLE "WAG FAIL"
 			OIC
-			VISIBLE "AFTER FAIL"
+			VISIBLE "AFTER NOWAI"
 	OIC
-	VISIBLE "ALWAYS PRINTS"
+	VISIBLE "SHOW ALWAYS"
 	
-	BTW to changes values of lines 3, 6, 15
+	BTW change values of lines 3, 6, 15
 KTHXBYE
