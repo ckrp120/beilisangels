@@ -116,10 +116,12 @@ public class Interpreter {
     public final static String NOT_MISPLACED = "misplaced NOT keyword";
     public final static String OPERATOR_MISPLACED = "misplaced operator";
     public final static String KTHXBYE_MISPLACED = "misplaced KTHXBYE keyword";
- 
+    public final static String MKAY_MISPLACED = "misplaced MKAY";
+    
     //TYPECASTING ERRORS
     public final static String PARSE_YARN = "cannot parse YARN to NUMBR/NUMBAR";
     public final static String PARSE_NOOB = "cannot parse NOOB to NUMBR/NUMBAR";
+    public final static String PARSE_N_TO_STRING = "cannot parse NOOB to YARN";
     
     //UNIQUE
     public final static String NO_INPUT = "no input entered";
@@ -992,7 +994,7 @@ public class Interpreter {
 		
 		for(int i=0; i < combiTokens.size(); i++) {
 			currentToken = combiTokens.get(i);
-
+			
 			//if AN is detected, it must not be the last or starting token, and must not be followed by an AN
 			if(currentToken.getLexeme().equals(Token.AN)) {
 				
@@ -1013,7 +1015,7 @@ public class Interpreter {
 			
 				//NOT is last token
 				if(i == 0) {
-					createErrorPrompt(Interpreter.NOT_MISPLACED);
+					createErrorPrompt(Interpreter.OPERATOR_MISPLACED);
 					return false;
 				}
 				
@@ -1047,6 +1049,7 @@ public class Interpreter {
 					
 					int popCnt = 0;	
 					while(popCnt < infArityOpCount-1) {
+						System.out.println(popCnt);
 						if(operation.size() > 1) {
 							operation.pop();
 							operation.pop();
@@ -1095,7 +1098,7 @@ public class Interpreter {
 			}else if(Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification())) {
 				continue;
 			}else if(currentToken.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)){
-				if(i == 0) {
+				if(i == 1) {
 					
 					if(i+2 < combiTokens.size()-1 && !(combiTokens.get(i+2).getLexeme().equals(Token.AN) || combiTokens.get(i+2).getLexeme().equals(Token.NOT))) {
 						createErrorPrompt(Interpreter.AN_MISSING);
@@ -1235,6 +1238,7 @@ public class Interpreter {
 				}
 			}else if(Token.MKAY_CLASSIFIER.equals(currentToken.getClassification())) {
 				if(mkayIsPresent) {
+					System.out.println("here");
 					createErrorPrompt(Interpreter.DUP_MKAY);
 					return false;
 				}
@@ -1261,10 +1265,14 @@ public class Interpreter {
 				}
 				
 				mkayIsPresent = true;
-			}else return false; //lexeme does not belong in the expression			
+			}else{
+				createErrorPrompt(Interpreter.INVALID_STATEMENT);
+				return false; //lexeme does not belong in the expression			
+			}
 		
 		}
 		
+		System.out.println("here?!");
 		//there should only be 1 operand left
 		if((operation.size() == 1) && infArityOpCount == 0) {
 			//back to original state
@@ -1327,12 +1335,15 @@ public class Interpreter {
 			}else if(Token.BINARY_BOOLEAN_EXPRESSIONS.contains(tkn.getClassification())) {
 				String op1 = operation.pop();
 				String classificationOp1 = getClass(op1);
-				if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = boolTypeCast(op1);				
+				if(!classificationOp1.equals(Token.TROOF_LITERAL_CLASSIFIER)) op1 = boolTypeCast(op1);
+				System.out.println("here"+op1);
+				
 				
 				String op2 = operation.pop();
 				String classificationOp2 = getClass(op2);
 				if(!classificationOp2.equals(Token.TROOF_LITERAL_CLASSIFIER)) op2 = boolTypeCast(op2);
 				
+				System.out.println("op2"+op2);
 				switch(tkn.getClassification()) {
 					case Token.BOTH_OF_CLASSIFIER:
 						operation.push(andOperator(op1, op2));
@@ -1400,6 +1411,7 @@ public class Interpreter {
 					}
 				}
 			}else if(Token.ARITHMETIC_EXPRESSIONS.contains(tkn.getClassification())) {
+				//System.out.println("Line check: "+lineNumber);
 				boolean resultIsNumbar = false;
 				String op1 = operation.pop();
 				String classificationOp1 = getClass(op1);
@@ -1573,8 +1585,7 @@ public class Interpreter {
 		s.setValue(result);
 		s.setDataType(Symbol.BOOLEAN);
 		return result;
-	}
-		
+	}		
 	//TYPECASTS NON TROOF OPERANDS TO TROOF
 	private String boolTypeCast(String op1) {
 		String classificationOp1 = getClass(op1);
@@ -1938,6 +1949,7 @@ public class Interpreter {
 
 			//token after SMOOSH must be a literal or a varident
 			if(!(isALit(currentToken.getClassification()) || isAVar(currentToken.getClassification()) || Token.STRING_DELIMITER_CLASSIFIER.equals(currentToken.getClassification()))) {
+				createErrorPrompt(Interpreter.OPERAND_MISSING);
 				return false;
 			}
 			
@@ -1956,12 +1968,14 @@ public class Interpreter {
 						//if yarn, skip delimiter and must be followed by AN/MKAY keyword
 						if(currentToken.getClassification().equals(Token.YARN_LITERAL_CLASSIFIER)) {
 							if(i+2 < smooshTokens.size() && !(smooshTokens.get(i+2).getLexeme().equals(Token.AN) || smooshTokens.get(i+2).getLexeme().equals(Token.MKAY))) {
+								createErrorPrompt(Interpreter.AN_MISSING);
 								return false;
 							}
 						}
 						
 						//next token must AN/MKAY
 						else if(!(smooshTokens.get(i+1).getLexeme().equals(Token.AN) || smooshTokens.get(i+1).getLexeme().equals(Token.MKAY))) {
+							createErrorPrompt(Interpreter.AN_MISSING);
 							return false;
 						}
 					}
@@ -1971,14 +1985,25 @@ public class Interpreter {
 				}else if(currentToken.getClassification().equals(Token.AN_CLASSIFIER)){
 					
 					//must not be the last token
-					if(i == smooshTokens.size()-1) return false;
+					if(i == smooshTokens.size()-1) {
+						createErrorPrompt(Interpreter.UNEXPECTED_END);
+						return false;
+					
+					}
 					
 					//must not be followed by MKAY/AN
-					else if(smooshTokens.get(i+1).getClassification().equals(Token.AN_CLASSIFIER) || smooshTokens.get(i+1).getClassification().equals(Token.MKAY_CLASSIFIER)) return false;
+					else if(smooshTokens.get(i+1).getClassification().equals(Token.AN_CLASSIFIER) || smooshTokens.get(i+1).getClassification().equals(Token.MKAY_CLASSIFIER)) {
+						createErrorPrompt(Interpreter.OPERAND_MISSING);
+						return false;
+					}
 				}else if(Token.MKAY_CLASSIFIER.equals(currentToken.getClassification())) {
 					//must be last token
-					if(i != smooshTokens.size()-1) return false;
+					if(i != smooshTokens.size()-1) {
+						createErrorPrompt(Interpreter.MKAY_MISSING);
+						return false;
+					}
 				}else{
+					createErrorPrompt(Interpreter.INVALID_STATEMENT);
 					return false;
 				}
 			}
@@ -1991,7 +2016,11 @@ public class Interpreter {
 			String concat = "";
 			
 			Symbol varHolder = isASymbol(dataHolder);
-			if(varHolder == null) return null;
+			if(varHolder == null) {
+				createErrorPrompt(Interpreter.UNDECLARED);
+				return null;
+			
+			}
 			
 			for(Token tkn: smooshTokens) {
 				if(isALit(tkn.getClassification())) {
@@ -2001,6 +2030,7 @@ public class Interpreter {
 					if(var != null && !var.getDataType().equals(Symbol.UNINITIALIZED)) {
 						concat += var.getValue();
 					}else {
+						createErrorPrompt(Interpreter.PARSE_N_TO_STRING);
 						validSemantics = false;
 						return null;
 					}
