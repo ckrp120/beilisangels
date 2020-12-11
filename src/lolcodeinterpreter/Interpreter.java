@@ -832,23 +832,16 @@ public class Interpreter {
 				
 				//case: smoosh
 				if(operation == 4) {
-					//check if the concat op has a valid syntax
-					if(smooshSyntax(opToken)) {
-						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else smooshExecute(identifier,opToken);
-					}
-					else validSyntax = false;
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+					else smooshExecute(identifier,opToken);
 				}
 
 				//case: other op
 				else {	
-					if(combiSyntax(opToken)) {
-						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else combiExecute(identifier,opToken);
-					}
-					else validSyntax = false;
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+					else combiExecute(identifier,opToken);
 				}
 			}
 
@@ -939,20 +932,16 @@ public class Interpreter {
 				
 				//case: concat op
 				if(operation == 4) {	
-					if(smooshSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else smooshExecute(tplLexeme(0),opTokens);
-					}
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+					else smooshExecute(tplLexeme(0),opTokens);
 				}
 				
 				//case: other op
 				else {	
-					if(combiSyntax(opTokens)) {
-						if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
-						else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
-						else combiExecute(tplLexeme(0),opTokens);
-					}
+					if(checkingSwitchStatement) storeTokensToQueue(Token.WTF);
+					else if(checkingIfStatement) storeTokensToQueue(Token.O_RLY);
+					else combiExecute(tplLexeme(0),opTokens);
 				}
 			}
 							
