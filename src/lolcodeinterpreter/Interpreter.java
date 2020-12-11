@@ -776,7 +776,7 @@ public class Interpreter {
 				return null;
 			}
 		} else {
-			createErrorPrompt(Interpreter.INCORRECT_TYPE);
+			createErrorPrompt(Interpreter.INVALID_FORMAT);
 			return null;
 		}
 	}
@@ -1465,7 +1465,7 @@ public class Interpreter {
 							validSemantics = false;
 							return null;
 						}
-						answer = o1 % o2;
+						answer = (float) o1 % o2;
 						operation.push(String.valueOf(answer));
 						break;
 					case Token.BIGGR_OF_CLASSIFIER:
